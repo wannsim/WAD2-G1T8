@@ -1,0 +1,34 @@
+/* Global styles shared by everyone. Keep it short.
+   Component-specific CSS goes in that component's <style scoped>. */
+:root {
+  --brand: #c2410c;        /* burnt orange */
+  --brand-dark: #9a3412;
+  --cream: #fbf7f1;
+}
+
+body {
+  background-color: var(--cream);
+}
+
+/* our brand button (use class="btn btn-brand") */
+.btn-brand {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.btn-brand:hover {
+  background-color: var(--brand-dark);
+  border-color: var(--brand-dark);
+  color: #fff;
+}
+
+.navbar-brand {
+  color: var(--brand) !important;
+  font-weight: 700;
+}
+
+/* product photos on cards */
+.product-img {
+  height: 160px;
+  object-fit: cover;
+}
