@@ -1,41 +1,62 @@
-# HomeBiz - IS216 Group Project
-
+# Homly Hauls - IS216 Group Project
+ 
 One-stop platform for home businesses and buyers.
 Stack: **Vue 3 (Composition API) + Vue Router + Axios + Bootstrap** on the front end, **Express + Mongoose + MongoDB Atlas** on the back end.
-
+ 
 ```
-homebiz/
+homly-hauls/
   client/   <- Vue app          (pnpm dev  -> http://localhost:5173)
   server/   <- Express API      (pnpm dev  -> http://localhost:8000)
 ```
-
+ 
 ---------------------------------------------------------------------
-
-## 1. First-time setup 
-
+ 
+## 1. First-time setup
+ 
 Prerequisite: Node >= 22.12 and pnpm (`npm install -g pnpm`).
-
+ 
 ```bash
 # terminal 1 - backend
 cd server
 pnpm install
-pnpm dev
-
+cp config.env.example config.env     # then edit config.env (see section 2)
+pnpm seed                            # first time only: loads sample data (see seeding rules below)
+pnpm dev                             # wait for "MongoDB connected"
+ 
 # terminal 2 - frontend
 cd client
 pnpm install
-pnpm dev
+pnpm dev                             # open the link it prints (http://localhost:5173)
 ```
-
-Sample logins (password for all: `password123`):
+ 
+Both terminals must be running at the same time.
+ 
+Sample logins (created by `pnpm seed`, password for all: `password123`):
 `alice@test.com` (buyer), `bob@test.com` (seller), `cara@test.com` (seller)
-
+ 
+**Seeding rules:** `pnpm seed` DELETES everything in the database named in `config.env` and reloads the sample data.
+Use your own database name (section 2) so you only ever wipe your own data. Never run it on the shared demo database.
+ 
 ---------------------------------------------------------------------
-
-## 2. MongoDB - what to put
-
+ 
+## 2. MongoDB
+ 
+Get the Atlas connection string and database user from Wan Sim (never commit it to GitHub).
+In `server/`, copy `config.env.example` to `config.env` and edit the `DB=` line:
+ 
+```
+DB=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/homly_hauls_yourname?retryWrites=true&w=majority
+PORT=8000
+```
+ 
+- Replace `<username>` and `<password>` (remove the `< >`).
+- The name after the last `/` is the database name. Use your own, e.g. `homly_hauls_tanya`, so testing never clashes with teammates. Without a name, Atlas uses `test`.
+- `config.env` is git-ignored. Do not commit it.
+- Atlas -> Network Access must allow `0.0.0.0/0` so everyone can connect.
+You do not create collections by hand. Mongoose creates them the first time data is saved.
+ 
 ### Collections (already defined in `server/models/`)
-
+ 
 | Collection | Model file | Owner | What it stores |
 |---|---|---|---|
 | `users` | User.js | Wan Sim | name, email, hashed password, `role` (buyer/seller), buyer `preferences` |
@@ -43,18 +64,18 @@ Sample logins (password for all: `password123`):
 | `products` | Product.js | Cheyenne | shop, name, category, price, unit, imageUrl, tags, customisable, `orderSlots[]`, isAvailable |
 | `orders` | Order.js | Basile | buyer, shop, product, quantity, customisation, fulfilment, requestedTime, proposedTime, status, cancelledBy, respondedAt |
 | `reviews` | Review.js | Yu Chen | order (1 review per order), buyer, shop, rating 1-5, comment |
-| `favourites` | Favourite.js | Member 3 | user + product pairs |
-| `interactions` | Interaction.js | Member 4 | user, product, shop, `type` = view / save / impression / order (feeds the FYP) |
-
+| `favourites` | Favourite.js | Tanya | user + product pairs |
+| `interactions` | Interaction.js | Jessie | user, product, shop, `type` = view / save / impression / order (feeds the FYP) |
+ 
 How the pieces connect: `shop.owner -> user`, `product.shop -> shop`, `order.{buyer,shop,product}`, `review.order`.
 **Changing a model's fields affects teammates - tell the group chat first.**
-
+ 
 ---------------------------------------------------------------------
-
+ 
 ## 3. Who owns what
-
+ 
 Each person owns their own files, so you almost never edit the same file.
-
+ 
 | # | Member | Feature | Client files | Server files |
 |---|---|---|---|---|
 | 1 | Yee Wan Sim | Auth, profiles, MongoDB | `views/auth/*`, `router/auth.routes.js`, `utils/auth.js`, `components/NavBar.vue` | `routes/users.js`, `models/User.js` |
@@ -63,29 +84,29 @@ Each person owns their own files, so you almost never edit the same file.
 | 4 | Jessie Ong | FYP recommendations | `views/feed/*`, `router/feed.routes.js` | `routes/feed.js`, `models/Interaction.js` |
 | 5 | Basile Koh | Orders | `views/orders/*`, `router/order.routes.js` | `routes/orders.js`, `models/Order.js` |
 | 6 | Liew Yu Chen | Reviews + trust score | `views/reviews/*`, `router/review.routes.js`, `components/ReviewList.vue`, `components/StarRating.vue` | `routes/reviews.js`, `utils/trust.js`, `models/Review.js` |
-
-**Shared files (edit carefully):** `utils/constants.js`, `utils/format.js`, `assets/main.css`, `App.vue`, `main.js`, `router/index.js`, `server/server.js`.
-
+ 
+**Shared files (edit carefully, tell the group):** `utils/constants.js`, `utils/format.js`, `assets/main.css`, `App.vue`, `main.js`, `router/index.js`, `server/server.js`.
+ 
 ### Who depends on whom
-- Everyone needs **Wan Sim's login** (`currentUser` in `utils/auth.js`) and **Cheyenne's shops/products** to have data to show. 
+- Everyone needs **Wan Sim's login** (`currentUser` in `utils/auth.js`) and **Cheyenne's shops/products** to have data to show. Use `pnpm seed` meanwhile.
 - **Yu Chen -> Jessie:** `shop.stats.trustScore` (0-100) goes into the FYP score.
-- **Basile -> Yu Chen:** order `status`, `respondedAt`, `cancelledBy` are the inputs to fulfilment / cancellation / response-time.
+- **Basile -> Yu Chen:** order `status`, `respondedAt`, `cancelledBy` are the inputs to fulfilment / cancellation / response time.
 - **Cheyenne -> Tanya:** `shop.location` (approximate lat/lng) is what the map pins use.
-
+Search the project for `TODO` to see what is still to build in your area.
+ 
 ---------------------------------------------------------------------
-
-## 6. API cheat-sheet (base URL `http://localhost:8000`)
-
+ 
+## 4. API cheat-sheet (base URL `http://localhost:8000`)
+ 
 | Method + path | Does | Owner |
 |---|---|---|
 | POST `/users/register`, POST `/users/login` | sign up / log in | Wan Sim |
 | GET, PUT `/users/:id` | read / update profile | Wan Sim |
 | GET `/shops`, GET `/shops/:id`, GET `/shops/mine/:ownerId`, POST `/shops`, PUT `/shops/:id` | shops | Cheyenne |
-| GET `/products?shop=`, GET `/products/:id`, POST, PUT `/products/:id`, DELETE `/products/:id` | products | Cheyenne |
-| GET `/discover?q=&category=&minPrice=&maxPrice=` | search + filter | Member 3 |
-| GET `/favourites/:userId`, GET `/favourites/:userId/ids`, POST `/favourites` | favourites (POST toggles) | Member 3 |
-| GET `/feed/:userId` (or `guest`), POST `/feed/interactions` | For You feed, log interactions | Member 4 |
+| GET `/products?shop=`, GET `/products/:id`, POST `/products`, PUT `/products/:id`, DELETE `/products/:id` | products | Cheyenne |
+| GET `/discover?q=&category=&minPrice=&maxPrice=` | search + filter | Tanya |
+| GET `/favourites/:userId`, GET `/favourites/:userId/ids`, POST `/favourites` | favourites (POST toggles) | Tanya |
+| GET `/feed/:userId` (or `guest`), POST `/feed/interactions` | For You feed, log interactions | Jessie |
 | POST `/orders`, GET `/orders/buyer/:userId`, GET `/orders/shop/:shopId`, PUT `/orders/:id/status` | orders | Basile |
 | POST `/reviews`, GET `/reviews/shop/:shopId` | reviews | Yu Chen |
-
-
+ 
