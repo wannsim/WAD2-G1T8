@@ -19,8 +19,6 @@ Prerequisite: Node >= 22.12 and pnpm (`npm install -g pnpm`).
 # terminal 1 - backend
 cd server
 pnpm install
-cp config.env.example config.env     # then edit config.env (see section 2)
-pnpm seed                            # first time only: loads sample data (see seeding rules below)
 pnpm dev                             # wait for "MongoDB connected"
  
 # terminal 2 - frontend
@@ -31,29 +29,12 @@ pnpm dev                             # open the link it prints (http://localhost
  
 Both terminals must be running at the same time.
  
-Sample logins (created by `pnpm seed`, password for all: `password123`):
+Sample logins (password for all: `password123`):
 `alice@test.com` (buyer), `bob@test.com` (seller), `cara@test.com` (seller)
- 
-**Seeding rules:** `pnpm seed` DELETES everything in the database named in `config.env` and reloads the sample data.
-Use your own database name (section 2) so you only ever wipe your own data. Never run it on the shared demo database.
  
 ---------------------------------------------------------------------
  
 ## 2. MongoDB
- 
-Get the Atlas connection string and database user from Wan Sim (never commit it to GitHub).
-In `server/`, copy `config.env.example` to `config.env` and edit the `DB=` line:
- 
-```
-DB=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/homly_hauls_yourname?retryWrites=true&w=majority
-PORT=8000
-```
- 
-- Replace `<username>` and `<password>` (remove the `< >`).
-- The name after the last `/` is the database name. Use your own, e.g. `homly_hauls_tanya`, so testing never clashes with teammates. Without a name, Atlas uses `test`.
-- `config.env` is git-ignored. Do not commit it.
-- Atlas -> Network Access must allow `0.0.0.0/0` so everyone can connect.
-You do not create collections by hand. Mongoose creates them the first time data is saved.
  
 ### Collections (already defined in `server/models/`)
  
@@ -85,7 +66,7 @@ Each person owns their own files, so you almost never edit the same file.
 | 5 | Basile Koh | Orders | `views/orders/*`, `router/order.routes.js` | `routes/orders.js`, `models/Order.js` |
 | 6 | Liew Yu Chen | Reviews + trust score | `views/reviews/*`, `router/review.routes.js`, `components/ReviewList.vue`, `components/StarRating.vue` | `routes/reviews.js`, `utils/trust.js`, `models/Review.js` |
  
-**Shared files (edit carefully, tell the group):** `utils/constants.js`, `utils/format.js`, `assets/main.css`, `App.vue`, `main.js`, `router/index.js`, `server/server.js`.
+**Shared files (edit carefully):** `utils/constants.js`, `utils/format.js`, `assets/main.css`, `App.vue`, `main.js`, `router/index.js`, `server/server.js`.
  
 ### Who depends on whom
 - Everyone needs **Wan Sim's login** (`currentUser` in `utils/auth.js`) and **Cheyenne's shops/products** to have data to show. Use `pnpm seed` meanwhile.
