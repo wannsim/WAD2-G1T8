@@ -65,13 +65,13 @@ async function save() {
       shopId.value = response.data._id
     }
     message.value = 'Shop saved!'
-    shop.value.name = ''
-    shop.value.address = ''
-    shop.value.delivery = false
-    shop.value.pickup = false
-    shop.value.description =''
-    shop.value.postalCode = ''
-    shop.value.nearestMrt = ''
+    // shop.value.name = ''
+    // shop.value.address = ''
+    // shop.value.delivery = false
+    // shop.value.pickup = false
+    // shop.value.description =''
+    // shop.value.postalCode = ''
+    // shop.value.nearestMrt = ''
   } catch (error) {
     message.value = error.response?.data?.message || error.message
   }
