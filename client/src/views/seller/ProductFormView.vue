@@ -19,10 +19,10 @@ const product = ref({
   category: '',
   description: '',
   price: 0,
-  unit: 'piece',
+  unit: '',
   imageUrl: '',
   customisable: false,
-  isAvailable: true,
+  isAvailable: false,
   orderSlots: [],
 })
 
@@ -100,7 +100,7 @@ async function save() {
           <input type="number" min="0" step="0.5" class="form-control" v-model.number="product.price" />
         </div>
         <div class="col-md-3 mb-3">
-          <label class="form-label">Unit</label>
+          <label class="form-label">Quantity</label>
           <input type="text" class="form-control" v-model.trim="product.unit" />
         </div>
       </div>

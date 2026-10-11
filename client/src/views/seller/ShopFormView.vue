@@ -15,7 +15,7 @@ const shop = ref({
   address: '',
   postalCode: '',
   nearestMrt: '',
-  pickup: true,
+  pickup: false,
   delivery: false,
   location: { lat: null, lng: null },
 })
@@ -65,6 +65,13 @@ async function save() {
       shopId.value = response.data._id
     }
     message.value = 'Shop saved!'
+    shop.value.name = ''
+    shop.value.address = ''
+    shop.value.delivery = false
+    shop.value.pickup = false
+    shop.value.description =''
+    shop.value.postalCode = ''
+    shop.value.nearestMrt = ''
   } catch (error) {
     message.value = error.response?.data?.message || error.message
   }

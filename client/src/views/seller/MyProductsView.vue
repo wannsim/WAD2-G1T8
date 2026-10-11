@@ -45,7 +45,7 @@ onMounted(() => {
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>My products</h2>
+      <h2>My Products</h2>
       <RouterLink to="/seller/products/new" class="btn btn-brand">+ Add product</RouterLink>
     </div>
 
@@ -53,7 +53,7 @@ onMounted(() => {
 
     <table v-else class="table align-middle bg-white">
       <thead>
-        <tr><th>Name</th><th>Category</th><th>Price</th><th>Available</th><th></th></tr>
+        <tr><th>Name</th><th>Category</th><th>Price</th><th>Available</th><th>Customisable</th><th></th></tr>
       </thead>
       <tbody>
         <tr v-for="p in products" :key="p._id">
@@ -61,10 +61,12 @@ onMounted(() => {
           <td>{{ p.category }}</td>
           <td>{{ formatPrice(p.price) }} / {{ p.unit }}</td>
           <td>{{ p.isAvailable ? 'Yes' : 'No' }}</td>
+          <td>{{ p.customisable ? 'Yes':'No' }}</td>
           <td class="text-end">
             <RouterLink :to="`/seller/products/${p._id}/edit`" class="btn btn-sm btn-outline-secondary me-2">Edit</RouterLink>
             <button class="btn btn-sm btn-outline-danger" @click="deleteProduct(p._id)">Delete</button>
           </td>
+          
         </tr>
       </tbody>
     </table>
