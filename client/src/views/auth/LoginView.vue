@@ -10,6 +10,7 @@ const router = useRouter()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const rememberMe = ref(false)
 
 async function login() {
   error.value = ''
@@ -18,12 +19,16 @@ async function login() {
       email: email.value,
       password: password.value,
     })
-    saveUser(response.data)
+    // saveUser(response.data)
+    saveUser(response.data, rememberMe.value)
     router.push(response.data.role === 'seller' ? '/seller/shop' : '/home')
   } catch (err) {
     error.value = err.response?.data?.message || err.message
   }
 }
+
+// saveUser(response.data, rememberMe.value)
+
 </script>
 
 <template>
@@ -40,6 +45,10 @@ async function login() {
         <label class="form-label">Password</label>
         <input type="password" class="form-control" v-model="password" @keyup.enter="login" />
       </div>
+      <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="remember" v-model="rememberMe" />
+      <label class="form-check-label" for="remember">Remember me</label>
+    </div>
       <button class="btn btn-brand w-100" @click="login">Log in</button>
 
       <p class="mt-3">No account yet? <RouterLink to="/register">Sign up</RouterLink></p>
