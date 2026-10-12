@@ -1,0 +1,104 @@
+
+/* Auth pages (Login + Register). Save as: client/src/assets/auth.css
+   Uses the template colours from main.css: --brand, --brand-dark.
+   Class names start with "auth-" so they never clash with anyone else's CSS. */
+ 
+/* centres the card on the page - no background, no animation */
+.auth-stage {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+ 
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 2rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+ 
+.auth-title {
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+ 
+/* ---------- underline-style fields ---------- */
+.auth-field {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.auth-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.1rem;
+}
+.auth-input {
+  width: 100%;
+  padding: 0.4rem 0;
+  border: 0;
+  border-bottom: 2px solid #3b3b3b;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+.auth-input:focus {
+  border-bottom-color: var(--brand);
+}
+ 
+/* eye button inside the password field */
+.auth-eye {
+  position: absolute;
+  right: 0;
+  bottom: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #3b3b3b;
+}
+.auth-eye:hover {
+  color: var(--brand);
+}
+ 
+/* ---------- buttons / links ---------- */
+.auth-btn {
+  padding: 0.65rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+}
+ 
+.auth-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+.auth-link:hover {
+  color: var(--brand-dark);
+  text-decoration: underline;
+}
+ 
+.auth-google {
+  display: flex;
+  justify-content: center;
+  min-height: 44px; /* keeps the card the same height while Google's button loads */
+}
+ 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: #8a8175;
+  font-size: 0.85rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2dccf;
+}
