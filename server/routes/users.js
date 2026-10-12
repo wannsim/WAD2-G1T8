@@ -1,6 +1,7 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
+import { OAuth2Client } from 'google-auth-library'
 
 // Owner: Wan Sim
 // POST /users/register   POST /users/login   GET /users/:id   PUT /users/:id
@@ -32,11 +33,36 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
     const user = await User.findOne({ email: (email || '').toLowerCase() })
-    const ok = user && (await bcrypt.compare(password || '', user.password))
+    const ok = user && user.password && (await bcrypt.compare(password || '', user.password))
     if (!ok) return res.status(401).json({ message: 'Wrong email or password' })
     res.json(safeUser(user))
   } catch (err) {
     res.status(500).json({ message: err.message })
+  }
+})
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, role } = req.body
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+    const { email, name, sub, email_verified } = ticket.getPayload()
+    if (!email_verified) return res.status(400).json({ message: 'Google email is not verified' })
+
+    let user = await User.findOne({ email })
+    if (!user) {
+      user = await User.create({ name, email, googleId: sub, role: role === 'seller' ? 'seller' : 'buyer' })
+    } else if (!user.googleId) {
+      user.googleId = sub // link an existing email/password account
+      await user.save()
+    }
+    res.json(safeUser(user))
+  } catch (err) {
+    res.status(401).json({ message: 'Google sign-in failed' })
   }
 })
 
