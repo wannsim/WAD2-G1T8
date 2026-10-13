@@ -12,6 +12,7 @@ const shopSchema = new mongoose.Schema(
     location: { lat: Number, lng: Number },     // APPROXIMATE coords (rounded) for privacy-safe map pins
     pickup: { type: Boolean, default: true },
     delivery: { type: Boolean, default: false },
+    pinnedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
 
     // Filled in by utils/trust.js (Yu Chen). Read by FYP (Member 4).
     stats: {

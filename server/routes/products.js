@@ -1,5 +1,6 @@
 import express from 'express'
 import Product from '../models/Product.js'
+import Shop from '../models/Shop.js'
 
 // Owner: Cheyenne
 // GET /products?shop=<shopId>   GET /products/:id   POST /products   PUT /products/:id   DELETE /products/:id
@@ -47,6 +48,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id)
+    await Shop.updateOne({ pinnedProduct: req.params.id }, { pinnedProduct: null })
     res.json({ message: 'Deleted' })
   } catch (err) {
     res.status(500).json({ message: err.message })

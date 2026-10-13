@@ -1,5 +1,6 @@
 import express from 'express'
 import Shop from '../models/Shop.js'
+import Product from '../models/Product.js'
 
 // Owner: Cheyenne
 // GET /shops   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id
@@ -48,8 +49,24 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     // never let the client overwrite the owner or the trust stats
-    const { owner, stats, ...changes } = req.body
+    const { owner, stats, pinnedProduct, ...changes } = req.body
     const shop = await Shop.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true })
+    if (!shop) return res.status(404).json({ message: 'Shop not found' })
+    res.json(shop)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// pin one product to the top of the shop page (productId = null un-pins)
+router.put('/:id/pin', async (req, res) => {
+  try {
+    const { productId } = req.body
+    if (productId) {
+      const product = await Product.findOne({ _id: productId, shop: req.params.id })
+      if (!product) return res.status(400).json({ message: 'That product is not in this shop' })
+    }
+    const shop = await Shop.findByIdAndUpdate(req.params.id, { pinnedProduct: productId || null }, { new: true })
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
     res.json(shop)
   } catch (err) {

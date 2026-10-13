@@ -1,15 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue' // CHANGED: added computed
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import ReviewList from '@/components/ReviewList.vue' // Yu Chen's component
-
+ 
 // Owner: Member 3 - /shops/:id
 const route = useRoute()
 const shop = ref(null)
 const products = ref([])
-
+ 
+// ADDED: pinned product support (the seller can pin one product to the top of their shop)
+function isPinned(product) {
+  return shop.value !== null && shop.value.pinnedProduct === product._id
+}
+const sortedProducts = computed(() =>
+  [...products.value].sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)))
+)
+ 
 onMounted(async () => {
   try {
     const shopResponse = await axios.get(`${API_URL}/shops/${route.params.id}`)
@@ -21,18 +29,18 @@ onMounted(async () => {
   }
 })
 </script>
-
+ 
 <template>
   <div v-if="shop">
     <h2>{{ shop.name }}</h2>
     <p class="text-muted">{{ shop.nearestMrt }} MRT</p>
     <p>{{ shop.description }}</p>
-
+ 
     <div class="mb-3">
       <span v-if="shop.pickup" class="badge bg-success me-1">Pickup</span>
       <span v-if="shop.delivery" class="badge bg-primary me-1">Delivery</span>
     </div>
-
+ 
     <!-- trust info (numbers come from Yu Chen's trust-score module) -->
     <div class="card card-body mb-4">
       <div>
@@ -46,14 +54,18 @@ onMounted(async () => {
         Replies in about {{ shop.stats.avgResponseMins }} min
       </div>
     </div>
-
+ 
     <h4 class="mb-3">Products</h4>
     <div class="row g-3 mb-5">
-      <div v-for="p in products" :key="p._id" class="col-sm-6 col-lg-3">
-        <ProductCard :product="p" />
+      <!-- CHANGED: loop over sortedProducts, and show a badge on the pinned one -->
+      <div v-for="p in sortedProducts" :key="p._id" class="col-sm-6 col-lg-3">
+        <ProductCard :product="p">
+          <span v-if="isPinned(p)" class="badge bg-warning text-dark">📌 Pinned</span>
+        </ProductCard>
       </div>
     </div>
-
+ 
     <ReviewList :shop-id="shop._id" />
   </div>
 </template>
+ 
