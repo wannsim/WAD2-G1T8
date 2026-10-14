@@ -22,7 +22,7 @@ async function loadOrders() {
 
 async function updateStatus(order, status) {
   try {
-    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, actor: 'buyer' })
+    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, actor: 'buyer', userId: currentUser.value._id })
     await loadOrders()
   } catch (error) {
     console.log(error.message)

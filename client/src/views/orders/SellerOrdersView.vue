@@ -31,6 +31,7 @@ async function updateStatus(order, status) {
     await axios.put(`${API_URL}/orders/${order._id}/status`, {
       status,
       actor: 'seller',
+      userId: currentUser.value._id,
       proposedTime: proposals.value[order._id],
     })
     await loadOrders()

@@ -100,14 +100,33 @@ router.get('/shop/:shopId', async (req, res) => {
   }
 })
 
-// body: { status, actor: 'buyer' | 'seller', proposedTime? }
+// Applies an allowed status change for the order's buyer or seller.
+// body: { status, userId, proposedTime }
 router.put('/:id/status', async (req, res) => {
   try {
-    const { status, actor, proposedTime } = req.body
+    const { status, userId, proposedTime } = req.body
     const order = await Order.findById(req.params.id)
     if (!order) return res.status(404).json({ message: 'Order not found' })
 
-    if (status === 'accepted' && order.status === 'rescheduled') {
+    const actor = await findActor(order, userId)
+    if (!actor) return res.status(403).json({ message: 'This is not your order' }) // R10: only the buyer or shop owner may act.
+
+    if (status === order.status) { // R11: reject a repeat of the saved status.
+      return res.status(409).json({ message: `This order is already ${status}.` })
+    }
+    if (!isAllowedChange(order.status, actor, status)) { // R9: follow the status table for this person.
+      return res.status(400).json({ message: `You cannot change this order from ${order.status} to ${status}.` })
+    }
+
+    if (status === 'rescheduled') {
+      const now = new Date().getTime()
+      const newTime = new Date(proposedTime).getTime()
+      if (!proposedTime || !(now < newTime)) { // R7: the proposed time must be present and in the future.
+        return res.status(400).json({ message: 'Please choose a new time in the future.' })
+      }
+    }
+
+    if (status === 'accepted' && order.status === 'rescheduled') { // R5: use the time the buyer agreed to.
       // buyer agreed to the seller's new time
       order.requestedTime = order.proposedTime
       order.proposedTime = undefined
@@ -116,10 +135,10 @@ router.put('/:id/status', async (req, res) => {
     }
 
     // first reply from the seller = response time (used by Yu Chen's trust score)
-    if (['accepted', 'declined', 'rescheduled'].includes(status) && !order.respondedAt && actor === 'seller') {
+    if (['accepted', 'declined', 'rescheduled'].includes(status) && !order.respondedAt && actor === 'seller') { // R5: record only the first seller reply.
       order.respondedAt = new Date()
     }
-    if (status === 'cancelled') order.cancelledBy = actor
+    if (status === 'cancelled') order.cancelledBy = actor // R5: record who cancelled using the checked actor.
 
     order.status = status
     await order.save()
@@ -130,7 +149,6 @@ router.put('/:id/status', async (req, res) => {
   }
 })
 
-// TODO (Basile): block invalid status changes (e.g. completed -> pending)
 // TODO (Basile): check the requested time is one of the product's orderSlots
 
 export default router
