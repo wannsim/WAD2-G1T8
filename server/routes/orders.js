@@ -79,21 +79,55 @@ function checkNewOrder(body, product, shop) {
   return ''
 }
 
+// Counts orders that use a place in this product's requested slot.
+async function countSlotOrders(productId, requestedTime) {
+  const orders = await Order.find({ product: productId })
+  const requestedTimeNumber = new Date(requestedTime).getTime()
+  const countedStatuses = ['pending', 'accepted', 'rescheduled', 'completed']
+  let count = 0
+  for (let i = 0; i < orders.length; i++) {
+    const order = orders[i]
+    if (new Date(order.requestedTime).getTime() === requestedTimeNumber && countedStatuses.includes(order.status)) { // R6: count only matching orders that use the slot.
+      count++
+    }
+  }
+  return count
+}
+
+// Creates an order after checking its fields, repeats and slot capacity.
 router.post('/', async (req, res) => {
   try {
     const { buyer, product, quantity, customisation, fulfilment, requestedTime } = req.body
+    if (!product) return res.status(400).json({ message: 'No product chosen.' }) // R8: an order needs a product.
     const p = await Product.findById(product)
     if (!p) return res.status(404).json({ message: 'Product not found' })
+    const shop = await Shop.findById(p.shop)
+    if (!shop) return res.status(404).json({ message: 'Shop not found' })
+
+    const message = checkNewOrder(req.body, p, shop)
+    if (message) return res.status(400).json({ message }) // R6, R7, R8: reject invalid order fields.
+
+    const already = await Order.findOne({ buyer, product, requestedTime, status: 'pending' })
+    if (already) return res.status(409).json({ message: 'You already sent this request.' }) // R11: reject the same pending request.
+
+    const slot = findSlot(p, requestedTime)
+    const used = await countSlotOrders(product, requestedTime)
+    let capacity = slot.capacity
+    if (capacity === undefined) capacity = 1 // R6: match Product.js's default when capacity is missing.
+    if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // R6: count orders, not quantity, under OPEN #4.
+
+    let customisationNote = customisation
+    if (p.customisable === false) customisationNote = '' // R1: non-customisable products get no note.
 
     const order = await Order.create({
       buyer,
       product,
       shop: p.shop,
       quantity,
-      customisation,
+      customisation: customisationNote,
       fulfilment,
       requestedTime,
-      totalPrice: p.price * (quantity || 1),
+      totalPrice: p.price * quantity,
     })
     await Interaction.create({ user: buyer, product, shop: p.shop, type: 'order' }) // feeds the FYP
     res.status(201).json(order)
@@ -174,7 +208,5 @@ router.put('/:id/status', async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
-
-// TODO (Basile): check the requested time is one of the product's orderSlots
 
 export default router
