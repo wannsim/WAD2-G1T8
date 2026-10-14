@@ -94,6 +94,38 @@ async function countSlotOrders(productId, requestedTime) {
   return count
 }
 
+// Builds a buyer's order response with pickup details only when allowed.
+function safeOrderForBuyer(order) {
+  const safeOrder = {
+    _id: order._id,
+    product: order.product,
+    quantity: order.quantity,
+    customisation: order.customisation,
+    fulfilment: order.fulfilment,
+    requestedTime: order.requestedTime,
+    proposedTime: order.proposedTime,
+    totalPrice: order.totalPrice,
+    status: order.status,
+    cancelledBy: order.cancelledBy,
+    createdAt: order.createdAt,
+    shop: null,
+    pickupAddress: '',
+    pickupPostalCode: '',
+  }
+  if (order.shop) {
+    safeOrder.shop = {
+      _id: order.shop._id,
+      name: order.shop.name,
+      nearestMrt: order.shop.nearestMrt,
+    }
+  }
+  if (order.shop && order.fulfilment === 'pickup' && (order.status === 'accepted' || order.status === 'completed')) { // R4: pickup details need an accepted or completed pickup order.
+    if (order.shop.address) safeOrder.pickupAddress = order.shop.address // R4: copy the address only after the privacy check.
+    if (order.shop.postalCode) safeOrder.pickupPostalCode = order.shop.postalCode // R4: copy the postal code only after the privacy check.
+  }
+  return safeOrder
+}
+
 // Creates an order after checking its fields, repeats and slot capacity.
 router.post('/', async (req, res) => {
   try {
@@ -136,13 +168,18 @@ router.post('/', async (req, res) => {
   }
 })
 
+// Sends the buyer's orders with the pickup-address privacy rule applied.
 router.get('/buyer/:userId', async (req, res) => {
   try {
     const orders = await Order.find({ buyer: req.params.userId })
       .populate('product', 'name unit')
-      .populate('shop', 'name')
+      .populate('shop', 'name nearestMrt address postalCode')
       .sort({ createdAt: -1 })
-    res.json(orders)
+    const safeOrders = []
+    for (let i = 0; i < orders.length; i++) {
+      safeOrders.push(safeOrderForBuyer(orders[i])) // R4: send only the hand-picked buyer response.
+    }
+    res.json(safeOrders)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
