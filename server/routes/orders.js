@@ -53,6 +53,32 @@ async function findActor(order, userId) {
   return ''
 }
 
+// Finds the product's slot that starts at the requested time.
+function findSlot(product, requestedTime) {
+  const requestedTimeNumber = new Date(requestedTime).getTime()
+  for (let i = 0; i < product.orderSlots.length; i++) {
+    const slot = product.orderSlots[i]
+    if (new Date(slot.start).getTime() === requestedTimeNumber) return slot // R7: the requested time must match a slot.
+  }
+  return null
+}
+
+// Returns the first problem with a new order, or an empty string if it is valid.
+function checkNewOrder(body, product, shop) {
+  if (!body.buyer) return 'Please log in again.' // R8: an order needs a buyer.
+  if (product.isAvailable === false) return 'This product is not available right now.' // CARD 5b: only available products may be ordered.
+  if (!Number.isInteger(body.quantity) || body.quantity < 1) return 'Quantity must be a whole number, 1 or more.' // R6: quantity must be a positive whole number.
+  if (body.fulfilment !== 'pickup' && body.fulfilment !== 'delivery') return 'Choose pickup or delivery.' // OPEN #8: keep both fulfilment options.
+  if (body.fulfilment === 'pickup' && shop.pickup === false) return 'This shop does not offer that option.' // OPEN #8: pickup must be offered by the shop.
+  if (body.fulfilment === 'delivery' && shop.delivery === false) return 'This shop does not offer that option.' // OPEN #8: delivery must be offered by the shop.
+  if (body.customisation && body.customisation.length > 200) return 'Keep your note under 200 characters.' // CARD 5f: limit the buyer's customisation note.
+  if (!body.requestedTime) return 'Please choose a pickup time.' // R8: an order needs a time.
+  const slot = findSlot(product, body.requestedTime)
+  if (!slot) return 'That time is not one of the seller\'s slots.' // R7: use one of the product's slots.
+  if (!(new Date().getTime() < new Date(slot.start).getTime())) return 'That time has already passed.' // R7: the slot must start in the future.
+  return ''
+}
+
 router.post('/', async (req, res) => {
   try {
     const { buyer, product, quantity, customisation, fulfilment, requestedTime } = req.body
