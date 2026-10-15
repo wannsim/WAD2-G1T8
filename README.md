@@ -19,11 +19,13 @@ Prerequisite: Node >= 22.12 and pnpm (`npm install -g pnpm`).
 # terminal 1 - backend
 cd server
 pnpm install
+pnpm add socket.io
 pnpm dev                             # wait for "MongoDB connected"
  
 # terminal 2 - frontend
 cd client
 pnpm install
+pnpm add socket.io-client
 pnpm dev                             # open the link it prints (http://localhost:5173)
 ```
  
