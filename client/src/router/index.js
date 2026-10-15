@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// Each teammate edits ONLY their own *.routes.js file, so we never fight over this one.
-import authRoutes from './auth.routes'         // Wan Sim
-import sellerRoutes from './seller.routes'     // Cheyenne
-import discoverRoutes from './discover.routes' // Member 3
-import feedRoutes from './feed.routes'         // Member 4
-import orderRoutes from './order.routes'       // Basile
-import reviewRoutes from './review.routes'     // Yu Chen
+import authRoutes from './auth.routes'         
+import sellerRoutes from './seller.routes'     
+import discoverRoutes from './discover.routes' 
+import feedRoutes from './feed.routes'         
+import orderRoutes from './order.routes'       
+import reviewRoutes from './review.routes'     
+import chatRoutes from './chat.routes' 
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,6 +18,7 @@ const router = createRouter({
     ...feedRoutes,
     ...orderRoutes,
     ...reviewRoutes,
+    ...chatRoutes, 
     { path: '/:pathMatch(.*)*', redirect: '/home' }, // unknown URL -> home
   ],
 })
