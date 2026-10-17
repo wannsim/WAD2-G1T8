@@ -3,6 +3,7 @@ import Order from '../models/Order.js'
 import Product from '../models/Product.js'
 import Shop from '../models/Shop.js'
 import Interaction from '../models/Interaction.js'
+import Review from '../models/Review.js'
 import { updateShopStats } from '../utils/trust.js'
 
 // Owner: Basile
@@ -94,8 +95,8 @@ async function countSlotOrders(productId, requestedTime) {
   return count
 }
 
-// Builds a buyer's order response with pickup details only when allowed.
-function safeOrderForBuyer(order) {
+// Builds a buyer's order response with review status and pickup details only when allowed.
+function safeOrderForBuyer(order, reviewedIds) {
   const safeOrder = {
     _id: order._id,
     product: order.product,
@@ -106,6 +107,7 @@ function safeOrderForBuyer(order) {
     proposedTime: order.proposedTime,
     totalPrice: order.totalPrice,
     status: order.status,
+    reviewed: reviewedIds.includes(String(order._id)), // R21: show whether this order has a review.
     cancelledBy: order.cancelledBy,
     createdAt: order.createdAt,
     shop: null,
@@ -168,16 +170,22 @@ router.post('/', async (req, res) => {
   }
 })
 
-// Sends the buyer's orders with the pickup-address privacy rule applied.
+// Sends the buyer's orders with review status and the pickup-address privacy rule applied.
 router.get('/buyer/:userId', async (req, res) => {
   try {
     const orders = await Order.find({ buyer: req.params.userId })
       .populate('product', 'name unit')
       .populate('shop', 'name nearestMrt address postalCode')
       .sort({ createdAt: -1 })
+    const reviews = await Review.find({ buyer: req.params.userId })
+    const reviewedIds = []
+    for (let i = 0; i < reviews.length; i++) {
+      const review = reviews[i]
+      reviewedIds.push(String(review.order))
+    }
     const safeOrders = []
     for (let i = 0; i < orders.length; i++) {
-      safeOrders.push(safeOrderForBuyer(orders[i])) // R4: send only the hand-picked buyer response.
+      safeOrders.push(safeOrderForBuyer(orders[i], reviewedIds)) // R4: send only the hand-picked buyer response.
     }
     res.json(safeOrders)
   } catch (err) {
