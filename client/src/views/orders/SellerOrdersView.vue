@@ -15,6 +15,10 @@ const loading = ref(true)
 const error = ref('')
 const showDone = ref(false)
 const shop = ref(null)
+const message = ref('')
+const busyId = ref('')
+const confirmId = ref('')
+const confirmStatus = ref('')
 
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
@@ -107,18 +111,60 @@ async function loadOrders() {
   }
 }
 
+// Stores the order and action that need the seller's confirmation.
+function askConfirm(order, status) {
+  confirmId.value = order._id
+  confirmStatus.value = status
+}
+
+// Closes the confirmation without changing an order.
+function clearConfirm() {
+  confirmId.value = ''
+  confirmStatus.value = ''
+}
+
+// Changes one order at a time, shows the result and refreshes the dashboard.
 async function updateStatus(order, status) {
+  if (busyId.value !== '') return // R11: ignore another action while a request is being sent.
+  message.value = ''
+  error.value = ''
+  busyId.value = order._id
   try {
     await axios.put(`${API_URL}/orders/${order._id}/status`, {
       status,
-      actor: 'seller',
       userId: currentUser.value._id,
       proposedTime: proposals.value[order._id],
     })
+    if (status === 'accepted') message.value = 'Order accepted.' // R13: explain the accepted order.
+    if (status === 'declined') message.value = 'Order declined.' // R13: explain the declined order.
+    if (status === 'rescheduled') message.value = 'New time sent to the buyer.' // R13: explain the proposed time.
+    if (status === 'completed') message.value = 'Order marked as completed.' // R13: explain the completed order.
+    if (status === 'cancelled') message.value = 'Order cancelled.' // R13: explain the cancelled order.
+    clearConfirm()
+    busyId.value = ''
     await loadOrders()
-  } catch (error) {
-    console.log(error.message)
+  } catch (err) {
+    error.value = getErrorMessage(err)
+    clearConfirm()
+    busyId.value = ''
+    await loadOrders()
   }
+}
+
+// Checks the proposed time before sending it to the buyer.
+async function proposeTime(order) {
+  message.value = ''
+  error.value = ''
+  const proposedTime = proposals.value[order._id]
+  if (!proposedTime) { // R7: a proposal needs a date and time.
+    error.value = 'Pick a date and time first.'
+    return
+  }
+  if (!(new Date().getTime() < new Date(proposedTime).getTime())) { // R7: the proposed time must be later than now.
+    error.value = 'Pick a time in the future.'
+    return
+  }
+  await updateStatus(order, 'rescheduled')
 }
 
 onMounted(() => {
@@ -165,6 +211,7 @@ onMounted(() => {
             </div></div>
           </div>
         </div>
+        <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
         <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
         <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
         <template v-else>
@@ -183,14 +230,21 @@ onMounted(() => {
                     <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <div class="d-flex flex-wrap gap-2">
-                      <button class="btn btn-sm btn-success me-2" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
-                      <button class="btn btn-sm btn-outline-danger me-2" @click="updateStatus(o, 'declined')" data-testid="order-decline">Decline</button>
+                      <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
+                      <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
                     </div>
                     <div class="mt-2">
                       <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
-                      <input type="datetime-local" class="form-control" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" data-testid="order-propose-input" />
+                      <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
                       <div class="d-flex flex-wrap gap-2 mt-2">
-                        <button class="btn btn-outline-secondary" @click="updateStatus(o, 'rescheduled')" data-testid="order-propose-submit">Propose new time</button>
+                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Propose new time</button>
+                      </div>
+                    </div>
+                    <div v-if="confirmId === o._id" class="mt-2">
+                      <p class="mb-1">Are you sure?</p>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes</button>
+                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">No</button>
                       </div>
                     </div>
                   </div>
@@ -238,8 +292,15 @@ onMounted(() => {
                     <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <div class="d-flex flex-wrap gap-2">
-                      <button class="btn btn-sm btn-brand me-2" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                      <button class="btn btn-sm btn-outline-danger" @click="updateStatus(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
+                      <button class="btn btn-sm btn-brand" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
+                      <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
+                    </div>
+                    <div v-if="confirmId === o._id" class="mt-2">
+                      <p class="mb-1">Are you sure?</p>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes</button>
+                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">No</button>
+                      </div>
                     </div>
                   </div>
                 </div>
