@@ -193,12 +193,13 @@ router.get('/buyer/:userId', async (req, res) => {
   }
 })
 
+// R23: Returns shop orders soonest pickup first so the seller can handle earlier pickups first.
 router.get('/shop/:shopId', async (req, res) => {
   try {
     const orders = await Order.find({ shop: req.params.shopId })
       .populate('product', 'name unit')
       .populate('buyer', 'name')
-      .sort({ createdAt: -1 })
+      .sort({ requestedTime: 1 })
     res.json(orders)
   } catch (err) {
     res.status(500).json({ message: err.message })
