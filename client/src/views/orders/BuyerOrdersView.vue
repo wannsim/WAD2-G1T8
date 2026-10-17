@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -10,13 +10,88 @@ import { formatPrice, formatDateTime } from '@/utils/format'
 // Owner: Basile - buyer's order dashboard
 const router = useRouter()
 const orders = ref([])
+const loading = ref(true)
+const error = ref('')
+const activeTab = ref('pending')
 
+// Groups orders that are waiting for a reply or a new time to be accepted.
+const pendingOrders = computed(() => {
+  const groupedOrders = []
+  for (let i = 0; i < orders.value.length; i++) {
+    const order = orders.value[i]
+    if (order.status === 'pending' || order.status === 'rescheduled') { // R19: Pending includes pending and rescheduled.
+      groupedOrders.push(order)
+    }
+  }
+  return groupedOrders
+})
+
+// Groups accepted orders for the Upcoming tab.
+const upcomingOrders = computed(() => {
+  const groupedOrders = []
+  for (let i = 0; i < orders.value.length; i++) {
+    const order = orders.value[i]
+    if (order.status === 'accepted') { // R19: Upcoming includes accepted orders.
+      groupedOrders.push(order)
+    }
+  }
+  return groupedOrders
+})
+
+// Groups completed orders for the Completed tab.
+const completedOrders = computed(() => {
+  const groupedOrders = []
+  for (let i = 0; i < orders.value.length; i++) {
+    const order = orders.value[i]
+    if (order.status === 'completed') { // R19: Completed includes completed orders.
+      groupedOrders.push(order)
+    }
+  }
+  return groupedOrders
+})
+
+// Groups declined and cancelled orders for the Past tab.
+const pastOrders = computed(() => {
+  const groupedOrders = []
+  for (let i = 0; i < orders.value.length; i++) {
+    const order = orders.value[i]
+    if (order.status === 'declined' || order.status === 'cancelled') { // R19: Past includes declined and cancelled.
+      groupedOrders.push(order)
+    }
+  }
+  return groupedOrders
+})
+
+// Chooses the group shown by the active tab.
+const visibleOrders = computed(() => {
+  if (activeTab.value === 'pending') {
+    return pendingOrders.value
+  } else if (activeTab.value === 'upcoming') {
+    return upcomingOrders.value
+  } else if (activeTab.value === 'completed') {
+    return completedOrders.value
+  } else {
+    return pastOrders.value
+  }
+})
+
+// Uses the server's error message, or a general message if none is available.
+function getErrorMessage(err) {
+  if (err.response && err.response.data && err.response.data.message) {
+    return err.response.data.message
+  }
+  return 'Something went wrong. Please try again.'
+}
+
+// Loads the buyer's orders and finishes the initial loading state.
 async function loadOrders() {
   try {
     const response = await axios.get(`${API_URL}/orders/buyer/${currentUser.value._id}`)
     orders.value = response.data
-  } catch (error) {
-    console.log(error.message)
+    loading.value = false
+  } catch (err) {
+    error.value = getErrorMessage(err)
+    loading.value = false
   }
 }
 
@@ -29,9 +104,14 @@ async function updateStatus(order, status) {
   }
 }
 
+// Sends logged-out users to login and sellers to their dashboard before loading.
 onMounted(() => {
   if (!currentUser.value) {
     router.push('/login')
+    return
+  }
+  if (currentUser.value.role === 'seller') {
+    router.push('/seller/orders')
     return
   }
   loadOrders()
@@ -39,35 +119,71 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <h2 class="mb-3">My orders</h2>
-    <p v-if="orders.length === 0" class="text-muted">No orders yet.</p>
-
-    <div v-for="o in orders" :key="o._id" class="card mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <h5>{{ o.product?.name }} x {{ o.quantity }}</h5>
-          <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]">{{ o.status }}</span>
-        </div>
-        <p class="mb-1 text-muted">{{ o.shop?.name }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
-        <p class="mb-1">Time: {{ formatDateTime(o.requestedTime) }}</p>
-        <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
-
-        <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mt-2">
-          Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>
-          <button class="btn btn-sm btn-success ms-2" @click="updateStatus(o, 'accepted')">Accept</button>
-          <button class="btn btn-sm btn-outline-danger ms-1" @click="updateStatus(o, 'cancelled')">Cancel order</button>
-        </div>
-
-        <button
-          v-if="o.status === 'pending' || o.status === 'accepted'"
-          class="btn btn-sm btn-outline-danger"
-          @click="updateStatus(o, 'cancelled')"
-        >
-          Cancel
-        </button>
-        <RouterLink v-if="o.status === 'completed'" :to="`/review/${o._id}`" class="btn btn-sm btn-brand">Leave a review</RouterLink>
+  <div class="row">
+    <div class="col-12">
+      <h2 class="mb-3">My orders</h2>
+      <p v-if="loading" data-testid="buyer-orders-loading">
+        <span class="spinner-border spinner-border-sm"></span> Loading...
+      </p>
+      <div v-else-if="error" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
+      <div v-else-if="orders.length === 0" data-testid="buyer-orders-empty">
+        <p class="text-muted">No orders yet.</p>
+        <RouterLink to="/browse">Browse products</RouterLink>
       </div>
+      <template v-else>
+        <ul class="nav nav-pills flex-wrap gap-2 mb-3" data-testid="buyer-orders-tabs">
+          <li class="nav-item">
+            <button class="nav-link" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" :class="{ active: activeTab === 'upcoming' }" @click="activeTab = 'upcoming'" data-testid="tab-upcoming">Upcoming ({{ upcomingOrders.length }})</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" :class="{ active: activeTab === 'completed' }" @click="activeTab = 'completed'" data-testid="tab-completed">Completed ({{ completedOrders.length }})</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" :class="{ active: activeTab === 'past' }" @click="activeTab = 'past'" data-testid="tab-past">Past ({{ pastOrders.length }})</button>
+          </li>
+        </ul>
+
+        <div v-if="visibleOrders.length === 0" class="text-muted" data-testid="buyer-orders-tab-empty">
+          <p v-if="activeTab === 'pending'">No orders waiting for the seller.</p>
+          <p v-else-if="activeTab === 'upcoming'">No upcoming pickups.</p>
+          <p v-else-if="activeTab === 'completed'">No completed orders yet.</p>
+          <p v-else>No declined or cancelled orders.</p>
+        </div>
+
+        <div v-else class="row g-3">
+          <div v-for="o in visibleOrders" :key="o._id" class="col-12 col-lg-6">
+            <div class="card" data-testid="order-row">
+              <div class="card-body">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
+                  <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                </div>
+                <p class="mb-1 text-muted">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
+                <p class="mb-1">Time: {{ formatDateTime(o.requestedTime) }}</p>
+                <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
+
+                <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mt-2">
+                  Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>
+                  <button class="btn btn-sm btn-success ms-2" @click="updateStatus(o, 'accepted')">Accept</button>
+                  <button class="btn btn-sm btn-outline-danger ms-1" @click="updateStatus(o, 'cancelled')">Cancel order</button>
+                </div>
+
+                <button
+                  v-if="o.status === 'pending' || o.status === 'accepted'"
+                  class="btn btn-sm btn-outline-danger"
+                  @click="updateStatus(o, 'cancelled')"
+                >
+                  Cancel
+                </button>
+                <RouterLink v-if="o.status === 'completed'" :to="`/review/${o._id}`" class="btn btn-sm btn-brand">Leave a review</RouterLink>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
