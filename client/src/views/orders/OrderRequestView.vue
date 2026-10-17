@@ -17,6 +17,8 @@ const requestedTime = ref('')
 const error = ref('')
 const loading = ref(true)
 const loadError = ref('')
+const submitting = ref(false)
+const sent = ref(false)
 
 const total = computed(() => (product.value ? product.value.price * quantity.value : 0))
 
@@ -58,8 +60,32 @@ onMounted(() => {
   loadProduct()
 })
 
+// Uses the server's error message, or a general message if none is available.
+function getErrorMessage(err) {
+  if (err.response && err.response.data && err.response.data.message) {
+    return err.response.data.message
+  }
+  return 'Something went wrong. Please try again.'
+}
+
+// Returns the first problem with the form, or an empty string if it is valid.
+function validateForm() {
+  if (!Number.isInteger(quantity.value) || quantity.value < 1) return 'Quantity must be a whole number, 1 or more.' // R6: quantity must be a positive whole number.
+  if (!requestedTime.value) return 'Please choose a pickup time.' // R8: an order needs a time.
+  if (fulfilment.value !== 'pickup' && fulfilment.value !== 'delivery') return 'Choose pickup or delivery.' // R1: use one of the two fulfilment options.
+  return ''
+}
+
+// Checks the form and sends one request, then shows its result on this page.
 async function submitOrder() {
+  if (submitting.value) return // R11: ignore another click while the request is being sent.
   error.value = ''
+  const message = validateForm()
+  if (message) { // R6, R8: show the first problem without sending a request.
+    error.value = message
+    return
+  }
+  submitting.value = true
   try {
     await axios.post(`${API_URL}/orders`, {
       buyer: currentUser.value._id,
@@ -69,9 +95,11 @@ async function submitOrder() {
       fulfilment: fulfilment.value,
       requestedTime: requestedTime.value,
     })
-    router.push('/orders')
+    sent.value = true
+    submitting.value = false
   } catch (err) {
-    error.value = err.response?.data?.message || err.message
+    error.value = getErrorMessage(err)
+    submitting.value = false
   }
 }
 </script>
@@ -83,6 +111,12 @@ async function submitOrder() {
         <span class="spinner-border spinner-border-sm"></span> Loading...
       </p>
       <div v-else-if="loadError" class="alert alert-danger" data-testid="order-load-error">{{ loadError }}</div>
+      <div v-else-if="sent && product" class="alert alert-success" data-testid="order-success">
+        <p>Request sent to {{ product.shop.name }}. The seller will accept, decline or suggest another time.</p>
+        <div class="d-flex flex-wrap gap-2">
+          <RouterLink to="/orders" class="btn btn-brand" data-testid="order-view-orders-link">View my orders</RouterLink>
+        </div>
+      </div>
       <div v-else-if="product && product.isAvailable === false" class="alert alert-warning" data-testid="order-unavailable">
         This product is not available right now.
       </div>
@@ -127,7 +161,12 @@ async function submitOrder() {
 
         <p class="fw-bold" data-testid="order-total">Total: {{ formatPrice(total) }}</p>
         <div class="d-flex flex-wrap gap-2">
-          <button class="btn btn-brand" @click="submitOrder" data-testid="order-submit">Send request</button>
+          <button class="btn btn-brand" :disabled="submitting" @click="submitOrder" data-testid="order-submit">
+            <template v-if="submitting">
+              <span class="spinner-border spinner-border-sm"></span> Sending...
+            </template>
+            <template v-else>Send request</template>
+          </button>
         </div>
       </div>
     </div>
