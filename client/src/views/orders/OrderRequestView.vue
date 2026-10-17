@@ -19,6 +19,8 @@ const loading = ref(true)
 const loadError = ref('')
 const submitting = ref(false)
 const sent = ref(false)
+const chatBusy = ref(false)
+const chatError = ref('')
 
 const total = computed(() => (product.value ? product.value.price * quantity.value : 0))
 
@@ -66,6 +68,24 @@ function getErrorMessage(err) {
     return err.response.data.message
   }
   return 'Something went wrong. Please try again.'
+}
+
+// Opens the buyer's chat with this product's seller.
+async function messageSeller() {
+  if (chatBusy.value) return // R11: ignore another chat click while the request is being sent.
+  chatError.value = ''
+  chatBusy.value = true
+  try {
+    const response = await axios.post(`${API_URL}/chats/start`, {
+      buyer: currentUser.value._id,
+      shop: product.value.shop._id,
+    })
+    router.push('/chats/' + response.data._id)
+    chatBusy.value = false
+  } catch (err) {
+    chatError.value = getErrorMessage(err)
+    chatBusy.value = false
+  }
 }
 
 // Returns the first problem with the form, or an empty string if it is valid.
@@ -121,7 +141,13 @@ async function submitOrder() {
         This product is not available right now.
       </div>
       <div v-else-if="futureSlots.length === 0" class="alert alert-info" data-testid="order-no-slots">
-        No upcoming slots for this product.
+        <p class="mb-2">No upcoming slots for this product.</p>
+        <div v-if="currentUser && currentUser.role === 'buyer'">
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="chatBusy" @click="messageSeller" data-testid="order-message-seller">Message seller</button>
+          </div>
+          <p v-if="chatError" class="text-danger small mt-2 mb-0" data-testid="order-chat-error">{{ chatError }}</p>
+        </div>
       </div>
       <div v-else-if="product" data-testid="order-form">
         <h2>Request: {{ product.name }}</h2>
@@ -146,6 +172,13 @@ async function submitOrder() {
               {{ formatDateTime(slot.start) }}
             </option>
           </select>
+          <div v-if="currentUser && currentUser.role === 'buyer'" class="small mt-2">
+            <div class="d-flex flex-wrap gap-2">
+              <span>None of these times work?</span>
+              <button type="button" class="btn btn-link btn-sm p-0" :disabled="chatBusy" @click="messageSeller" data-testid="order-message-seller">Message seller</button>
+            </div>
+            <p v-if="chatError" class="text-danger small mt-2 mb-0" data-testid="order-chat-error">{{ chatError }}</p>
+          </div>
         </div>
 
         <div class="mb-3">
