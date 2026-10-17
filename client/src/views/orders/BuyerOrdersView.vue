@@ -13,6 +13,9 @@ const orders = ref([])
 const loading = ref(true)
 const error = ref('')
 const activeTab = ref('pending')
+const message = ref('')
+const busyId = ref('')
+const confirmId = ref('')
 
 // Groups orders that are waiting for a reply or a new time to be accepted.
 const pendingOrders = computed(() => {
@@ -100,12 +103,34 @@ async function loadOrders() {
   }
 }
 
+// Shows the cancellation confirmation for this order.
+function askConfirm(order) {
+  confirmId.value = order._id
+}
+
+// Closes the cancellation confirmation without changing an order.
+function clearConfirm() {
+  confirmId.value = ''
+}
+
+// Changes one order at a time, shows the result and refreshes the list.
 async function updateStatus(order, status) {
+  if (busyId.value !== '') return // R11: ignore another action while a request is being sent.
+  message.value = ''
+  error.value = ''
+  busyId.value = order._id
   try {
-    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, actor: 'buyer', userId: currentUser.value._id })
+    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id })
+    if (status === 'cancelled') message.value = 'Order cancelled.' // R13: explain the successful cancellation.
+    if (status === 'accepted') message.value = 'New time accepted.' // R13: explain the accepted proposal.
+    confirmId.value = ''
+    busyId.value = ''
     await loadOrders()
-  } catch (error) {
-    console.log(error.message)
+  } catch (err) {
+    error.value = getErrorMessage(err)
+    confirmId.value = ''
+    busyId.value = ''
+    await loadOrders()
   }
 }
 
@@ -130,12 +155,14 @@ onMounted(() => {
       <p v-if="loading" data-testid="buyer-orders-loading">
         <span class="spinner-border spinner-border-sm"></span> Loading...
       </p>
-      <div v-else-if="error" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
+      <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
       <div v-else-if="orders.length === 0" data-testid="buyer-orders-empty">
         <p class="text-muted">No orders yet.</p>
         <RouterLink to="/browse">Browse products</RouterLink>
       </div>
       <template v-else>
+        <div v-if="message" class="alert alert-success" data-testid="buyer-orders-message">{{ message }}</div>
+        <div v-if="error" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
         <ul class="nav nav-pills flex-wrap gap-2 mb-3" data-testid="buyer-orders-tabs">
           <li class="nav-item">
             <button class="nav-link" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button>
@@ -182,17 +209,23 @@ onMounted(() => {
 
                 <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mt-2" data-testid="order-proposal">
                   Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>
-                  <button class="btn btn-sm btn-success ms-2" @click="updateStatus(o, 'accepted')">Accept</button>
-                  <button class="btn btn-sm btn-outline-danger ms-1" @click="updateStatus(o, 'cancelled')">Cancel order</button>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
+                  </div>
                 </div>
 
-                <button
-                  v-if="o.status === 'pending' || o.status === 'accepted'"
-                  class="btn btn-sm btn-outline-danger"
-                  @click="updateStatus(o, 'cancelled')"
-                >
-                  Cancel
-                </button>
+                <div v-if="o.status === 'pending' || o.status === 'rescheduled' || o.status === 'accepted'">
+                  <template v-if="confirmId === o._id">
+                    <p class="mb-1">Cancel this order?</p>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, 'cancelled')" data-testid="order-confirm-yes">Yes, cancel</button>
+                      <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                    </div>
+                  </template>
+                  <div v-else class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
+                  </div>
+                </div>
                 <template v-if="o.status === 'completed'">
                   <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-brand" data-testid="order-review-link">Leave a review</RouterLink>
                   <span v-else class="badge bg-light text-dark border" data-testid="order-reviewed">Reviewed</span>
