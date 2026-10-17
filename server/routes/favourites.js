@@ -3,7 +3,7 @@ import Favourite from '../models/Favourite.js'
 import Interaction from '../models/Interaction.js'
 import Product from '../models/Product.js'
 
-// Owner: Member 3 (Discovery)
+// Owner: Tanya (Discovery)
 // GET /favourites/:userId   GET /favourites/:userId/ids   POST /favourites  (toggles)
 const router = express.Router()
 

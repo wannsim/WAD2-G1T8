@@ -1,14 +1,46 @@
 <script setup>
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { API_URL } from '@/utils/config'
+import { socket } from '@/utils/socket'
 import { currentUser, isLoggedIn, isSeller, clearUser } from '@/utils/auth'
- 
+
 // Owner: Wan Sim
 const router = useRouter()
- 
+
 function logout() {
   clearUser()
   router.push('/login')
 }
+
+// ---- unread chat messages (red badge on the chat icon) ----
+const unread = ref(0)
+
+async function loadUnread() {
+  if (!currentUser.value) {
+    unread.value = 0
+    return
+  }
+  try {
+    const response = await axios.get(`${API_URL}/chats/unread/${currentUser.value._id}`)
+    unread.value = response.data.unread
+  } catch (error) {
+    // server might be off: ignore
+  }
+}
+
+watch(currentUser, loadUnread) // runs again after login / logout
+
+onMounted(() => {
+  loadUnread()
+  socket.on('new-message', loadUnread)
+  socket.on('unread-changed', loadUnread)
+})
+onUnmounted(() => {
+  socket.off('new-message', loadUnread)
+  socket.off('unread-changed', loadUnread)
+})
 </script>
  
 <template>
@@ -89,6 +121,15 @@ function logout() {
         <!-- right side: Login button, or the user's name with a small menu.
              It sits inside a navbar-nav list so Bootstrap places the menu correctly on phones too. -->
         <ul class="navbar-nav mt-2 mt-lg-0">
+           <li v-if="isLoggedIn" class="nav-item me-lg-1">
+            <RouterLink class="nav-link nav-pill d-flex align-items-center" to="/chats" title="Chats">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              <span class="d-lg-none ms-2">Chats</span>
+              <span v-if="unread > 0" class="badge rounded-pill bg-danger ms-1">{{ unread > 9 ? '9+' : unread }}</span>
+            </RouterLink>
+          </li>
           <li v-if="!isLoggedIn" class="nav-item">
             <RouterLink to="/login" class="btn nav-login">Login</RouterLink>
           </li>

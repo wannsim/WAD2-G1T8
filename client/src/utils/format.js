@@ -4,5 +4,9 @@ export function formatPrice(n) {
 
 export function formatDateTime(d) {
   if (!d) return ''
-  return new Date(d).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(d).toLocaleString('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  })
 }

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
@@ -9,6 +9,22 @@ import { formatPrice, formatDateTime } from '@/utils/format'
 // Owner: Member 3 - /products/:id
 const route = useRoute()
 const product = ref(null)
+
+const router = useRouter()
+const chatError = ref('')
+
+async function chatWithSeller() {
+  chatError.value = ''
+  try {
+    const response = await axios.post(`${API_URL}/chats/start`, {
+      buyer: currentUser.value._id,
+      shop: product.value.shop._id,
+    })
+    router.push(`/chats/${response.data._id}`) // opens the chat tab with this chat open
+  } catch (error) {
+    chatError.value = error.response?.data?.message || error.message
+  }
+}
 
 onMounted(async () => {
   try {
@@ -50,9 +66,19 @@ onMounted(async () => {
       </ul>
       <p v-if="product.orderSlots.length === 0" class="text-muted">No slots listed - ask the seller.</p>
 
-      <RouterLink v-if="currentUser && currentUser.role === 'buyer'" :to="`/order/new/${product._id}`" class="btn btn-brand">
+      <!-- <RouterLink v-if="currentUser && currentUser.role === 'buyer'" :to="`/order/new/${product._id}`" class="btn btn-brand">
         Request order
       </RouterLink>
+      <p v-else-if="!currentUser" class="text-muted">
+        <RouterLink to="/login">Log in</RouterLink> as a buyer to order.
+      </p> -->
+      <div v-if="currentUser && currentUser.role === 'buyer'">
+        <div class="d-flex gap-2">
+          <RouterLink :to="`/order/new/${product._id}`" class="btn btn-brand">Request order</RouterLink>
+          <button class="btn btn-outline-secondary" @click="chatWithSeller">Chat with seller</button>
+        </div>
+        <p v-if="chatError" class="text-danger small mt-2">{{ chatError }}</p>
+      </div>
       <p v-else-if="!currentUser" class="text-muted">
         <RouterLink to="/login">Log in</RouterLink> as a buyer to order.
       </p>
