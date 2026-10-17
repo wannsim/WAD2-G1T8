@@ -81,6 +81,29 @@ const totalActive = computed(() => {
   return count
 })
 
+// Summarises the three active order groups as counts and percentages.
+const breakdown = computed(() => {
+  const groups = [
+    { label: 'Needs reply', status: 'pending', count: needsReply.value.length, percent: 0 },
+    { label: 'Waiting on buyer', status: 'rescheduled', count: waitingOnBuyer.value.length, percent: 0 },
+    { label: 'Upcoming', status: 'accepted', count: upcoming.value.length, percent: 0 },
+  ]
+  for (let i = 0; i < groups.length; i++) {
+    if (totalActive.value > 0) { // R24: avoid dividing by zero when there are no active orders.
+      groups[i].percent = Math.round(groups[i].count * 100 / totalActive.value)
+    }
+  }
+  return groups
+})
+
+// Returns the first accepted order whose requested time has not passed.
+const nextPickup = computed(() => {
+  for (let i = 0; i < upcoming.value.length; i++) {
+    if (!isOverdue(upcoming.value[i])) return upcoming.value[i] // R24: the server already sorts soonest first.
+  }
+  return null
+})
+
 // Uses the server's error message, or a general message if none is available.
 function getErrorMessage(err) {
   if (err.response && err.response.data && err.response.data.message) {
@@ -234,6 +257,32 @@ onMounted(() => {
         <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
         <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
         <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-lg-6">
+            <div class="card" data-testid="status-breakdown">
+              <div class="card-body">
+                <h3>Active orders</h3>
+                <p v-if="totalActive === 0" class="mb-0">No active orders.</p>
+                <template v-else>
+                  <div v-for="b in breakdown" :key="b.status" class="mb-2">
+                    <p class="mb-1">{{ b.label }} ({{ b.count }})</p>
+                    <div class="progress">
+                      <div class="progress-bar" :class="ORDER_STATUS_BADGE[b.status]" :style="{ width: b.percent + '%' }"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="card" data-testid="next-pickup">
+              <div class="card-body">
+                <p v-if="nextPickup" class="mb-0">Next pickup: {{ nextPickup.product ? nextPickup.product.name : 'Product removed' }} for {{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} at {{ formatDateTime(nextPickup.requestedTime) }}</p>
+                <p v-else class="mb-0">No upcoming pickups.</p>
+              </div>
+            </div>
+          </div>
+        </div>
         <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
         <template v-else>
           <div class="mb-4" data-testid="group-needs-reply">
