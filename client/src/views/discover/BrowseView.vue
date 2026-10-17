@@ -5,6 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import { CATEGORIES } from '@/utils/constants'
+import ShopCard from '@/components/ShopCard.vue'
 
 // Owner: Member 3 - browse, search, filter, favourite
 const router = useRouter()
@@ -12,6 +13,7 @@ const q = ref('')
 const category = ref('')
 const maxPrice = ref('')
 const products = ref([])
+const shops = ref([])
 const savedIds = ref([])
 
 async function search() {
@@ -19,7 +21,11 @@ async function search() {
     const response = await axios.get(`${API_URL}/discover`, {
       params: { q: q.value, category: category.value, maxPrice: maxPrice.value },
     })
-    products.value = response.data
+    console.log('Products:', response.data.products)
+    console.log('Shops:', response.data.shops)
+    products.value = response.data.products
+    shops.value = response.data.shops
+        
   } catch (error) {
     console.log(error.message)
   }
@@ -73,7 +79,7 @@ onMounted(() => {
 
     <div class="row g-2 mb-4">
       <div class="col-md-5">
-        <input type="text" class="form-control" placeholder="Search products..." v-model.trim="q" @keyup.enter="search" />
+        <input type="text" class="form-control" placeholder="Search products..." v-model.trim="q" @input="search" />
       </div>
       <div class="col-md-3">
         <select class="form-select" v-model="category" @change="search">
@@ -82,26 +88,40 @@ onMounted(() => {
         </select>
       </div>
       <div class="col-md-2">
-        <input type="number" min="0" class="form-control" placeholder="Max $" v-model.number="maxPrice" @change="search" />
+        <input type="number" min="0" class="form-control" placeholder="Max $" v-model.number="maxPrice"
+          @change="search" />
       </div>
       <div class="col-md-2">
         <button class="btn btn-brand w-100" @click="search">Search</button>
       </div>
     </div>
 
-    <p v-if="products.length === 0" class="text-muted">No products found.</p>
+    <!-- <p v-if="products.length === 0" class="text-muted">No products found.</p> -->
+    <p v-if="products.length === 0 && shops.length === 0" class="text-muted"> No products or shops found. </p>
 
     <div class="row g-3">
       <div v-for="p in products" :key="p._id" class="col-sm-6 col-lg-3">
         <ProductCard :product="p">
-          <button
-            class="btn btn-sm"
-            :class="{ 'btn-danger': isSaved(p), 'btn-outline-danger': !isSaved(p) }"
-            @click="toggleSave(p)"
-          >
+          <button class="btn btn-sm" :class="{ 'btn-danger': isSaved(p), 'btn-outline-danger': !isSaved(p) }"
+            @click="toggleSave(p)">
             ♥
           </button>
         </ProductCard>
+      </div>
+    </div>
+    <!-- <div class="row g-3">
+      <div v-for="s in shops" :key="s._id" class="col-sm-6 col-lg-3">
+        <ShopCard :shop="s" />
+      </div>
+    </div> -->
+    <div class="row g-3">
+      <div v-for="s in shops" :key="s.owner" class="col-sm-6 col-lg-3">
+        <ShopCard :shop="s">
+          <button class="btn btn-sm" :class="{ 'btn-danger': isSaved(s), 'btn-outline-danger': !isSaved(s) }"
+            @click="toggleSave(s)">
+            ♥
+          </button>
+        </ShopCard>
       </div>
     </div>
   </div>

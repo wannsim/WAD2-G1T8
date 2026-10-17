@@ -1,8 +1,9 @@
 import express from 'express'
 import Product from '../models/Product.js'
+import Shop from '../models/Shop.js'
 import { withImageUrl } from '../utils/images.js'
 
-// Owner: Member 3 (Discovery)
+// Owner: Tanya (Discovery)
 // GET /discover?q=&category=&minPrice=&maxPrice=
 const router = express.Router()
 
@@ -13,27 +14,42 @@ function escapeRegex(text) {
 
 router.get('/', async (req, res) => {
   try {
-    const { q, category, minPrice, maxPrice } = req.query
-    const filter = { isAvailable: true }
+    const { q, category, maxPrice, shopName } = req.query
+    const productFilter = { isAvailable: true }
+    const shopFilter = {}
 
+    // Products filter
     if (q) {
       const pattern = new RegExp(escapeRegex(q), 'i')
-      filter.$or = [{ name: pattern }, { description: pattern }, { tags: pattern }]
+      productFilter.$or = [{ name: pattern }, { description: pattern }, { tags: pattern }]
     }
-    if (category) filter.category = category
-    if (minPrice || maxPrice) {
-      filter.price = {}
-      if (minPrice) filter.price.$gte = Number(minPrice)
-      if (maxPrice) filter.price.$lte = Number(maxPrice)
+    if (category) productFilter.category = category
+    if (maxPrice) {
+      productFilter.price = {}
+      productFilter.price.$lte = Number(maxPrice)
     }
 
-    const products = await Product.find(filter)
+    // Shops filter
+    if (q) {
+      const pattern = new RegExp(`^${escapeRegex(q)}$`, 'i')
+      shopFilter.name = pattern 
+    } else {
+      shopFilter._id = { $exists: false }
+    }
+
+    // return products + shops
+    const [products, shops] = await Promise.all([
+      Product.find(productFilter)
       .select('-images') // photos load separately via imageUrl
       .populate('shop', 'name nearestMrt location stats')
       .sort({ createdAt: -1 })
-      .lean()
+      .lean(),
+
+      // leave out the private address and the big certificate photos
+      Shop.find(shopFilter).select('-address -postalCode -certificationFiles.image')
+    ])
     // skip products whose shop no longer exists (their product page would have no seller)
-    res.json(products.filter((p) => p.shop).map((p) => withImageUrl(req, p)))
+    res.json({ products: products.filter((p) => p.shop).map((p) => withImageUrl(req, p)), shops })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
