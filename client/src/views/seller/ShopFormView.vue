@@ -2,7 +2,7 @@
   <div class="container mt-4 mb-5" v-if="shop">
     <div class="p-4 bg-light rounded mb-4">
       <h2>{{ shop.name }}</h2>
-      <p><strong>📍 Location (Nearest MRT):</strong> {{ shop.nearestMrt }}</p>
+      <p><strong>Location (Nearest MRT):</strong> {{ shop.nearestMrt }}</p>
       <p><strong>Experience:</strong> {{ shop.experience }}</p>
       <div>
         <span class="badge bg-secondary me-1" v-for="cat in shop.categories" :key="cat">{{ cat }}</span>

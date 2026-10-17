@@ -5,7 +5,7 @@ import Shop from '../models/Shop.js'
 import Product from '../models/Product.js'
 
 // Owner: Cheyenne
-// GET /shops   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   POST /shops/:id/follow
+// GET /shops   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
 const router = express.Router()
 
 // certificate photos: images only, max 5MB each
@@ -64,7 +64,7 @@ router.put('/:id', async (req, res) => {
   try {
     // never let the client overwrite the owner or the trust stats
     // certificate photos have their own routes below, so they can't be wiped by a profile save
-    const { owner, stats, pinnedProduct, certificationFiles, ...changes } = req.body
+    const { owner, stats, pinnedProducts, followers, certificationFiles, ...changes } = req.body
     const shop = await Shop.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true }).select(NO_CERT_IMAGES)
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
     res.json(shop)
@@ -73,17 +73,32 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-// pin one product to the top of the shop page (productId = null un-pins)
+// pin / un-pin a product (toggles). Pinned products show first on the shop page.
+// body: { user, productId }   user must be the shop owner
+const MAX_PINS = 3
 router.put('/:id/pin', async (req, res) => {
   try {
-    const { productId } = req.body
-    if (productId) {
-      const product = await Product.findOne({ _id: productId, shop: req.params.id })
-      if (!product) return res.status(400).json({ message: 'That product is not in this shop' })
+    const { user, productId } = req.body
+    if (!mongoose.isValidObjectId(req.params.id) || !mongoose.isValidObjectId(productId)) {
+      return res.status(400).json({ message: 'Invalid shop or product' })
     }
-    const shop = await Shop.findByIdAndUpdate(req.params.id, { pinnedProduct: productId || null }, { new: true })
+    const shop = await Shop.findById(req.params.id).select('owner pinnedProducts')
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
-    res.json(shop)
+    if (String(shop.owner) !== String(user)) return res.status(403).json({ message: 'Only the shop owner can pin products' })
+
+    const product = await Product.findOne({ _id: productId, shop: req.params.id }).select('_id')
+    if (!product) return res.status(400).json({ message: 'That product is not in this shop' })
+
+    const pinned = shop.pinnedProducts.some((p) => String(p) === String(productId))
+    if (!pinned && shop.pinnedProducts.length >= MAX_PINS) {
+      return res.status(400).json({ message: `You can pin up to ${MAX_PINS} products. Unpin one first.` })
+    }
+    const updated = await Shop.findByIdAndUpdate(
+      req.params.id,
+      pinned ? { $pull: { pinnedProducts: productId } } : { $addToSet: { pinnedProducts: productId } },
+      { new: true }
+    ).select('pinnedProducts')
+    res.json({ pinned: !pinned, pinnedProducts: updated.pinnedProducts })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
