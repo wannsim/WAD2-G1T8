@@ -20,7 +20,7 @@ const shopName = computed(() => props.product.shop?.name || '')
   <div class="card h-100 shadow-sm">
     <img :src="product.imageUrl || '/placeholder.svg'" class="card-img-top product-img" :alt="product.name" />
     <div class="card-body d-flex flex-column">
-      <h5 class="card-title">{{ product.name }}</h5>
+      <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold">{{ product.name }}</RouterLink>
       <p v-if="shopName" class="text-muted small mb-1">
         {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
       </p>
@@ -34,10 +34,6 @@ const shopName = computed(() => props.product.shop?.name || '')
         {{ reason }}
       </details>
 
-      <div class="mt-auto d-flex justify-content-between align-items-center">
-        <RouterLink :to="`/products/${product._id}`" class="btn btn-sm btn-brand">View</RouterLink>
-        <slot></slot>
-      </div>
     </div>
   </div>
 </template>
