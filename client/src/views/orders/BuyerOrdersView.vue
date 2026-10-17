@@ -75,6 +75,11 @@ const visibleOrders = computed(() => {
   }
 })
 
+// Checks whether an accepted order's requested time has passed.
+function isOverdue(order) {
+  return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // R20: only accepted orders with a past time are overdue.
+}
+
 // Uses the server's error message, or a general message if none is available.
 function getErrorMessage(err) {
   if (err.response && err.response.data && err.response.data.message) {
@@ -159,13 +164,23 @@ onMounted(() => {
               <div class="card-body">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                  <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                  <div class="d-flex flex-wrap gap-2 align-self-start">
+                    <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                    <span v-if="isOverdue(o)" class="badge bg-danger" data-testid="order-overdue">Overdue</span>
+                  </div>
                 </div>
                 <p class="mb-1 text-muted">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                 <p class="mb-1">Time: {{ formatDateTime(o.requestedTime) }}</p>
                 <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
 
-                <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mt-2">
+                <!-- R4: The server enforces privacy; this check only decides what to display. -->
+                <div v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="mb-2" data-testid="order-pickup-details">
+                  <p v-if="o.pickupAddress" class="mb-1">Pickup address: {{ o.pickupAddress }}</p>
+                  <p v-if="o.pickupPostalCode" class="mb-1">Postal code: {{ o.pickupPostalCode }}</p>
+                  <p v-if="!o.pickupAddress && !o.pickupPostalCode" class="mb-1">The seller has not added an address yet.</p>
+                </div>
+
+                <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mt-2" data-testid="order-proposal">
                   Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>
                   <button class="btn btn-sm btn-success ms-2" @click="updateStatus(o, 'accepted')">Accept</button>
                   <button class="btn btn-sm btn-outline-danger ms-1" @click="updateStatus(o, 'cancelled')">Cancel order</button>
@@ -178,7 +193,10 @@ onMounted(() => {
                 >
                   Cancel
                 </button>
-                <RouterLink v-if="o.status === 'completed'" :to="`/review/${o._id}`" class="btn btn-sm btn-brand">Leave a review</RouterLink>
+                <template v-if="o.status === 'completed'">
+                  <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-brand" data-testid="order-review-link">Leave a review</RouterLink>
+                  <span v-else class="badge bg-light text-dark border" data-testid="order-reviewed">Reviewed</span>
+                </template>
               </div>
             </div>
           </div>
