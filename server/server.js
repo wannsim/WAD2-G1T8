@@ -46,6 +46,8 @@ app.use('/feed', feedRoutes)
 app.use('/orders', orderRoutes)
 app.use('/reviews', reviewRoutes)
 app.use('/chats', chatRoutes)
+app.use('/api/products', productRoutes)
+app.use('/api/shops', shopRoutes)
  
 app.get('/', (req, res) => res.json({ message: 'Homly Hauls API is running' }))
  

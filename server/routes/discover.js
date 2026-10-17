@@ -1,5 +1,6 @@
 import express from 'express'
 import Product from '../models/Product.js'
+import { withImageUrl } from '../utils/images.js'
 
 // Owner: Member 3 (Discovery)
 // GET /discover?q=&category=&minPrice=&maxPrice=
@@ -27,9 +28,12 @@ router.get('/', async (req, res) => {
     }
 
     const products = await Product.find(filter)
+      .select('-images') // photos load separately via imageUrl
       .populate('shop', 'name nearestMrt location stats')
       .sort({ createdAt: -1 })
-    res.json(products)
+      .lean()
+    // skip products whose shop no longer exists (their product page would have no seller)
+    res.json(products.filter((p) => p.shop).map((p) => withImageUrl(req, p)))
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

@@ -14,11 +14,24 @@ const props = defineProps({
 
 // product.shop is an object when the server populated it, otherwise just an id
 const shopName = computed(() => props.product.shop?.name || '')
+
+// no photo / broken link -> show the placeholder instead of an empty box
+function useFallbackImage(event) {
+  if (!event.target.src.endsWith('/placeholder.svg')) event.target.src = '/placeholder.svg'
+}
 </script>
 
 <template>
   <div class="card h-100 shadow-sm">
-    <img :src="product.imageUrl || '/placeholder.svg'" class="card-img-top product-img" :alt="product.name" />
+    <!-- lazy: only download pictures that are on (or near) the screen -->
+    <img
+      :src="product.imageUrl || '/placeholder.svg'"
+      class="card-img-top product-img"
+      :alt="product.name"
+      loading="lazy"
+      decoding="async"
+      @error="useFallbackImage"
+    />
     <div class="card-body d-flex flex-column">
       <h5 class="card-title">{{ product.name }}</h5>
       <p v-if="shopName" class="text-muted small mb-1">
