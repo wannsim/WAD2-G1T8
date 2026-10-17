@@ -16,6 +16,8 @@ const activeTab = ref('pending')
 const message = ref('')
 const busyId = ref('')
 const confirmId = ref('')
+const chatBusyId = ref('')
+const chatError = ref('')
 
 // Groups orders that are waiting for a reply or a new time to be accepted.
 const pendingOrders = computed(() => {
@@ -91,6 +93,24 @@ function getErrorMessage(err) {
   return 'Something went wrong. Please try again.'
 }
 
+// Opens the buyer's chat with this order's shop.
+async function messageSeller(order) {
+  if (chatBusyId.value !== '') return // R11: ignore another chat click while a request is being sent.
+  chatError.value = ''
+  chatBusyId.value = order._id
+  try {
+    const response = await axios.post(`${API_URL}/chats/start`, {
+      buyer: currentUser.value._id,
+      shop: order.shop._id,
+    })
+    router.push('/chats/' + response.data._id)
+    chatBusyId.value = ''
+  } catch (err) {
+    chatError.value = getErrorMessage(err)
+    chatBusyId.value = ''
+  }
+}
+
 // Loads the buyer's orders and finishes the initial loading state.
 async function loadOrders() {
   try {
@@ -163,6 +183,7 @@ onMounted(() => {
       <template v-else>
         <div v-if="message" class="alert alert-success" data-testid="buyer-orders-message">{{ message }}</div>
         <div v-if="error" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
+        <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
         <ul class="nav nav-pills flex-wrap gap-2 mb-3" data-testid="buyer-orders-tabs">
           <li class="nav-item">
             <button class="nav-link" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button>
@@ -230,6 +251,9 @@ onMounted(() => {
                   <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-brand" data-testid="order-review-link">Leave a review</RouterLink>
                   <span v-else class="badge bg-light text-dark border" data-testid="order-reviewed">Reviewed</span>
                 </template>
+                <div v-if="o.shop" class="d-flex flex-wrap gap-2 mt-2">
+                  <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
+                </div>
               </div>
             </div>
           </div>
