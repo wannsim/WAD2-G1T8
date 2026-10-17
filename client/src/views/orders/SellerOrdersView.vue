@@ -19,6 +19,8 @@ const message = ref('')
 const busyId = ref('')
 const confirmId = ref('')
 const confirmStatus = ref('')
+const chatBusyId = ref('')
+const chatError = ref('')
 
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
@@ -85,6 +87,24 @@ function getErrorMessage(err) {
     return err.response.data.message
   }
   return 'Something went wrong. Please try again.'
+}
+
+// Opens the seller's chat with this order's buyer.
+async function messageBuyer(order) {
+  if (chatBusyId.value !== '') return // R11: ignore another chat click while a request is being sent.
+  chatError.value = ''
+  chatBusyId.value = order._id
+  try {
+    const response = await axios.post(`${API_URL}/chats/start`, {
+      buyer: order.buyer._id,
+      shop: shop.value._id,
+    })
+    router.push('/chats/' + response.data._id)
+    chatBusyId.value = ''
+  } catch (err) {
+    chatError.value = getErrorMessage(err)
+    chatBusyId.value = ''
+  }
 }
 
 // Checks whether an accepted order's requested time has passed.
@@ -213,6 +233,7 @@ onMounted(() => {
         </div>
         <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
         <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
+        <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
         <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
         <template v-else>
           <div class="mb-4" data-testid="group-needs-reply">
@@ -247,6 +268,9 @@ onMounted(() => {
                         <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">No</button>
                       </div>
                     </div>
+                    <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -268,6 +292,9 @@ onMounted(() => {
                     <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <p class="mb-0 text-muted">Waiting for the buyer to accept {{ formatDateTime(o.proposedTime) }}</p>
+                    <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -302,6 +329,9 @@ onMounted(() => {
                         <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">No</button>
                       </div>
                     </div>
+                    <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
+                      <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -326,6 +356,9 @@ onMounted(() => {
                       <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                       <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                       <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
+                      <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                      </div>
                     </div>
                   </div>
                 </div>
