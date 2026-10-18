@@ -31,7 +31,7 @@ const futureSlots = computed(() => {
   const now = new Date().getTime()
   for (let i = 0; i < product.value.orderSlots.length; i++) {
     const slot = product.value.orderSlots[i]
-    if (new Date(slot.start).getTime() > now) { // R7: only future slots may be chosen.
+    if (new Date(slot.start).getTime() > now) { // Only future slots may be chosen.
       slots.push(slot)
     }
   }
@@ -43,12 +43,12 @@ async function loadProduct() {
   try {
     const response = await axios.get(`${API_URL}/products/${route.params.productId}`)
     product.value = response.data
-    if (!product.value.shop.pickup && product.value.shop.delivery) { // OPEN #8: use an option the shop offers.
+    if (!product.value.shop.pickup && product.value.shop.delivery) { // Use an option the shop offers.
       fulfilment.value = 'delivery'
     }
     loading.value = false
   } catch (err) {
-    loadError.value = 'We could not load this product. Please go back and try again.' // R12: failed loads must show a message.
+    loadError.value = 'We could not load this product. Please go back and try again.' // Failed loads must show a message.
     loading.value = false
   }
 }
@@ -72,7 +72,7 @@ function getErrorMessage(err) {
 
 // Opens the buyer's chat with this product's seller.
 async function messageSeller() {
-  if (chatBusy.value) return // R11: ignore another chat click while the request is being sent.
+  if (chatBusy.value) return // Ignore another chat click while the request is being sent.
   chatError.value = ''
   chatBusy.value = true
   try {
@@ -90,18 +90,18 @@ async function messageSeller() {
 
 // Returns the first problem with the form, or an empty string if it is valid.
 function validateForm() {
-  if (!Number.isInteger(quantity.value) || quantity.value < 1) return 'Quantity must be a whole number, 1 or more.' // R6: quantity must be a positive whole number.
-  if (!requestedTime.value) return 'Please choose a pickup time.' // R8: an order needs a time.
-  if (fulfilment.value !== 'pickup' && fulfilment.value !== 'delivery') return 'Choose pickup or delivery.' // R1: use one of the two fulfilment options.
+  if (!Number.isInteger(quantity.value) || quantity.value < 1) return 'Quantity must be a whole number, 1 or more.' // Quantity must be a positive whole number.
+  if (!requestedTime.value) return 'Please choose a pickup time.' // An order needs a time.
+  if (fulfilment.value !== 'pickup' && fulfilment.value !== 'delivery') return 'Choose pickup or delivery.' // Use one of the two fulfilment options.
   return ''
 }
 
 // Checks the form and sends one request, then shows its result on this page.
 async function submitOrder() {
-  if (submitting.value) return // R11: ignore another click while the request is being sent.
+  if (submitting.value) return // Ignore another click while the request is being sent.
   error.value = ''
   const message = validateForm()
-  if (message) { // R6, R8: show the first problem without sending a request.
+  if (message) { // Show the first problem without sending a request.
     error.value = message
     return
   }

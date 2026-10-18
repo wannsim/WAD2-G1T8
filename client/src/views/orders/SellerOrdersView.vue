@@ -27,7 +27,7 @@ const needsReply = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'pending') groupedOrders.push(order) // R22: Needs reply includes pending orders.
+    if (order.status === 'pending') groupedOrders.push(order) // Needs reply includes pending orders.
   }
   return groupedOrders
 })
@@ -37,7 +37,7 @@ const waitingOnBuyer = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'rescheduled') groupedOrders.push(order) // R22: Waiting on buyer includes rescheduled orders.
+    if (order.status === 'rescheduled') groupedOrders.push(order) // Waiting on buyer includes rescheduled orders.
   }
   return groupedOrders
 })
@@ -47,7 +47,7 @@ const upcoming = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'accepted') groupedOrders.push(order) // R22: Upcoming includes all accepted orders.
+    if (order.status === 'accepted') groupedOrders.push(order) // Upcoming includes all accepted orders.
   }
   return groupedOrders
 })
@@ -57,7 +57,7 @@ const done = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'completed' || order.status === 'declined' || order.status === 'cancelled') groupedOrders.push(order) // R22: Done includes the three final statuses.
+    if (order.status === 'completed' || order.status === 'declined' || order.status === 'cancelled') groupedOrders.push(order) // Done includes the three final statuses.
   }
   return groupedOrders
 })
@@ -66,7 +66,7 @@ const done = computed(() => {
 const overdueCount = computed(() => {
   let count = 0
   for (let i = 0; i < upcoming.value.length; i++) {
-    if (isOverdue(upcoming.value[i])) count++ // R20: overdue orders remain in Upcoming.
+    if (isOverdue(upcoming.value[i])) count++ // Overdue orders remain in Upcoming.
   }
   return count
 })
@@ -76,7 +76,7 @@ const totalActive = computed(() => {
   let count = 0
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'pending' || order.status === 'rescheduled' || order.status === 'accepted') count++ // R22: current orders only.
+    if (order.status === 'pending' || order.status === 'rescheduled' || order.status === 'accepted') count++ // Count current orders only.
   }
   return count
 })
@@ -89,7 +89,7 @@ const breakdown = computed(() => {
     { label: 'Upcoming', status: 'accepted', count: upcoming.value.length, percent: 0 },
   ]
   for (let i = 0; i < groups.length; i++) {
-    if (totalActive.value > 0) { // R24: avoid dividing by zero when there are no active orders.
+    if (totalActive.value > 0) { // Avoid dividing by zero when there are no active orders.
       groups[i].percent = Math.round(groups[i].count * 100 / totalActive.value)
     }
   }
@@ -99,7 +99,7 @@ const breakdown = computed(() => {
 // Returns the first accepted order whose requested time has not passed.
 const nextPickup = computed(() => {
   for (let i = 0; i < upcoming.value.length; i++) {
-    if (!isOverdue(upcoming.value[i])) return upcoming.value[i] // R24: the server already sorts soonest first.
+    if (!isOverdue(upcoming.value[i])) return upcoming.value[i] // The server already sorts soonest first.
   }
   return null
 })
@@ -114,7 +114,7 @@ function getErrorMessage(err) {
 
 // Opens the seller's chat with this order's buyer.
 async function messageBuyer(order) {
-  if (chatBusyId.value !== '') return // R11: ignore another chat click while a request is being sent.
+  if (chatBusyId.value !== '') return // Ignore another chat click while a request is being sent.
   chatError.value = ''
   chatBusyId.value = order._id
   try {
@@ -132,7 +132,7 @@ async function messageBuyer(order) {
 
 // Checks whether an accepted order's requested time has passed.
 function isOverdue(order) {
-  return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // R20: only accepted orders can be overdue.
+  return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // Only accepted orders can be overdue.
 }
 
 // Loads the seller's shop and then its orders in the order returned by the server.
@@ -168,7 +168,7 @@ function clearConfirm() {
 
 // Changes one order at a time, shows the result and refreshes the dashboard.
 async function updateStatus(order, status) {
-  if (busyId.value !== '') return // R11: ignore another action while a request is being sent.
+  if (busyId.value !== '') return // Ignore another action while a request is being sent.
   message.value = ''
   error.value = ''
   busyId.value = order._id
@@ -178,11 +178,11 @@ async function updateStatus(order, status) {
       userId: currentUser.value._id,
       proposedTime: proposals.value[order._id],
     })
-    if (status === 'accepted') message.value = 'Order accepted.' // R13: explain the accepted order.
-    if (status === 'declined') message.value = 'Order declined.' // R13: explain the declined order.
-    if (status === 'rescheduled') message.value = 'New time sent to the buyer.' // R13: explain the proposed time.
-    if (status === 'completed') message.value = 'Order marked as completed.' // R13: explain the completed order.
-    if (status === 'cancelled') message.value = 'Order cancelled.' // R13: explain the cancelled order.
+    if (status === 'accepted') message.value = 'Order accepted.' // Explain the accepted order.
+    if (status === 'declined') message.value = 'Order declined.' // Explain the declined order.
+    if (status === 'rescheduled') message.value = 'New time sent to the buyer.' // Explain the proposed time.
+    if (status === 'completed') message.value = 'Order marked as completed.' // Explain the completed order.
+    if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the cancelled order.
     clearConfirm()
     busyId.value = ''
     await loadOrders()
@@ -199,11 +199,11 @@ async function proposeTime(order) {
   message.value = ''
   error.value = ''
   const proposedTime = proposals.value[order._id]
-  if (!proposedTime) { // R7: a proposal needs a date and time.
+  if (!proposedTime) { // A proposal needs a date and time.
     error.value = 'Pick a date and time first.'
     return
   }
-  if (!(new Date().getTime() < new Date(proposedTime).getTime())) { // R7: the proposed time must be later than now.
+  if (!(new Date().getTime() < new Date(proposedTime).getTime())) { // The proposed time must be later than now.
     error.value = 'Pick a time in the future.'
     return
   }

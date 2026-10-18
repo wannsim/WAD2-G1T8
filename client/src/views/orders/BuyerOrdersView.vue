@@ -24,7 +24,7 @@ const pendingOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'pending' || order.status === 'rescheduled') { // R19: Pending includes pending and rescheduled.
+    if (order.status === 'pending' || order.status === 'rescheduled') { // Pending includes pending and rescheduled.
       groupedOrders.push(order)
     }
   }
@@ -36,7 +36,7 @@ const upcomingOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'accepted') { // R19: Upcoming includes accepted orders.
+    if (order.status === 'accepted') { // Upcoming includes accepted orders.
       groupedOrders.push(order)
     }
   }
@@ -48,7 +48,7 @@ const completedOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'completed') { // R19: Completed includes completed orders.
+    if (order.status === 'completed') { // Completed includes completed orders.
       groupedOrders.push(order)
     }
   }
@@ -60,7 +60,7 @@ const pastOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'declined' || order.status === 'cancelled') { // R19: Past includes declined and cancelled.
+    if (order.status === 'declined' || order.status === 'cancelled') { // Past includes declined and cancelled.
       groupedOrders.push(order)
     }
   }
@@ -82,7 +82,7 @@ const visibleOrders = computed(() => {
 
 // Checks whether an accepted order's requested time has passed.
 function isOverdue(order) {
-  return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // R20: only accepted orders with a past time are overdue.
+  return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // Only accepted orders with a past time are overdue.
 }
 
 // Uses the server's error message, or a general message if none is available.
@@ -95,7 +95,7 @@ function getErrorMessage(err) {
 
 // Opens the buyer's chat with this order's shop.
 async function messageSeller(order) {
-  if (chatBusyId.value !== '') return // R11: ignore another chat click while a request is being sent.
+  if (chatBusyId.value !== '') return // Ignore another chat click while a request is being sent.
   chatError.value = ''
   chatBusyId.value = order._id
   try {
@@ -135,14 +135,14 @@ function clearConfirm() {
 
 // Changes one order at a time, shows the result and refreshes the list.
 async function updateStatus(order, status) {
-  if (busyId.value !== '') return // R11: ignore another action while a request is being sent.
+  if (busyId.value !== '') return // Ignore another action while a request is being sent.
   message.value = ''
   error.value = ''
   busyId.value = order._id
   try {
     await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id })
-    if (status === 'cancelled') message.value = 'Order cancelled.' // R13: explain the successful cancellation.
-    if (status === 'accepted') message.value = 'New time accepted.' // R13: explain the accepted proposal.
+    if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the successful cancellation.
+    if (status === 'accepted') message.value = 'New time accepted.' // Explain the accepted proposal.
     confirmId.value = ''
     busyId.value = ''
     await loadOrders()
@@ -221,7 +221,7 @@ onMounted(() => {
                 <p class="mb-1">Time: {{ formatDateTime(o.requestedTime) }}</p>
                 <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
 
-                <!-- R4: The server enforces privacy; this check only decides what to display. -->
+                <!-- The server enforces privacy; this check only decides what to display. -->
                 <div v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="mb-2" data-testid="order-pickup-details">
                   <p v-if="o.pickupAddress" class="mb-1">Pickup address: {{ o.pickupAddress }}</p>
                   <p v-if="o.pickupPostalCode" class="mb-1">Postal code: {{ o.pickupPostalCode }}</p>

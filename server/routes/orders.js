@@ -39,18 +39,18 @@ const NEXT_STATUS = {
 
 // Checks whether this person may change the current status to the new status.
 function isAllowedChange(currentStatus, actor, newStatus) {
-  if (actor !== 'buyer' && actor !== 'seller') return false // R9: only buyer and seller have status rules.
+  if (actor !== 'buyer' && actor !== 'seller') return false // Only buyer and seller have status rules.
   const rules = NEXT_STATUS[currentStatus]
-  if (!rules || !rules[actor]) return false // R9: reject statuses with no rules for this person.
-  return rules[actor].includes(newStatus) // R9: the new status must be in the allowed list.
+  if (!rules || !rules[actor]) return false // Reject statuses with no rules for this person.
+  return rules[actor].includes(newStatus) // The new status must be in the allowed list.
 }
 
 // Finds whether this user is the order's buyer or the shop's owner.
 async function findActor(order, userId) {
-  if (!userId) return '' // R10: a user id is needed to check ownership.
-  if (String(order.buyer) === String(userId)) return 'buyer' // R10: match the order's buyer.
+  if (!userId) return '' // A user id is needed to check ownership.
+  if (String(order.buyer) === String(userId)) return 'buyer' // Match the order's buyer.
   const shop = await Shop.findById(order.shop)
-  if (shop && String(shop.owner) === String(userId)) return 'seller' // R10: match the shop's owner if the shop exists.
+  if (shop && String(shop.owner) === String(userId)) return 'seller' // Match the shop's owner if the shop exists.
   return ''
 }
 
@@ -59,24 +59,24 @@ function findSlot(product, requestedTime) {
   const requestedTimeNumber = new Date(requestedTime).getTime()
   for (let i = 0; i < product.orderSlots.length; i++) {
     const slot = product.orderSlots[i]
-    if (new Date(slot.start).getTime() === requestedTimeNumber) return slot // R7: the requested time must match a slot.
+    if (new Date(slot.start).getTime() === requestedTimeNumber) return slot // The requested time must match a slot.
   }
   return null
 }
 
 // Returns the first problem with a new order, or an empty string if it is valid.
 function checkNewOrder(body, product, shop) {
-  if (!body.buyer) return 'Please log in again.' // R8: an order needs a buyer.
-  if (product.isAvailable === false) return 'This product is not available right now.' // CARD 5b: only available products may be ordered.
-  if (!Number.isInteger(body.quantity) || body.quantity < 1) return 'Quantity must be a whole number, 1 or more.' // R6: quantity must be a positive whole number.
-  if (body.fulfilment !== 'pickup' && body.fulfilment !== 'delivery') return 'Choose pickup or delivery.' // OPEN #8: keep both fulfilment options.
-  if (body.fulfilment === 'pickup' && shop.pickup === false) return 'This shop does not offer that option.' // OPEN #8: pickup must be offered by the shop.
-  if (body.fulfilment === 'delivery' && shop.delivery === false) return 'This shop does not offer that option.' // OPEN #8: delivery must be offered by the shop.
-  if (body.customisation && body.customisation.length > 200) return 'Keep your note under 200 characters.' // CARD 5f: limit the buyer's customisation note.
-  if (!body.requestedTime) return 'Please choose a pickup time.' // R8: an order needs a time.
+  if (!body.buyer) return 'Please log in again.' // An order needs a buyer.
+  if (product.isAvailable === false) return 'This product is not available right now.' // Only available products may be ordered.
+  if (!Number.isInteger(body.quantity) || body.quantity < 1) return 'Quantity must be a whole number, 1 or more.' // Quantity must be a positive whole number.
+  if (body.fulfilment !== 'pickup' && body.fulfilment !== 'delivery') return 'Choose pickup or delivery.' // Keep both fulfilment options.
+  if (body.fulfilment === 'pickup' && shop.pickup === false) return 'This shop does not offer that option.' // Pickup must be offered by the shop.
+  if (body.fulfilment === 'delivery' && shop.delivery === false) return 'This shop does not offer that option.' // Delivery must be offered by the shop.
+  if (body.customisation && body.customisation.length > 200) return 'Keep your note under 200 characters.' // Limit the buyer's customisation note.
+  if (!body.requestedTime) return 'Please choose a pickup time.' // An order needs a time.
   const slot = findSlot(product, body.requestedTime)
-  if (!slot) return 'That time is not one of the seller\'s slots.' // R7: use one of the product's slots.
-  if (!(new Date().getTime() < new Date(slot.start).getTime())) return 'That time has already passed.' // R7: the slot must start in the future.
+  if (!slot) return 'That time is not one of the seller\'s slots.' // Use one of the product's slots.
+  if (!(new Date().getTime() < new Date(slot.start).getTime())) return 'That time has already passed.' // The slot must start in the future.
   return ''
 }
 
@@ -88,7 +88,7 @@ async function countSlotOrders(productId, requestedTime) {
   let count = 0
   for (let i = 0; i < orders.length; i++) {
     const order = orders[i]
-    if (new Date(order.requestedTime).getTime() === requestedTimeNumber && countedStatuses.includes(order.status)) { // R6: count only matching orders that use the slot.
+    if (new Date(order.requestedTime).getTime() === requestedTimeNumber && countedStatuses.includes(order.status)) { // Count only matching orders that use the slot.
       count++
     }
   }
@@ -107,7 +107,7 @@ function safeOrderForBuyer(order, reviewedIds) {
     proposedTime: order.proposedTime,
     totalPrice: order.totalPrice,
     status: order.status,
-    reviewed: reviewedIds.includes(String(order._id)), // R21: show whether this order has a review.
+    reviewed: reviewedIds.includes(String(order._id)), // Show whether this order has a review.
     cancelledBy: order.cancelledBy,
     createdAt: order.createdAt,
     shop: null,
@@ -121,9 +121,9 @@ function safeOrderForBuyer(order, reviewedIds) {
       nearestMrt: order.shop.nearestMrt,
     }
   }
-  if (order.shop && order.fulfilment === 'pickup' && (order.status === 'accepted' || order.status === 'completed')) { // R4: pickup details need an accepted or completed pickup order.
-    if (order.shop.address) safeOrder.pickupAddress = order.shop.address // R4: copy the address only after the privacy check.
-    if (order.shop.postalCode) safeOrder.pickupPostalCode = order.shop.postalCode // R4: copy the postal code only after the privacy check.
+  if (order.shop && order.fulfilment === 'pickup' && (order.status === 'accepted' || order.status === 'completed')) { // Pickup details need an accepted or completed pickup order.
+    if (order.shop.address) safeOrder.pickupAddress = order.shop.address // Copy the address only after the privacy check.
+    if (order.shop.postalCode) safeOrder.pickupPostalCode = order.shop.postalCode // Copy the postal code only after the privacy check.
   }
   return safeOrder
 }
@@ -132,26 +132,26 @@ function safeOrderForBuyer(order, reviewedIds) {
 router.post('/', async (req, res) => {
   try {
     const { buyer, product, quantity, customisation, fulfilment, requestedTime } = req.body
-    if (!product) return res.status(400).json({ message: 'No product chosen.' }) // R8: an order needs a product.
+    if (!product) return res.status(400).json({ message: 'No product chosen.' }) // An order needs a product.
     const p = await Product.findById(product)
     if (!p) return res.status(404).json({ message: 'Product not found' })
     const shop = await Shop.findById(p.shop)
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
 
     const message = checkNewOrder(req.body, p, shop)
-    if (message) return res.status(400).json({ message }) // R6, R7, R8: reject invalid order fields.
+    if (message) return res.status(400).json({ message }) // Reject invalid order fields.
 
     const already = await Order.findOne({ buyer, product, requestedTime, status: 'pending' })
-    if (already) return res.status(409).json({ message: 'You already sent this request.' }) // R11: reject the same pending request.
+    if (already) return res.status(409).json({ message: 'You already sent this request.' }) // Reject the same pending request.
 
     const slot = findSlot(p, requestedTime)
     const used = await countSlotOrders(product, requestedTime)
     let capacity = slot.capacity
-    if (capacity === undefined) capacity = 1 // R6: match Product.js's default when capacity is missing.
-    if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // R6: count orders, not quantity, under OPEN #4.
+    if (capacity === undefined) capacity = 1 // Match Product.js's default when capacity is missing.
+    if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // Count orders, not quantity.
 
     let customisationNote = customisation
-    if (p.customisable === false) customisationNote = '' // R1: non-customisable products get no note.
+    if (p.customisable === false) customisationNote = '' // Non-customisable products get no note.
 
     const order = await Order.create({
       buyer,
@@ -185,7 +185,7 @@ router.get('/buyer/:userId', async (req, res) => {
     }
     const safeOrders = []
     for (let i = 0; i < orders.length; i++) {
-      safeOrders.push(safeOrderForBuyer(orders[i], reviewedIds)) // R4: send only the hand-picked buyer response.
+      safeOrders.push(safeOrderForBuyer(orders[i], reviewedIds)) // Send only the hand-picked buyer response.
     }
     res.json(safeOrders)
   } catch (err) {
@@ -193,7 +193,7 @@ router.get('/buyer/:userId', async (req, res) => {
   }
 })
 
-// R23: Returns shop orders soonest pickup first so the seller can handle earlier pickups first.
+// Returns shop orders soonest pickup first so the seller can handle earlier pickups first.
 router.get('/shop/:shopId', async (req, res) => {
   try {
     const orders = await Order.find({ shop: req.params.shopId })
@@ -215,24 +215,24 @@ router.put('/:id/status', async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' })
 
     const actor = await findActor(order, userId)
-    if (!actor) return res.status(403).json({ message: 'This is not your order' }) // R10: only the buyer or shop owner may act.
+    if (!actor) return res.status(403).json({ message: 'This is not your order' }) // Only the buyer or shop owner may act.
 
-    if (status === order.status) { // R11: reject a repeat of the saved status.
+    if (status === order.status) { // Reject a repeat of the saved status.
       return res.status(409).json({ message: `This order is already ${status}.` })
     }
-    if (!isAllowedChange(order.status, actor, status)) { // R9: follow the status table for this person.
+    if (!isAllowedChange(order.status, actor, status)) { // Follow the status table for this person.
       return res.status(400).json({ message: `You cannot change this order from ${order.status} to ${status}.` })
     }
 
     if (status === 'rescheduled') {
       const now = new Date().getTime()
       const newTime = new Date(proposedTime).getTime()
-      if (!proposedTime || !(now < newTime)) { // R7: the proposed time must be present and in the future.
+      if (!proposedTime || !(now < newTime)) { // The proposed time must be present and in the future.
         return res.status(400).json({ message: 'Please choose a new time in the future.' })
       }
     }
 
-    if (status === 'accepted' && order.status === 'rescheduled') { // R5: use the time the buyer agreed to.
+    if (status === 'accepted' && order.status === 'rescheduled') { // Use the time the buyer agreed to.
       // buyer agreed to the seller's new time
       order.requestedTime = order.proposedTime
       order.proposedTime = undefined
@@ -241,10 +241,10 @@ router.put('/:id/status', async (req, res) => {
     }
 
     // first reply from the seller = response time (used by Yu Chen's trust score)
-    if (['accepted', 'declined', 'rescheduled'].includes(status) && !order.respondedAt && actor === 'seller') { // R5: record only the first seller reply.
+    if (['accepted', 'declined', 'rescheduled'].includes(status) && !order.respondedAt && actor === 'seller') { // Record only the first seller reply.
       order.respondedAt = new Date()
     }
-    if (status === 'cancelled') order.cancelledBy = actor // R5: record who cancelled using the checked actor.
+    if (status === 'cancelled') order.cancelledBy = actor // Record who cancelled using the checked actor.
 
     order.status = status
     await order.save()
