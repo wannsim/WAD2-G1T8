@@ -8,6 +8,7 @@ import { currentUser } from '@/utils/auth'
 //   <FollowButton :shop="shop" />    shop needs _id, owner, followers
 const props = defineProps({
   shop: Object,
+  followerCountTF: Boolean,
 })
 
 const following = ref(false)
@@ -58,7 +59,7 @@ async function toggleFollow() {
       </button>
       <RouterLink v-else to="/login" class="btn btn-sm btn-outline-secondary">+ Follow</RouterLink>
     </template>
-    <span class="small text-muted">{{ followerCount }} {{ followerCount === 1 ? 'follower' : 'followers' }}</span>
+    <span v-if="followerCountTF" class="small text-muted">{{ followerCount }} {{ followerCount === 1 ? 'follower' : 'followers' }}</span>
     <span v-if="error" class="small text-danger">{{ error }}</span>
   </span>
 </template>

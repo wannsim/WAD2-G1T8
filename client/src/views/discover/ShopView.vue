@@ -8,7 +8,7 @@
     <div class="p-4 bg-light rounded mb-4">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
         <h2 class="mb-1">{{ shop.name }}</h2>
-        <FollowButton :shop="shop" />
+        <FollowButton :shop="shop" :followerCountTF="true"/>
       </div>
       <p v-if="shop.description" class="text-muted">{{ shop.description }}</p>
       <p v-if="shop.nearestMrt"><strong>Location (Nearest MRT):</strong> {{ shop.nearestMrt }}</p>
