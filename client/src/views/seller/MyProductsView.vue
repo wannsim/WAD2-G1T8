@@ -5,7 +5,7 @@
       {{ statusMessage.text }}
     </div>
 
-    <h3>My Products & Services</h3>
+    <h3>Add Products & Services</h3>
     
     <div class="card p-4 shadow-sm">
       <h5>Add New Item / Service</h5>

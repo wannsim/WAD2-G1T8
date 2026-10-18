@@ -43,6 +43,10 @@ function useFallbackImage(event) {
           {{ reason }}
         </details>
 
+      <!-- extra buttons from the page using the card (e.g. ♥ save, Remove, Edit) -->
+      <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
+        <slot></slot>
+      </div>
       </div>
     </div>
     <!-- Hover details view -->

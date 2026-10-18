@@ -10,7 +10,8 @@ const shopSchema = new mongoose.Schema({
   location: { lat: Number, lng: Number },
   pickup: { type: Boolean, default: true },
   delivery: { type: Boolean, default: false },
-  pinnedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
+  // products shown first on the shop page (max 3, see PUT /shops/:id/pin)
+  pinnedProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 
   categories: { type: [String], default: [] }, 
   experience: { type: String, default: '' },
