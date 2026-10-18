@@ -97,7 +97,7 @@ onMounted(async () => {
       <div v-if="currentUser && currentUser.role === 'buyer' && product.shop">
         <div class="d-flex gap-2">
           <RouterLink :to="`/order/new/${product._id}`" class="btn btn-brand">Request order</RouterLink>
-          <button class="btn btn-outline-secondary" @click="chatWithSeller">Chat with seller</button>
+          <button class="btn chatBtn" @click="chatWithSeller">Chat with seller</button>
         </div>
         <p v-if="chatError" class="text-danger small mt-2">{{ chatError }}</p>
       </div>
@@ -107,3 +107,16 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+
+<style scoped>
+.chatBtn{
+  color: #c2410c;
+  border-color: #c2410c
+}
+
+.chatBtn:hover{
+  color: #9a3412;
+  border-color: #9a3412
+}
+</style>
