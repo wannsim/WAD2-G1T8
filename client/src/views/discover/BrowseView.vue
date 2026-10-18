@@ -96,7 +96,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- <p v-if="products.length === 0" class="text-muted">No products found.</p> -->
     <p v-if="products.length === 0 && shops.length === 0" class="text-muted"> No products or shops found. </p>
 
     <div class="row g-3">
@@ -109,11 +108,7 @@ onMounted(() => {
         </ProductCard>
       </div>
     </div>
-    <!-- <div class="row g-3">
-      <div v-for="s in shops" :key="s._id" class="col-sm-6 col-lg-3">
-        <ShopCard :shop="s" />
-      </div>
-    </div> -->
+
     <div class="row g-3">
       <div v-for="s in shops" :key="s.owner" class="col-sm-6 col-lg-3">
         <ShopCard :shop="s">
@@ -122,6 +117,7 @@ onMounted(() => {
             ♥
           </button>
         </ShopCard>
+        
       </div>
     </div>
   </div>

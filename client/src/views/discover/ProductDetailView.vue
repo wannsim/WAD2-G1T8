@@ -73,6 +73,7 @@ onMounted(async () => {
       <!-- the shop can be missing if it was deleted - don't crash the page -->
       <p v-if="product.shop" class="text-muted">
         by <RouterLink :to="`/shops/${product.shop._id}`">{{ product.shop.name }}</RouterLink>
+        &middot; <StarRating :value="product.shop.stats.avgRating" />
         <span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
       </p>
       <div v-if="product.shop" class="mb-3">
