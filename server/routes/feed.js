@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import Product from '../models/Product.js'
 import User from '../models/User.js'
 import Interaction from '../models/Interaction.js'
+import { withImageUrl } from '../utils/images.js'
 
 // Owner: Member 4 (FYP)
 // GET /feed/:userId  (use "guest" when not logged in)    POST /feed/interactions
@@ -18,7 +19,7 @@ router.get('/:userId', async (req, res) => {
       if (user) preferences = user.preferences
     }
 
-    const products = await Product.find({ isAvailable: true }).populate(
+    const products = await Product.find({ isAvailable: true }).select('-images').populate(
       'shop',
       'name nearestMrt location stats createdAt'
     )
@@ -45,7 +46,7 @@ router.get('/:userId', async (req, res) => {
         }
 
         if (reasons.length === 0) reasons.push('Something different to try')
-        return { product: p, score, reason: reasons.join(' | ') }
+        return { product: withImageUrl(req, p), score, reason: reasons.join(' | ') }
       })
 
     items.sort((a, b) => b.score - a.score)

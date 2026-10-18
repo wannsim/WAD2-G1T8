@@ -1,30 +1,34 @@
 import mongoose from 'mongoose'
 
-// Owner: Cheyenne (profile fields) + Yu Chen (stats fields) | collection: shops
-const shopSchema = new mongoose.Schema(
-  {
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-    name: { type: String, required: true, trim: true },
-    description: { type: String, default: '' },
-    address: { type: String, default: '' },     // private - never show on the map
-    postalCode: { type: String, default: '' },
-    nearestMrt: { type: String, default: '' },  // shown to buyers
-    location: { lat: Number, lng: Number },     // APPROXIMATE coords (rounded) for privacy-safe map pins
-    pickup: { type: Boolean, default: true },
-    delivery: { type: Boolean, default: false },
-    pinnedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
+const shopSchema = new mongoose.Schema({
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  name: { type: String, required: true, trim: true },
+  description: { type: String, default: '' },
+  address: { type: String, default: '' },
+  postalCode: { type: String, default: '' },
+  nearestMrt: { type: String, default: '' },
+  location: { lat: Number, lng: Number },
+  pickup: { type: Boolean, default: true },
+  delivery: { type: Boolean, default: false },
+  // products shown first on the shop page (max 3, see PUT /shops/:id/pin)
+  pinnedProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 
-    // Filled in by utils/trust.js (Yu Chen). Read by FYP (Member 4).
-    stats: {
-      avgRating: { type: Number, default: 0 },
-      reviewCount: { type: Number, default: 0 },
-      fulfilmentRate: { type: Number, default: 0 },   // 0 - 1
-      cancellationRate: { type: Number, default: 0 }, // 0 - 1
-      avgResponseMins: { type: Number, default: 0 },
-      trustScore: { type: Number, default: 50 },      // 0 - 100
-    },
+  categories: { type: [String], default: [] }, 
+  experience: { type: String, default: '' },
+  certifications: { type: [String], default: [] },
+  // photos of certificates (e.g. food hygiene cert). image = Base64, served by GET /shops/:id/certs/:certId/image
+  certificationFiles: [{ name: { type: String, trim: true, default: '' }, image: String }],
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+  stats: {
+    avgRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
+    fulfilmentRate: { type: Number, default: 0 },
+    cancellationRate: { type: Number, default: 0 },
+    avgResponseMins: { type: Number, default: 0 },
+    trustScore: { type: Number, default: 50 },
+    followerCount: { type: Number, default: 0 },
   },
-  { timestamps: true } // createdAt is used for the FYP "new seller boost"
-)
+}, { timestamps: true })
 
 export default mongoose.model('Shop', shopSchema)
