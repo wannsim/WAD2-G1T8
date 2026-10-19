@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 import Product from '../models/Product.js'
 import User from '../models/User.js'
 import Interaction from '../models/Interaction.js'
-import { withImageUrl } from '../utils/images.js'
+import { withImageUrl, imageCounts } from '../utils/images.js'
 
 // Owner: Member 4 (FYP)
 // GET /feed/:userId  (use "guest" when not logged in)    POST /feed/interactions
@@ -23,6 +23,7 @@ router.get('/:userId', async (req, res) => {
       'shop',
       'name nearestMrt location stats createdAt'
     )
+    const counts = await imageCounts(products.map((p) => p._id)) // for the photo carousel
 
     const items = products
       .filter((p) => p.shop)
@@ -46,7 +47,7 @@ router.get('/:userId', async (req, res) => {
         }
 
         if (reasons.length === 0) reasons.push('Something different to try')
-        return { product: withImageUrl(req, p), score, reason: reasons.join(' | ') }
+        return { product: withImageUrl(req, p, counts.get(String(p._id))), score, reason: reasons.join(' | ') }
       })
 
     items.sort((a, b) => b.score - a.score)

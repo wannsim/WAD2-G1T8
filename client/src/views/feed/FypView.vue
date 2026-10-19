@@ -32,7 +32,7 @@ onMounted(async () => {
 
     <div class="row g-3">
       <div v-for="item in items" :key="item.product._id" class="col-sm-6 col-lg-3">
-        <ProductCard :product="item.product" :reason="item.reason" />
+        <ProductCard :product="item.product" :reason="item.reason" favourite />
       </div>
     </div>
   </div>
