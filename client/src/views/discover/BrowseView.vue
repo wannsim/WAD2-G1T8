@@ -114,12 +114,7 @@ onMounted(() => {
 
     <div class="row g-3">
       <div v-for="p in products" :key="p._id" class="col-sm-6 col-lg-3">
-        <ProductCard :product="p">
-          <button class="btn btn-sm" :class="{ 'btn-danger': isSaved(p), 'btn-outline-danger': !isSaved(p) }"
-            @click="toggleSave(p)">
-            ♥
-          </button>
-        </ProductCard>
+        <ProductCard :product="p" favourite />
       </div>
     </div>
 
