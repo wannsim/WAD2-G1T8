@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "seed": "node seed/seed.js"
+    "seed": "node seed/seed.js",
+    "mock": "node seed/mockData.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
