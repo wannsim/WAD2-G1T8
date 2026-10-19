@@ -45,7 +45,7 @@ onUnmounted(() => {
  
 <template>
   <header class="container pt-3">
-    <nav class="navbar navbar-expand-lg nav-card">
+    <nav class="navbar navbar-expand-xl nav-card">
       <!-- logo + name -->
       <RouterLink class="navbar-brand d-flex align-items-center gap-2 me-lg-4" to="/home">
         <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
@@ -62,7 +62,7 @@ onUnmounted(() => {
  
       <div class="collapse navbar-collapse" id="mainNav">
         <!-- tabs: the page you are on gets a tinted pill (router-link-active) -->
-        <ul class="navbar-nav me-auto gap-lg-1">
+        <ul class="navbar-nav me-auto gap-xl-1">
           <li class="nav-item"><RouterLink class="nav-link nav-pill" to="/home">
              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-view-stacked" viewBox="0 0 16 16">
             <path d="M3 0h10a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m0 1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zm0 8h10a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2m0 1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
@@ -95,6 +95,12 @@ onUnmounted(() => {
  
           <!-- sellers -->
           <template v-if="isSeller">
+            <li class="nav-item"><RouterLink class="nav-link nav-pill" to="/seller/analytics">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M1 1h1v12h13v1H1V1zm3 7h2v4H4V8zm4-3h2v7H8V5zm4-3h2v10h-2V2z" />
+              </svg>
+              Analytics
+            </RouterLink></li>
             <li class="nav-item"><RouterLink class="nav-link nav-pill" to="/seller/products">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-receipt" viewBox="0 0 16 16">
                 <path d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27m.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0z"/>
@@ -120,13 +126,13 @@ onUnmounted(() => {
  
         <!-- right side: Login button, or the user's name with a small menu.
              It sits inside a navbar-nav list so Bootstrap places the menu correctly on phones too. -->
-        <ul class="navbar-nav mt-2 mt-lg-0">
-           <li v-if="isLoggedIn" class="nav-item me-lg-1">
+        <ul class="navbar-nav mt-2 mt-xl-0">
+           <li v-if="isLoggedIn" class="nav-item me-xl-1">
             <RouterLink class="nav-link nav-pill d-flex align-items-center" to="/chats" title="Chats">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
               </svg>
-              <span class="d-lg-none ms-2">Chats</span>
+              <span class="d-xl-none ms-2">Chats</span>
               <span v-if="unread > 0" class="badge rounded-pill bg-danger ms-1">{{ unread > 9 ? '9+' : unread }}</span>
             </RouterLink>
           </li>
@@ -138,8 +144,8 @@ onUnmounted(() => {
             <button class="btn nav-login dropdown-toggle" type="button" data-bs-toggle="dropdown">
               {{ currentUser.name }}
             </button>
-            <!-- dropdown-menu-lg-end: right-aligned on wide screens, normal on phones -->
-            <ul class="dropdown-menu dropdown-menu-lg-end">
+            <!-- Right-aligned on wide screens, normal inside the collapsed menu. -->
+            <ul class="dropdown-menu dropdown-menu-xl-end">
               <li><RouterLink class="dropdown-item" to="/profile">Profile</RouterLink></li>
               <li><hr class="dropdown-divider" /></li>
               <li><button class="dropdown-item" type="button" @click="logout">Log out</button></li>
@@ -192,4 +198,3 @@ onUnmounted(() => {
   background: #fff;
 }
 </style>
- 

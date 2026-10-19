@@ -6,6 +6,7 @@ import MyShopView from '@/views/seller/MyShopView.vue'
 
 
 export default [
+  { path: '/seller/analytics', component: () => import('@/views/seller/SalesAnalyticsView.vue') },
   { path: '/seller/shop', component: MyShopView },      
   { path: '/seller/shop/edit', component: ShopFormView }, // the form moves here
   { path: '/seller/products', component: MyProductsView },

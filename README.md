@@ -30,9 +30,17 @@ pnpm dev                             # open the link it prints (http://localhost
 ```
  
 Both terminals must be running at the same time.
- 
+
 Sample logins (password for all: `password123`):
 `alice@test.com` (buyer), `bob@test.com` (seller), `cara@test.com` (seller)
+
+## Seller sales analytics
+
+Sellers can open **Analytics** in the navigation bar (`/seller/analytics`) to view sales revenue, completed orders, units sold, average order value, a sales trend, top products, and counts by order status. Choose the last 7, 30, or 90 days, or apply a custom date range. Dates use Singapore time; Refresh fetches the latest order statuses.
+
+Sales count **completed orders only**, grouped by the date the order was placed, using the total price saved on each order. Orders with missing or invalid historical amounts still count toward completed orders and units, but are excluded from revenue and the average order value denominator. The dashboard explains when amounts are incomplete. Order-status counts include every status in the selected period.
+
+Run the frontend analytics tests with `npm test` from `client/`, and build with `npm run build`. These tests use fixtures and do not access or seed the database. Dashboard access follows the project's existing client-side identity mechanism; the API does not yet enforce server-verified authentication.
  
 ---------------------------------------------------------------------
 
