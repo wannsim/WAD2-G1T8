@@ -63,31 +63,48 @@ onMounted(async () => {
   <div v-else-if="loadError" class="alert alert-warning">
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>
-  <div v-else-if="product" class="row g-4">
-    <div class="col-md-5">
-      <img :src="product.imageUrl || '/placeholder.svg'" class="img-fluid rounded" :alt="product.name"
-        @error="$event.target.src = '/placeholder.svg'" />
+  <div v-else-if="product" class="row g-4 align-items-start">
+    <div class="col-md-6">
+      <!-- fixed square frame so every product lines up the same, whatever the photo's shape -->
+      <div class="product-image-frame">
+        <img :src="product.imageUrl || '/placeholder.svg'" :alt="product.name"
+          @error="$event.target.src = '/placeholder.svg'" />
+      </div>
     </div>
-    <div class="col-md-7">
-      <h2>{{ product.name }}</h2>
+    <div class="col-md-6 product-info">
+      <h2 class="mb-1">{{ product.name }}</h2>
+      <div v-if="product.category || product.customisable" class="d-flex flex-wrap gap-1 mb-2">
+        <span v-if="product.category" class="badge text-bg-light border">{{ product.category }}</span>
+        <span v-if="product.customisable" class="badge text-bg-light border">Customisable</span>
+      </div>
       <!-- the shop can be missing if it was deleted - don't crash the page -->
-      <p v-if="product.shop" class="text-muted">
+      <p v-if="product.shop" class="text-muted mb-2">
         by <RouterLink :to="`/shops/${product.shop._id}`">{{ product.shop.name }}</RouterLink>
-        &middot; <StarRating :value="product.shop.stats.avgRating" />
+        &middot; <StarRating :value="product.shop.stats?.avgRating" />
+        <span>({{ product.shop.stats?.reviewCount || 0 }})</span>
         <span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
       </p>
+      <p v-else class="text-muted mb-2">This seller's shop is no longer available.</p>
       <div v-if="product.shop" class="mb-3">
         <FollowButton :shop="product.shop" />
       </div>
-      <p v-else class="text-muted">This seller's shop is no longer available.</p>
-      <p class="fs-4 fw-bold">{{ formatPrice(product.price) }} <span class="fs-6 text-muted fw-normal">/ {{ product.unit }}</span></p>
-      <p>{{ product.description }}</p>
+      <p class="fs-3 fw-bold mb-4">{{ formatPrice(product.price) }} <span class="fs-6 text-muted fw-normal">/ {{ product.unit }}</span></p>
 
-      <h6>Available slots</h6>
-      <ul v-if="product.orderSlots">
-        <li v-for="slot in product.orderSlots" :key="slot._id">{{ formatDateTime(slot.start) }}</li>
-      </ul>
-      <p v-if="!product.orderSlots || product.orderSlots.length === 0" class="text-muted">No slots listed - ask the seller.</p>
+      <div class="info-section">
+        <h6>Description</h6>
+        <p class="mb-0">{{ product.description || 'No description provided.' }}</p>
+        <p v-if="product.tags?.length" class="small text-muted mt-2 mb-0">
+          {{ product.tags.map((t) => '#' + t).join(' ') }}
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h6>Available slots</h6>
+        <ul v-if="product.orderSlots && product.orderSlots.length" class="mb-0">
+          <li v-for="slot in product.orderSlots" :key="slot._id">{{ formatDateTime(slot.start) }}</li>
+        </ul>
+        <p v-else class="text-muted mb-0">No slots listed - ask the seller.</p>
+      </div>
 
       <!-- <RouterLink v-if="currentUser && currentUser.role === 'buyer'" :to="`/order/new/${product._id}`" class="btn btn-brand">
         Request order
@@ -95,14 +112,14 @@ onMounted(async () => {
       <p v-else-if="!currentUser" class="text-muted">
         <RouterLink to="/login">Log in</RouterLink> as a buyer to order.
       </p> -->
-      <div v-if="currentUser && currentUser.role === 'buyer' && product.shop">
+      <div v-if="currentUser && currentUser.role === 'buyer' && product.shop" class="mt-4">
         <div class="d-flex gap-2">
-          <RouterLink :to="`/order/new/${product._id}`" class="btn btn-brand">Request order</RouterLink>
-          <button class="btn chatBtn" @click="chatWithSeller">Chat with seller</button>
+          <RouterLink :to="`/order/new/${product._id}`" class="btn btn-brand btn-lg flex-fill">Request order</RouterLink>
+          <button class="btn chatBtn btn-lg flex-fill" @click="chatWithSeller">Chat with seller</button>
         </div>
         <p v-if="chatError" class="text-danger small mt-2">{{ chatError }}</p>
       </div>
-      <p v-else-if="!currentUser" class="text-muted">
+      <p v-else-if="!currentUser" class="text-muted mt-4">
         <RouterLink to="/login">Log in</RouterLink> as a buyer to order.
       </p>
     </div>
@@ -111,6 +128,33 @@ onMounted(async () => {
 
 
 <style scoped>
+.product-image-frame {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  background: #f5f5f5;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.info-section {
+  padding: 1rem 0;
+  border-top: 1px solid #e5e5e5;
+}
+
+.info-section h6 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
 .chatBtn{
   color: #c2410c;
   border-color: #c2410c

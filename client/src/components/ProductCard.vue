@@ -7,6 +7,7 @@ import FavouriteButton from './FavouriteButton.vue'
 //   <ProductCard :product="p" />
 //   <ProductCard :product="p" :reason="'Matches your interests'">   <- optional "Why recommended?"
 //   <ProductCard :product="p" favourite />   <- ♥ save button on the photo
+//   <ProductCard :product="p" @open="..." />   <- fires when the buyer clicks through to the product page
 //       <button>extra buttons go in the slot</button>
 //   </ProductCard>
 const props = defineProps({
@@ -14,6 +15,8 @@ const props = defineProps({
   reason: String,
   favourite: Boolean,
 })
+// 'open' = the buyer clicked through to the product page (FYP logs this as a "click")
+defineEmits(['open'])
 
 // product.shop is an object when the server populated it, otherwise just an id
 const shopName = computed(() => props.product.shop?.name || '')
@@ -70,7 +73,7 @@ function useFallbackImage(event) {
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
       </div>
       <div class="card-body d-flex flex-column">
-        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold">{{ product.name }}</RouterLink>
+        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold" @click="$emit('open')">{{ product.name }}</RouterLink>
         <p v-if="shopName" class="text-muted small mb-1">
           {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
         </p>
@@ -79,48 +82,20 @@ function useFallbackImage(event) {
           <span class="text-muted small fw-normal">/ {{ product.unit }}</span>
         </p>
 
-        <details v-if="reason" class="small mb-2">
+        <details v-if="reason" class="small mb-2 reason">
           <summary>Why recommended?</summary>
           {{ reason }}
         </details>
 
-      <!-- extra buttons from the page using the card (e.g. ♥ save, Remove, Edit) -->
-      <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
-        <slot></slot>
-      </div>
-      </div>
-    </div>
-    <!-- Hover details view -->
-    <div class="card-preview">
-      <div class="preview-content">
-        <h5>{{ product.name }}</h5>
-
-        <p class="fw-bold">
-          {{ formatPrice(product.price) }}
-          <span class="fw-normal">/ {{ product.unit }}</span>
-        </p>
-
-        <p class="description">
-          {{ product.description || 'No description available.' }}
-        </p>
-
-        <div v-if="product.shop" class="small mb-3">
-          <p class="mb-1">
-            <strong>Shop:</strong> {{ product.shop.name }}
-          </p>
-
-          <p v-if="product.shop.nearestMrt" class="mb-1">
-            <strong>Nearest MRT:</strong> {{ product.shop.nearestMrt }}
-          </p>
-
-          <div v-if="product.shop.stats">
-            <StarRating :value="product.shop.stats.avgRating" />
+        <div class="mt-auto">
+          <RouterLink :to="`/products/${product._id}`" class="btn btn-brand btn-sm w-100 mb-2" @click="$emit('open')">
+            View full details
+          </RouterLink>
+          <!-- extra buttons from the page using the card (e.g. ♥ save, Remove, Edit) -->
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <slot></slot>
           </div>
         </div>
-
-        <RouterLink :to="`/products/${product._id}`" class="btn btn-brand btn-sm mt-auto">
-          View full details
-        </RouterLink>
       </div>
     </div>
 
@@ -134,12 +109,16 @@ function useFallbackImage(event) {
   min-width: 0;
 }
 
+/* body stretches to fill the card, so "View full details" (mt-auto) sits at the bottom
+   and lines up across a row even when one card's "Why recommended?" is open */
 .card-summary {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-summary .card-body {
-  transition: opacity 0.2s ease;
+  flex: 1 1 auto;
 }
 
 .product-img {
@@ -213,48 +192,11 @@ function useFallbackImage(event) {
   position: absolute;
   top: 8px;
   right: 8px;
+  z-index: 1;
 }
 
-.card-preview {
-  /* covers only the text under the photo, so the carousel and ♥ stay clickable */
-  position: absolute;
-  inset: 180px 0 0 0;
-  z-index: 2;
-  padding: 1rem;
-  background: white;
-
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(8px);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    visibility 0.2s ease;
-
-  overflow-y: auto;
-}
-
-.preview-content {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.description {
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-/* keyboard users: open when tabbing into the text/buttons, but not after clicking a photo arrow */
-.product-card:hover .card-preview,
-.product-card:has(.card-body:focus-within) .card-preview,
-.card-preview:focus-within {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.product-card:hover .card-body {
-  opacity: 0;
+.reason summary {
+  cursor: pointer;
+  color: #c2410c;
 }
 </style>

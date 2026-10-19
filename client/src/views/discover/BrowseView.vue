@@ -31,6 +31,19 @@ async function search() {
   }
 }
 
+// save the search term for the FYP (only on Search / Enter, not every keystroke)
+function logSearch() {
+  if (!currentUser.value || !q.value) return
+  axios
+    .post(`${API_URL}/feed/search`, { user: currentUser.value._id, term: q.value })
+    .catch(() => {})
+}
+
+function submitSearch() {
+  search()
+  logSearch()
+}
+
 async function loadSaved() {
   if (!currentUser.value) return
   try {
@@ -79,7 +92,8 @@ onMounted(() => {
 
     <div class="row g-2 mb-4">
       <div class="col-md-5">
-        <input type="text" class="form-control" placeholder="Search products..." v-model.trim="q" @input="search" />
+        <input type="text" class="form-control" placeholder="Search products..." v-model.trim="q" @input="search"
+          @keyup.enter="submitSearch" />
       </div>
       <div class="col-md-3">
         <select class="form-select" v-model="category" @change="search">
@@ -92,7 +106,7 @@ onMounted(() => {
           @change="search" />
       </div>
       <div class="col-md-2">
-        <button class="btn btn-brand w-100" @click="search">Search</button>
+        <button class="btn btn-brand w-100" @click="submitSearch">Search</button>
       </div>
     </div>
 
