@@ -2,7 +2,7 @@ import express from 'express'
 import Favourite from '../models/Favourite.js'
 import Interaction from '../models/Interaction.js'
 import Product from '../models/Product.js'
-import { withImageUrl } from '../utils/images.js'
+import { withImageUrl, imageCounts } from '../utils/images.js'
 
 // Owner: Tanya (Discovery)
 // GET /favourites/:userId   GET /favourites/:userId/ids   POST /favourites  (toggles)
@@ -24,11 +24,9 @@ router.get('/:userId', async (req, res) => {
       select: '-images', // photos load separately via imageUrl
       populate: { path: 'shop', select: 'name nearestMrt' },
     })
-    res.json(
-      favs
-        .filter((f) => f.product) // skip products that were deleted
-        .map((f) => ({ ...f.toObject(), product: withImageUrl(req, f.product) }))
-    )
+    const live = favs.filter((f) => f.product) // skip products that were deleted
+    const counts = await imageCounts(live.map((f) => f.product._id)) // for the photo carousel
+    res.json(live.map((f) => ({ ...f.toObject(), product: withImageUrl(req, f.product, counts.get(String(f.product._id))) })))
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

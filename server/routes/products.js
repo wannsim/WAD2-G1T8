@@ -2,7 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import mongoose from 'mongoose'
 import Product from '../models/Product.js'
-import { withImageUrl } from '../utils/images.js'
+import { withImageUrl, imageCounts } from '../utils/images.js'
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage() })
@@ -46,7 +46,8 @@ router.get('/shop/:shopId', async (req, res) => {
       .select('-images')
       .sort({ createdAt: -1 })
       .lean()
-    res.status(200).json(products.map((p) => withImageUrl(req, p)))
+    const counts = await imageCounts(products.map((p) => p._id)) // for the photo carousel
+    res.status(200).json(products.map((p) => withImageUrl(req, p, counts.get(String(p._id)))))
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -61,7 +62,8 @@ router.get('/:id', async (req, res) => {
       .populate('shop', 'name nearestMrt location stats pickup delivery owner followers')
       .lean()
     if (!product) return res.status(404).json({ message: 'Product not found' })
-    res.json(withImageUrl(req, product))
+    const counts = await imageCounts([product._id]) // product page shows every photo
+    res.json(withImageUrl(req, product, counts.get(String(product._id))))
   } catch (error) {
     res.status(500).json({ message: error.message })
   }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -29,6 +29,31 @@ async function chatWithSeller() {
 
 const loading = ref(true)
 const loadError = ref('')
+
+// photo gallery: the server sends one imageUrl per photo in imageUrls
+const images = computed(() => product.value?.imageUrls?.length ? product.value.imageUrls : [product.value?.imageUrl || '/placeholder.svg'])
+const current = ref(0)
+
+function showImage(index) {
+  const count = images.value.length
+  current.value = (index + count) % count // wrap around at both ends
+}
+
+// swipe left / right on phones
+let touchStartX = null
+function onTouchStart(event) {
+  touchStartX = event.touches[0].clientX
+}
+function onTouchEnd(event) {
+  if (touchStartX === null) return
+  const distance = event.changedTouches[0].clientX - touchStartX
+  if (Math.abs(distance) > 40) showImage(current.value + (distance < 0 ? 1 : -1))
+  touchStartX = null
+}
+
+function useFallbackImage(event) {
+  if (!event.target.src.endsWith('/placeholder.svg')) event.target.src = '/placeholder.svg'
+}
 
 onMounted(async () => {
   try {
@@ -66,9 +91,20 @@ onMounted(async () => {
   <div v-else-if="product" class="row g-4 align-items-start">
     <div class="col-md-6">
       <!-- fixed square frame so every product lines up the same, whatever the photo's shape -->
-      <div class="product-image-frame">
-        <img :src="product.imageUrl || '/placeholder.svg'" :alt="product.name"
-          @error="$event.target.src = '/placeholder.svg'" />
+      <div class="product-image-frame" @touchstart.passive="onTouchStart" @touchend="onTouchEnd">
+        <img :src="images[current]" :alt="`${product.name} photo ${current + 1}`" @error="useFallbackImage" />
+        <template v-if="images.length > 1">
+          <button type="button" class="gallery-arrow prev" aria-label="Previous photo" @click="showImage(current - 1)">&lsaquo;</button>
+          <button type="button" class="gallery-arrow next" aria-label="Next photo" @click="showImage(current + 1)">&rsaquo;</button>
+          <span class="gallery-count">{{ current + 1 }} / {{ images.length }}</span>
+        </template>
+      </div>
+      <!-- every photo as a thumbnail - click one to show it above -->
+      <div v-if="images.length > 1" class="d-flex flex-wrap gap-2 mt-2">
+        <button v-for="(src, i) in images" :key="src" type="button" class="gallery-thumb" :class="{ active: i === current }"
+          :aria-label="`Show photo ${i + 1}`" @click="showImage(i)">
+          <img :src="src" alt="" loading="lazy" @error="useFallbackImage" />
+        </button>
       </div>
     </div>
     <div class="col-md-6 product-info">
@@ -139,10 +175,65 @@ onMounted(async () => {
   justify-content: center;
 }
 
+.product-image-frame {
+  position: relative;
+  touch-action: pan-y; /* page can still scroll up/down while swiping photos */
+}
+
 .product-image-frame img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.gallery-arrow.prev { left: 10px; }
+.gallery-arrow.next { right: 10px; }
+
+.gallery-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 0.8rem;
+}
+
+.gallery-thumb {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: #f5f5f5;
+  opacity: 0.7;
+}
+
+.gallery-thumb.active {
+  border-color: #c2410c;
+  opacity: 1;
+}
+
+.gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .info-section {

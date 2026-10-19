@@ -1,7 +1,7 @@
 import express from 'express'
 import Product from '../models/Product.js'
 import Shop from '../models/Shop.js'
-import { withImageUrl } from '../utils/images.js'
+import { withImageUrl, imageCounts } from '../utils/images.js'
 
 // Owner: Tanya (Discovery)
 // GET /discover?q=&category=&minPrice=&maxPrice=
@@ -49,7 +49,8 @@ router.get('/', async (req, res) => {
       Shop.find(shopFilter).select('-address -postalCode -certificationFiles.image')
     ])
     // skip products whose shop no longer exists (their product page would have no seller)
-    res.json({ products: products.filter((p) => p.shop).map((p) => withImageUrl(req, p)), shops })
+    const counts = await imageCounts(products.map((p) => p._id)) // for the photo carousel
+    res.json({ products: products.filter((p) => p.shop).map((p) => withImageUrl(req, p, counts.get(String(p._id)))), shops })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
