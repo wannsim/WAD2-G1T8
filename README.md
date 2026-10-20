@@ -34,6 +34,10 @@ Both terminals must be running at the same time.
 Sample logins (password for all: `password123`):
 `alice@test.com` (buyer), `bob@test.com` (seller), `cara@test.com` (seller)
 
+## Seller product reviews
+
+Open **My Shop** (`/seller/shop`) and scroll to **Product reviews** to read buyer ratings and comments, newest first. Choose a product in the filter, or click **View reviews** on a listing. The section shows the review count and average rating for the selection. **Refresh reviews** fetches the latest feedback. Reviews for removed products remain visible under **All products**.
+
 ## Seller sales analytics
 
 Sellers can open **Analytics** in the navigation bar (`/seller/analytics`) to view sales revenue, completed orders, units sold, average order value, a sales trend, top products, and counts by order status. Choose the last 7, 30, or 90 days, or apply a custom date range. Dates use Singapore time; Refresh fetches the latest order statuses.

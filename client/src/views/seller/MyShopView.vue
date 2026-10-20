@@ -74,10 +74,25 @@
                 </button>
               </div>
             </div>
+            <a v-if="!selecting" href="#product-reviews" class="btn btn-sm btn-outline-secondary mt-3"
+              :aria-label="`View reviews for ${item.name}`" @click="selectedReviewProduct = item._id">View reviews</a>
           </div>
         </div>
       </div>
     </div>
+
+    <section id="product-reviews" class="card p-4 mt-4 mb-4" aria-labelledby="product-reviews-title">
+      <h4 id="product-reviews-title">Product reviews</h4>
+      <p class="text-muted">See what buyers say about your products and services.</p>
+      <div class="mb-3">
+        <label for="review-product" class="form-label">Filter by product</label>
+        <select id="review-product" v-model="selectedReviewProduct" class="form-select">
+          <option value="">All products</option>
+          <option v-for="item in products" :key="item._id" :value="item._id">{{ item.name }}</option>
+        </select>
+      </div>
+      <ReviewList :key="shop._id" :shop-id="shop._id" :product-id="selectedReviewProduct" />
+    </section>
 
     <EditProductModal ref="editModal" @saved="loadProducts" />
   </div>
@@ -93,17 +108,22 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
 import { formatPrice } from '@/utils/format'
 import EditProductModal from '@/components/EditProductModal.vue'
+import ReviewList from '@/components/ReviewList.vue'
 
+const router = useRouter()
 const shop = ref(null)
 const products = ref([])
 const loadingProducts = ref(true)
 const actionError = ref('')
+const selectedReviewProduct = ref('')
+let shopController
 
 // edit a listing in a pop-up (onclick of Edit icon); after saving, reload the list from the database
 const editModal = ref(null)
@@ -163,23 +183,42 @@ async function deleteSelected() {
 
 // always read from the database, so the list matches what was saved
 async function loadProducts() {
+  const shopId = shop.value?._id
+  const userId = currentUser.value?._id
+  if (!shopId) return
   try {
-    const res = await axios.get(`${API_URL}/products/shop/${shop.value._id}`)
+    const res = await axios.get(`${API_URL}/products/shop/${shopId}`)
+    if (shop.value?._id !== shopId || currentUser.value?._id !== userId) return
     products.value = res.data
+    if (!products.value.some((product) => product._id === selectedReviewProduct.value)) selectedReviewProduct.value = ''
   } catch (error) {
+    if (shop.value?._id !== shopId || currentUser.value?._id !== userId) return
     actionError.value = 'Could not load your products. Please refresh the page.'
     console.error('Error loading products', error)
   }
 }
 
 async function loadShop() {
-  if (!currentUser.value?._id) {
+  shopController?.abort()
+  shop.value = null
+  products.value = []
+  pinnedIds.value = []
+  selectedReviewProduct.value = ''
+  stopSelecting()
+  actionError.value = ''
+  const user = currentUser.value
+  if (!user || user.role !== 'seller') {
     loadingProducts.value = false
+    router.replace(user ? '/home' : '/login')
     return
   }
+  const request = new AbortController()
+  shopController = request
+  loadingProducts.value = true
   try {
     // 1. Fetch the logged-in user's shop using their ID
-    const res = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
+    const res = await axios.get(`${API_URL}/shops/mine/${user._id}`, { signal: request.signal })
+    if (request.signal.aborted) return
     if (res.data) {
       shop.value = res.data
       pinnedIds.value = (res.data.pinnedProducts || []).map(String)
@@ -187,14 +226,15 @@ async function loadShop() {
       await loadProducts()
     }
   } catch (error) {
-    console.error("Error loading shop data", error)
+    if (!request.signal.aborted) console.error("Error loading shop data", error)
   } finally {
-    loadingProducts.value = false
+    if (shopController === request) loadingProducts.value = false
   }
 }
 
 // load on open, and again if the user logs in as someone else
-watch(() => currentUser.value?._id, loadShop, { immediate: true })
+watch(() => [currentUser.value?._id, currentUser.value?.role], loadShop, { immediate: true })
+onBeforeUnmount(() => shopController?.abort())
 </script>
 
 <style scoped>

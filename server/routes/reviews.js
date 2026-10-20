@@ -38,6 +38,7 @@ router.get('/shop/:shopId', async (req, res) => {
   try {
     const reviews = await Review.find({ shop: req.params.shopId })
       .populate('buyer', 'name')
+      .populate('product', 'name')
       .sort({ createdAt: -1 })
     res.json(reviews)
   } catch (err) {
