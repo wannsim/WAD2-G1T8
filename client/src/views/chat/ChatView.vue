@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -73,6 +73,35 @@ async function send() {
     error.value = err.response?.data?.message || err.message
   }
 }
+
+function dayKey(date) {
+  return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
+}
+
+function dayLabel(date) {
+  const key = dayKey(date)
+  const today = dayKey(new Date())
+  const yesterday = dayKey(new Date(Date.now() - 24 * 60 * 60 * 1000))
+  if (key === today) return 'Today'
+  if (key === yesterday) return 'Yesterday'
+  const options = { month: 'long', day: 'numeric', timeZone: 'Asia/Singapore' }
+  if (key.slice(0, 4) !== today.slice(0, 4)) options.year = 'numeric'
+  return new Date(date).toLocaleDateString('en-US', options)
+}
+
+const chatItems = computed(() => {
+  const items = []
+  let lastDay = ''
+  messages.value.forEach((m) => {
+    const day = dayKey(m.createdAt)
+    if (day !== lastDay) {
+      items.push({ id: 'date-' + day, type: 'date', label: dayLabel(m.createdAt) })
+      lastDay = day
+    }
+    items.push({ id: m._id, type: 'message', message: m })
+  })
+  return items
+})
 
 function goBack() {
   if (window.history.state && window.history.state.back) {
@@ -165,17 +194,22 @@ onUnmounted(() => {
  
           <div id="chat-box" class="chat-box p-3">
             <p v-if="messages.length === 0" class="text-muted text-center mt-4">Say hi 👋</p>
-            <div
-              v-for="m in messages"
-              :key="m._id"
-              class="d-flex mb-2"
-              :class="m.sender === currentUser._id ? 'justify-content-end' : 'justify-content-start'"
-            >
-              <div class="bubble" :class="m.sender === currentUser._id ? 'mine' : 'theirs'">
-                <div>{{ m.text }}</div>
-                <div class="time">{{ formatTime(m.createdAt) }}</div>
+            <template v-for="item in chatItems" :key="item.id">
+              <div v-if="item.type === 'date'" class="text-center my-3">
+                <span class="date-pill">{{ item.label }}</span>
               </div>
-            </div>
+
+              <div
+                v-else
+                class="d-flex mb-2"
+                :class="item.message.sender === currentUser._id ? 'justify-content-end' : 'justify-content-start'"
+              >
+                <div class="bubble" :class="item.message.sender === currentUser._id ? 'mine' : 'theirs'">
+                  <div>{{ item.message.text }}</div>
+                  <div class="time">{{ formatTime(item.message.createdAt) }}</div>
+                </div>
+              </div>
+            </template>
           </div>
  
           <div class="card-footer bg-white d-flex gap-2">
@@ -226,5 +260,14 @@ onUnmounted(() => {
 }
 .chat-active {
   background: rgba(194, 65, 12, 0.1);
+}
+.date-pill {
+  display: inline-block;
+  padding: 0.2rem 0.8rem;
+  border-radius: 1rem;
+  background: #e9e3d8;
+  color: #4b4b4b;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 </style>
