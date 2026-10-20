@@ -15,7 +15,15 @@
       <RouterLink :to="`/shops/${myShopId}`" class="align-self-center small">View my shop as a buyer →</RouterLink>
     </div>
     <form @submit.prevent="saveProfile" class="card p-4 shadow-sm">
-      
+
+      <div class="mb-3">
+        <label class="form-label" for="shopName">Shop Name <span class="text-danger">*</span></label>
+        <input id="shopName" type="text" class="form-control" v-model="profile.name" maxlength="60" required
+          :class="{ 'is-invalid': nameError }" @input="onNameInput">
+        <div class="invalid-feedback">{{ nameError }}</div>
+        <div v-if="!nameError" class="form-text">Must be different from every other shop on Homly Hauls.</div>
+      </div>
+
       <div class="mb-3">
         <label class="form-label">Nearest MRT (For Location Pin)</label>
         <input type="text" class="form-control" v-model="profile.nearestMrt" placeholder="e.g. Dhoby Ghaut MRT" required>
@@ -89,7 +97,7 @@ import axios from 'axios'
 import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
 
-const profile = ref({ nearestMrt: '', experience: '', categories: [], certifications: [] })
+const profile = ref({ name: '', nearestMrt: '', experience: '', categories: [], certifications: [] })
 const categoriesInput = ref('')
 const certsInput = ref('')
 const myShopId = ref('')
@@ -104,9 +112,29 @@ const certFileInput = ref(null)
 const uploadingCert = ref(false)
 const certError = ref('')
 
+// shop names must be unique - check while the seller types (the server checks again when saving)
+const nameError = ref('')
+let nameTimer = null
+const onNameInput = () => {
+  nameError.value = ''
+  clearTimeout(nameTimer)
+  nameTimer = setTimeout(checkName, 400)
+}
+const checkName = async () => {
+  const name = (profile.value.name || '').trim()
+  if (!name) return
+  try {
+    const { data } = await axios.get(`${API_URL}/shops/name-available`, { params: { name, except: myShopId.value || undefined } })
+    if (name === (profile.value.name || '').trim()) nameError.value = data.message // ignore answers for old text
+  } catch (err) {
+    console.error('Could not check shop name', err)
+  }
+}
+
 const fetchProfile = async () => {
   try {
     if (!currentUser.value || !currentUser.value._id) return
+    profile.value.name = currentUser.value.name + "'s Shop" // suggested name for a new shop
 
     // Fetch the shop tied to the logged-in user
     const { data } = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
@@ -120,6 +148,8 @@ const fetchProfile = async () => {
 
       const products = await axios.get(`${API_URL}/products/shop/${data._id}`)
       listingCount.value = products.data.length
+    } else {
+      checkName() // warn straight away if the suggested name is already taken
     }
   } catch (err) {
     console.error("Error fetching profile:", err)
@@ -142,12 +172,17 @@ const saveProfile = async () => {
     } else {
       // If the shop does not exist yet, create a new one
       profile.value.owner = currentUser.value._id
-      profile.value.name = currentUser.value.name + "'s Shop"
       const res = await axios.post(`http://localhost:8000/api/shops`, profile.value)
       myShopId.value = res.data._id
     }
+    nameError.value = ''
     alert('Profile Saved!')
   } catch (err) {
+    if (err.response?.status === 409) {
+      nameError.value = err.response.data.message // shop name already taken
+      document.getElementById('shopName')?.focus()
+      return
+    }
     console.error(err)
     alert('Failed to save profile. Check console for details.')
   }
