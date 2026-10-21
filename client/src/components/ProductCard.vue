@@ -73,8 +73,8 @@ function useFallbackImage(event) {
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
       </div>
       <div class="card-body d-flex flex-column">
-        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold" @click="$emit('open')">{{ product.name }}</RouterLink>
-        <p v-if="shopName" class="text-muted small mb-1">
+        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
+        <p v-if="shopName" class="text-muted small mb-1 clamp-1">
           {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
         </p>
         <p class="fw-bold mb-2">
@@ -119,11 +119,6 @@ function useFallbackImage(event) {
 
 .card-summary .card-body {
   flex: 1 1 auto;
-}
-
-.product-img {
-  height: 180px;
-  object-fit: cover;
 }
 
 .carousel-box {

@@ -79,8 +79,8 @@ async function save() {
 
 <template>
   <div class="row justify-content-center">
-    <div class="col-md-7">
-      <h2 class="mb-3">{{ productId ? 'Edit product' : 'Add product' }}</h2>
+    <div class="col-12 page-narrow">
+      <h2 class="page-title">{{ productId ? 'Edit product' : 'Add product' }}</h2>
       <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
       <div class="mb-3">

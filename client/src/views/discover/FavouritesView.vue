@@ -42,11 +42,11 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h2 class="mb-3">My favourites</h2>
+    <h2 class="page-title">My favourites</h2>
     <p v-if="loading" class="text-muted">Loading...</p>
     <p v-else-if="visible.length === 0" class="text-muted">Nothing saved yet. Tap the heart on a product!</p>
-    <div class="row g-3">
-      <div v-for="fav in visible" :key="fav._id" class="col-sm-6 col-lg-3">
+    <div class="card-grid">
+      <div v-for="fav in visible" :key="fav._id">
         <ProductCard :product="fav.product" favourite />
       </div>
     </div>

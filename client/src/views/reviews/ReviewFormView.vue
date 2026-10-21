@@ -41,8 +41,8 @@ async function submitReview() {
 
 <template>
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <h2 class="mb-3">Leave a review</h2>
+    <div class="col-12 page-narrow">
+      <h2 class="page-title">Leave a review</h2>
       <div v-if="order" class="card p-3 mb-3 bg-light">
         <div class="small text-muted">You are reviewing</div>
         <div class="fw-semibold">{{ order.product ? order.product.name : 'Product removed' }} x {{ order.quantity }}</div>

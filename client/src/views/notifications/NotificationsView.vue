@@ -18,9 +18,9 @@ onMounted(() => {
 
 <template>
   <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-12 page-narrow">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <h3 class="mb-0">Notifications</h3>
+        <h2 class="page-title mb-0">Notifications</h2>
         <div class="d-flex align-items-center gap-2">
           <div class="btn-group btn-group-sm" role="group" aria-label="Filter notifications">
             <button type="button" class="btn" :class="!showUnreadOnly ? 'btn-dark' : 'btn-outline-dark'" @click="showUnreadOnly = false">All</button>

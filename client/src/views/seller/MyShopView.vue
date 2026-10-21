@@ -1,8 +1,8 @@
 <template>
-  <div class="container mt-4" v-if="shop">
+  <div v-if="shop">
     <div class="p-4 bg-light rounded mb-4">
-      <h2>{{ shop.name }}</h2>
-      <p><strong>Location (Nearest MRT):</strong> {{ shop.nearestMrt }}</p>
+      <h2 class="page-title">{{ shop.name }}</h2>
+      <p><strong>Location (nearest MRT):</strong> {{ shop.nearestMrt }}</p>
       <p><strong>Experience:</strong> {{ shop.experience }}</p>
       <div>
         <span class="badge bg-secondary me-1" v-for="cat in shop.categories" :key="cat">{{ cat }}</span>
@@ -10,7 +10,7 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
-      <h4 class="mb-0">Products & Services</h4>
+      <h4 class="mb-0">Products & services</h4>
       <!-- select mode: tick products, then delete them together -->
       <div v-if="products.length > 0" class="d-flex align-items-center gap-2">
         <template v-if="selecting">
@@ -32,8 +32,8 @@
     <p v-if="actionError" class="text-danger small">{{ actionError }}</p>
     <p v-if="loadingProducts" class="text-muted">Loading products...</p>
     <p v-else-if="products.length === 0" class="text-muted">You have not listed any products yet.</p>
-    <div class="row">
-      <div class="col-sm-6 col-md-4 col-lg-3 mb-3" v-for="item in sortedProducts" :key="item._id">
+    <div class="card-grid">
+      <div v-for="item in sortedProducts" :key="item._id">
         <div class="card h-100 shadow-sm"
           :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting }"
           @click="selecting && toggleSelected(item)">
@@ -46,10 +46,10 @@
             <span v-if="isPinned(item)" class="badge bg-warning text-dark pinned-badge">Pinned</span>
           </div>
           <div class="card-body d-flex flex-column">
-            <h6 class="card-title">{{ item.name }}</h6>
+            <h6 class="card-title clamp-2">{{ item.name }}</h6>
             <div>
               <span class="badge" :class="item.type === 'service' ? 'bg-info text-dark' : 'bg-success'">
-                {{ (item.category || 'product').toUpperCase() }}
+                {{ capitalize(item.category || 'Others') }}
               </span>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
@@ -98,7 +98,7 @@
   </div>
 
   <!-- no shop yet: send the seller to set up their profile first -->
-  <div v-else-if="!loadingProducts" class="container mt-4">
+  <div v-else-if="!loadingProducts">
     <div class="card p-4 shadow-sm text-center">
       <h5>You don't have a shop yet</h5>
       <p class="text-muted mb-3">Set up your shop profile first. After that you can add products and services.</p>
@@ -113,7 +113,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, capitalize } from '@/utils/format'
 import EditProductModal from '@/components/EditProductModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
 

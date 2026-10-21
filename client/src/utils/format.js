@@ -24,3 +24,9 @@ export function formatShortDateTime(d) {
     timeZone: 'Asia/Singapore',
   })
 }
+
+// first letter in capitals, for values saved in lowercase, e.g. "accepted" -> "Accepted", "pickup" -> "Pickup"
+export function capitalize(text) {
+  const s = String(text ?? '')
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}

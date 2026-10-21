@@ -61,7 +61,7 @@ async function save() {
       <div class="modal-content">
         <template v-if="editingProduct">
           <div class="modal-header">
-            <h5 class="modal-title">Edit Item / Service</h5>
+            <h5 class="modal-title">Edit item / service</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4">
@@ -69,7 +69,7 @@ async function save() {
 
             <form @submit.prevent="save">
               <ProductFields v-model="editingProduct" v-model:files="photos" :current-image-url="currentImageUrl" />
-              <button type="submit" class="btn btn-success w-100" :disabled="saving">{{ saving ? 'Saving...' : 'Save Changes' }}</button>
+              <button type="submit" class="btn btn-success w-100" :disabled="saving">{{ saving ? 'Saving...' : 'Save changes' }}</button>
             </form>
           </div>
         </template>

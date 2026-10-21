@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
-import { formatPrice, formatDateTime } from '@/utils/format'
+import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import FollowButton from '@/components/FollowButton.vue'
 
 // Owner: Member 3 - /products/:id
@@ -108,9 +108,9 @@ onMounted(async () => {
       </div>
     </div>
     <div class="col-md-6 product-info">
-      <h2 class="mb-1">{{ product.name }}</h2>
+      <h2 class="page-title mb-1">{{ product.name }}</h2>
       <div v-if="product.category || product.customisable" class="d-flex flex-wrap gap-1 mb-2">
-        <span v-if="product.category" class="badge text-bg-light border">{{ product.category }}</span>
+        <span v-if="product.category" class="badge text-bg-light border">{{ capitalize(product.category) }}</span>
         <span v-if="product.customisable" class="badge text-bg-light border">Customisable</span>
       </div>
       <!-- the shop can be missing if it was deleted - don't crash the page -->

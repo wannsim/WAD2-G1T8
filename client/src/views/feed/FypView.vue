@@ -74,8 +74,8 @@ watch(tab, loadFeed)
     <p v-if="loading" class="text-muted">Loading...</p>
     <p v-else-if="items.length === 0" class="text-muted">Nothing here yet.</p>
 
-    <div class="row g-3">
-      <div v-for="item in items" :key="item.product._id" class="col-sm-6 col-lg-3">
+    <div class="card-grid">
+      <div v-for="item in items" :key="item.product._id">
         <ProductCard :product="item.product" :reason="item.reason" favourite @open="logClick(item)" />
       </div>
     </div>

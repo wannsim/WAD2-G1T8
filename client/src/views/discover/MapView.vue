@@ -55,7 +55,7 @@ onUnmounted(() => {
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Map</h2>
+      <h2 class="page-title">Map</h2>
       <RouterLink to="/browse" class="btn btn-outline-secondary btn-sm">Switch to list</RouterLink>
     </div>
     <div id="map"></div>

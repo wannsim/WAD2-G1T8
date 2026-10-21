@@ -5,7 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import { ORDER_STATUS_BADGE } from '@/utils/constants'
-import { formatPrice, formatDateTime } from '@/utils/format'
+import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 
 // Owner: Basile - buyer's order dashboard
 const router = useRouter()
@@ -171,7 +171,7 @@ onMounted(() => {
 <template>
   <div class="row">
     <div class="col-12">
-      <h2 class="mb-3">My orders</h2>
+      <h2 class="page-title">My orders</h2>
       <p v-if="loading" data-testid="buyer-orders-loading">
         <span class="spinner-border spinner-border-sm"></span> Loading...
       </p>
@@ -206,18 +206,19 @@ onMounted(() => {
           <p v-else>No declined or cancelled orders.</p>
         </div>
 
-        <div v-else class="row g-3">
-          <div v-for="o in visibleOrders" :key="o._id" class="col-12 col-lg-6">
-            <div class="card" data-testid="order-row">
-              <div class="card-body">
+        <!-- every card is the same size: grid rows all match the tallest card -->
+        <div v-else class="list-grid">
+          <div v-for="o in visibleOrders" :key="o._id">
+            <div class="card h-100" data-testid="order-row">
+              <div class="card-body d-flex flex-column">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
                   <div class="d-flex flex-wrap gap-2 align-self-start">
-                    <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                    <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     <span v-if="isOverdue(o)" class="badge bg-danger" data-testid="order-overdue">Overdue</span>
                   </div>
                 </div>
-                <p class="mb-1 text-muted">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
+                <p class="mb-1 text-muted">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                 <p class="mb-1">Time: {{ formatDateTime(o.requestedTime) }}</p>
                 <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
 
@@ -235,6 +236,8 @@ onMounted(() => {
                   </div>
                 </div>
 
+                <!-- buttons sit at the bottom of every card, so they line up -->
+                <div class="mt-auto pt-2">
                 <div v-if="o.status === 'pending' || o.status === 'rescheduled' || o.status === 'accepted'">
                   <template v-if="confirmId === o._id">
                     <p class="mb-1">Cancel this order?</p>
@@ -254,6 +257,7 @@ onMounted(() => {
                 <div v-if="o.shop" class="d-flex flex-wrap gap-2 mt-2">
                   <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
                 </div>
+                </div>
               </div>
             </div>
           </div>
@@ -262,3 +266,4 @@ onMounted(() => {
     </div>
   </div>
 </template>
+

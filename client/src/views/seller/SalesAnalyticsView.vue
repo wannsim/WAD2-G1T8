@@ -97,7 +97,7 @@ onBeforeUnmount(() => controller?.abort())
   <section aria-labelledby="analytics-title" :aria-busy="loading">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
       <div>
-        <h1 id="analytics-title" class="h2 mb-1">Sales analytics</h1>
+        <h1 id="analytics-title" class="page-title mb-1">Sales analytics</h1>
         <p class="text-muted mb-0">{{ shop ? `${shop.name} · ` : '' }}Completed orders, grouped by order placed date.</p>
       </div>
       <button class="btn btn-outline-secondary" :disabled="loading" @click="load">

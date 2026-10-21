@@ -1,11 +1,11 @@
 <template>
-  <div class="container mt-4 mb-5">
+  <div class="mb-5">
     <!-- Status Message Alert -->
     <div v-if="statusMessage.text" class="alert" :class="statusMessage.type === 'error' ? 'alert-danger' : 'alert-success'" role="alert">
       {{ statusMessage.text }}
     </div>
 
-    <h3>Add Products & Services</h3>
+    <h2 class="page-title">Add products & services</h2>
 
     <p v-if="loadingShop" class="text-muted">Loading...</p>
 
@@ -17,10 +17,10 @@
     </div>
 
     <div v-else class="card p-4 shadow-sm">
-      <h5>Add New Item / Service</h5>
+      <h5>Add new item / service</h5>
       <form @submit.prevent="submitItem">
         <ProductFields v-model="form" v-model:files="files" />
-        <button type="submit" class="btn btn-success w-100" :disabled="saving">{{ saving ? 'Creating...' : 'Create Listing' }}</button>
+        <button type="submit" class="btn btn-success w-100" :disabled="saving">{{ saving ? 'Creating...' : 'Create listing' }}</button>
       </form>
     </div>
   </div>

@@ -1,6 +1,6 @@
 <template>
-  <div class="container mt-4">
-    <h3>Seller Profile Setup</h3>
+  <div class="page-narrow">
+    <h2 class="page-title">Seller profile setup</h2>
 
     <!-- shop stats: how many people follow the shop, and how many listings it has -->
     <div v-if="myShopId" class="d-flex flex-wrap gap-3 mb-3">
@@ -17,7 +17,7 @@
     <form @submit.prevent="saveProfile" class="card p-4 shadow-sm">
 
       <div class="mb-3">
-        <label class="form-label" for="shopName">Shop Name <span class="text-danger">*</span></label>
+        <label class="form-label" for="shopName">Shop name <span class="text-danger">*</span></label>
         <input id="shopName" type="text" class="form-control" v-model="profile.name" maxlength="60" required
           :class="{ 'is-invalid': nameError }" @input="onNameInput">
         <div class="invalid-feedback">{{ nameError }}</div>
@@ -25,31 +25,31 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Nearest MRT (For Location Pin)</label>
-        <input type="text" class="form-control" v-model="profile.nearestMrt" placeholder="e.g. Dhoby Ghaut MRT" required>
+        <label class="form-label">Nearest MRT (for location pin)</label>
+        <input type="text" class="form-control" v-model="profile.nearestMrt" placeholder="E.g. Dhoby Ghaut MRT" required>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Categories (Comma-separated)</label>
-        <input type="text" class="form-control" v-model="categoriesInput" placeholder="e.g. Baked Goods, Crafts">
+        <label class="form-label">Categories (comma-separated)</label>
+        <input type="text" class="form-control" v-model="categoriesInput" placeholder="E.g. baked goods, crafts">
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Experience & Background</label>
+        <label class="form-label">Experience & background</label>
         <textarea class="form-control" v-model="profile.experience" rows="3" placeholder="Describe your experience..."></textarea>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Certifications (Comma-separated)</label>
-        <input type="text" class="form-control" v-model="certsInput" placeholder="e.g. WSQ Food Hygiene">
+        <label class="form-label">Certifications (comma-separated)</label>
+        <input type="text" class="form-control" v-model="certsInput" placeholder="E.g. WSQ Food Hygiene">
       </div>
 
-      <button type="submit" class="btn btn-primary w-100">Update Profile</button>
+      <button type="submit" class="btn btn-primary w-100">Update profile</button>
     </form>
 
     <!-- Certificate photos (uploaded straight away, separate from the form above) -->
     <div class="card p-4 shadow-sm mt-4 mb-5">
-      <h5>Certificate Photos</h5>
+      <h5>Certificate photos</h5>
       <p class="text-muted small">Upload a photo or scan of each certificate so buyers can trust your shop (images only, max 5MB).</p>
 
       <p v-if="!myShopId" class="text-muted">Save your profile above first, then you can upload certificates.</p>
@@ -58,7 +58,7 @@
         <div class="row g-2 align-items-end mb-3">
           <div class="col-md-5">
             <label class="form-label small">Certificate name</label>
-            <input type="text" class="form-control" v-model.trim="certName" placeholder="e.g. WSQ Food Hygiene">
+            <input type="text" class="form-control" v-model.trim="certName" placeholder="E.g. WSQ Food Hygiene">
           </div>
           <div class="col-md-5">
             <label class="form-label small">Image</label>

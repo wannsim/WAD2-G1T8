@@ -78,7 +78,7 @@ onMounted(() => {
 <template>
   <div class="auth-stage">
     <div class="auth-card">
-      <h2 class="auth-title text-center">Welcome Back</h2>
+      <h2 class="auth-title text-center">Welcome back</h2>
       <p class="text-center text-muted mb-4">Please enter your details</p>
  
       <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
@@ -125,18 +125,18 @@ onMounted(() => {
       </div>
  
       <button class="btn btn-brand w-100 auth-btn" :disabled="loading" @click="login">
-        {{ loading ? 'Logging in...' : 'Log In' }}
+        {{ loading ? 'Logging in...' : 'Log in' }}
       </button>
  
-      <div class="auth-divider">or</div>
+      <div class="auth-divider">Or</div>
  
       <div id="google-btn" class="auth-google"></div>
  
       <div class="mt-2 small text-muted text-center">
         New with Google? Join as a
         <select class="form-select form-select-sm d-inline-block w-auto" v-model="googleRole">
-          <option value="buyer">buyer</option>
-          <option value="seller">seller</option>
+          <option value="buyer">Buyer</option>
+          <option value="seller">Seller</option>
         </select>
       </div>
  

@@ -86,7 +86,7 @@ onMounted(() => {
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Browse</h2>
+      <h2 class="page-title">Browse</h2>
       <RouterLink to="/map" class="btn btn-outline-secondary btn-sm">Switch to map</RouterLink>
     </div>
 
@@ -112,14 +112,14 @@ onMounted(() => {
 
     <p v-if="products.length === 0 && shops.length === 0" class="text-muted"> No products or shops found. </p>
 
-    <div class="row g-3">
-      <div v-for="p in products" :key="p._id" class="col-sm-6 col-lg-3">
+    <div class="card-grid mb-4">
+      <div v-for="p in products" :key="p._id">
         <ProductCard :product="p" favourite />
       </div>
     </div>
 
-    <div class="row g-3">
-      <div v-for="s in shops" :key="s.owner" class="col-sm-6 col-lg-3">
+    <div class="card-grid">
+      <div v-for="s in shops" :key="s.owner">
         <ShopCard :shop="s">
           <button class="btn btn-sm" :class="{ 'btn-danger': isSaved(s), 'btn-outline-danger': !isSaved(s) }"
             @click="toggleSave(s)">

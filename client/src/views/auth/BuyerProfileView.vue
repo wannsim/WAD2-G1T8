@@ -45,8 +45,8 @@ async function save() {
  
 <template>
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <h2 class="mb-3">My profile</h2>
+    <div class="col-12 page-narrow">
+      <h2 class="page-title">My profile</h2>
       <div v-if="message" class="alert alert-info">{{ message }}</div>
  
       <div class="mb-3">

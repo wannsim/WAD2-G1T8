@@ -221,7 +221,7 @@ onUnmounted(() => {
       </svg>
       Back
     </button>
-      <h2 class="ms-1 mb-0">Chats</h2>
+      <h2 class="page-title ms-1 mb-0">Chats</h2>
     </div>
     <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
  
@@ -263,7 +263,7 @@ onUnmounted(() => {
       <div class="col-md-8" :class="{ 'd-none d-md-block': !activeId }">
         <div v-if="activeId" class="card">
           <div class="card-header bg-white d-flex align-items-center gap-2">
-            <button class="btn btn-sm btn-outline-secondary d-md-none" @click="closeMessageSearch(); activeId = null">All Chats</button>
+            <button class="btn btn-sm btn-outline-secondary d-md-none" @click="closeMessageSearch(); activeId = null">All chats</button>
             <strong>{{ activeTitle }}</strong>
             <button type="button" class="btn btn-sm ms-auto icon-btn" :class="messageSearchOpen ? 'btn-secondary' : 'btn-outline-secondary'"
               :data-label="messageSearchOpen ? null : 'Search messages'" aria-label="Search messages"

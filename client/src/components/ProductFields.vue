@@ -48,7 +48,7 @@ const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
 </script>
 
 <template>
-  <p class="small text-muted mb-2"><span class="text-danger">*</span> required</p>
+  <p class="small text-muted mb-2"><span class="text-danger">*</span> Required</p>
 
   <div class="row g-3 mb-3">
     <div class="col-md-5">
@@ -84,10 +84,10 @@ const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
     <div class="col-md-7">
       <label class="form-label" :for="`${id}-description`">Description <span class="text-danger">*</span></label>
       <textarea :id="`${id}-description`" class="form-control mb-3" v-model="form.description" rows="3"
-        placeholder="e.g. Pick your colours." required></textarea>
+        placeholder="E.g. pick your colours" required></textarea>
 
       <label class="form-label" :for="`${id}-tags`">Tags <span class="text-muted small">(optional, recommended)</span></label>
-      <input :id="`${id}-tags`" type="text" class="form-control" v-model="form.tagsInput" placeholder="e.g. keychain, gift, beaded">
+      <input :id="`${id}-tags`" type="text" class="form-control" v-model="form.tagsInput" placeholder="E.g. keychain, gift, beaded">
       <div class="form-text">Separate with commas. Tags are used in search, so good tags help buyers find your item.</div>
     </div>
 
@@ -122,7 +122,7 @@ const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
   <div class="border rounded bg-light p-3 mb-3">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div>
-        <h6 class="mb-0">Order Slots</h6>
+        <h6 class="mb-0">Order slots</h6>
         <span class="small text-muted">Buyers choose one of these times when they order.</span>
       </div>
       <button type="button" class="btn btn-outline-primary btn-sm" @click="addSlot">+ Add slot</button>
@@ -131,7 +131,7 @@ const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
       <div v-for="(slot, index) in form.orderSlots" :key="index" class="col-lg-6">
         <div class="input-group input-group-sm">
           <input type="datetime-local" class="form-control" v-model="slot.start" aria-label="Slot start date and time" required>
-          <span class="input-group-text">max</span>
+          <span class="input-group-text">Max</span>
           <input type="number" class="form-control slot-capacity" v-model.number="slot.capacity" min="1" step="1"
             aria-label="Max orders in this slot" required>
           <button type="button" class="btn btn-outline-danger" aria-label="Remove slot" title="Remove slot" @click="removeSlot(index)">&times;</button>
