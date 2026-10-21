@@ -184,7 +184,7 @@ onMounted(() => {
         <div v-if="message" class="alert alert-success" data-testid="buyer-orders-message">{{ message }}</div>
         <div v-if="error" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
         <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
-        <ul class="nav nav-pills flex-wrap gap-2 mb-3" data-testid="buyer-orders-tabs">
+        <ul class="nav nav-pills mb-3" data-testid="buyer-orders-tabs">
           <li class="nav-item">
             <button class="nav-link" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button>
           </li>

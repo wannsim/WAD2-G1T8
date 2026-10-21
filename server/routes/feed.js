@@ -11,6 +11,7 @@ import { withImageUrl, imageCounts } from '../utils/images.js'
 
 // Owner: Jessie (FYP)
 // GET  /feed/:userId?tab=foryou|following    (userId = "guest" when not logged in)
+// GET  /feed/:userId/scores?ids=a,b,c         fresh score + "Why recommended?" for cards already shown (after a ♥ change)
 // POST /feed/interactions   body { user, product, shop, type }   type = view|click|save|impression|order
 // POST /feed/search         body { user, term }                   (Browse calls this when a buyer searches)
 const router = express.Router()
@@ -69,39 +70,31 @@ async function loadSignals(userId) {
 // 2. score one product
 // This function is called once for EVERY product. It gives that product a score for THIS buyer.
 // The feed then sorts all products from highest to lowest score, so a higher score = shown earlier.
+// Each reason remembers how many points it added, so the card can show the MOST important one.
 function scoreProduct(p, signals) {
   let score = 0
-  const reasons = []
-
-  if (signals.preferences.includes(p.category)) {
-    score += 3
-    reasons.push(`Matches your interest in ${p.category}`)
+  const reasons = [] // [{ text, points }]
+  const add = (points, text) => {
+    score += points
+    if (text) reasons.push({ text, points })
   }
+
+  if (signals.preferences.includes(p.category)) add(3, `Matches your interest in ${p.category}`)
 
   const trust = p.shop.stats?.trustScore ?? 50
-  score += trust / 50
-  if (trust >= 80) reasons.push('Highly rated seller')
+  add(trust / 50, trust >= 80 ? 'Highly rated seller' : '')
 
   const shopAgeDays = (Date.now() - new Date(p.shop.createdAt)) / 86400000
-  if (shopAgeDays <= NEW_SELLER_DAYS) {
-    score += 1.5
-    reasons.push('New seller - give them a try!')
-  }
+  if (shopAgeDays <= NEW_SELLER_DAYS) add(1.5, 'New seller - give them a try!')
 
   // A. FAVOURITES: if the buyer has favourited things in this product's category, give points.
   // scaled points
   const favCount = signals.favCategories[p.category] || 0
-  if (favCount > 0){
-    score += Math.min(favCount, 3)
-    reasons.push('You favourited things in this category.')
-  }
+  if (favCount > 0) add(Math.min(favCount, 3), `You favourited things in ${p.category}`)
 
   // B. CLICKS: categories the buyer keeps opening should score higher.
   const clicksCount = signals.clickedCategories[p.category] || 0
-  if (clicksCount > 0){
-    score += Math.min(clicksCount, 6) * 0.25
-    reasons.push('You browsed things in this category.')
-  }
+  if (clicksCount > 0) add(Math.min(clicksCount, 6) * 0.25, `You browsed things in ${p.category}`)
 
   // C. SEARCH HISTORY: if a recent search term appears in the product's name or tags, give points.
   const searchText = (p.name + ' ' + (p.tags || []).join(' ')).toLowerCase()
@@ -113,30 +106,25 @@ function scoreProduct(p, signals) {
       lastMatch = term
     }
   }
-  if (matches > 0) {
-    score += Math.min(matches, 2)
-    reasons.push(`You searched for "${lastMatch}"`)
-  }
+  if (matches > 0) add(Math.min(matches, 2), `You searched for "${lastMatch}"`)
 
   // D. FOLLOWED SHOPS: products from shops the buyer follows get a boost.
-  if(signals.followedShopIds.has(String(p.shop._id))){
-    score += 3
-    reasons.push(`You are following "${p.shop.name}"`)
-  }
+  if (signals.followedShopIds.has(String(p.shop._id))) add(3, `You are following "${p.shop.name}"`)
 
   // E. ITEMS BOUGHT
-  if (signals.boughtProductIds.has(String(p._id))){
-    score += 4
-    reasons.push(`You bought this before`)
-  }
+  if (signals.boughtProductIds.has(String(p._id))) add(4, 'You bought this before')
 
   // F. SELLER FOLLOWER COUNT
   const followers = p.shop.stats?.followerCount || 0
-  if(followers > 0){
-    score += Math.min(followers/20, 1)
-  }
+  if (followers > 0) add(Math.min(followers / 20, 1))
 
-  return { score, reasons }
+  return { score, reason: topReason(reasons) }
+}
+
+// the reason that added the most points (ties: the one found first)
+function topReason(reasons) {
+  if (reasons.length === 0) return 'Something different to try'
+  return reasons.reduce((best, r) => (r.points > best.points ? r : best)).text
 }
 
 // stop one shop from filling the whole feed
@@ -171,13 +159,31 @@ router.get('/:userId', async (req, res) => {
 
     // For You
     const items = products.map((p) => {
-      const { score, reasons } = scoreProduct(p, signals)
-      if (reasons.length === 0) reasons.push('Something different to try')
-      return { product: withImageUrl(req, p, counts.get(String(p._id))), score, reason: reasons.join(' | ') }
+      const { score, reason } = scoreProduct(p, signals)
+      return { product: withImageUrl(req, p, counts.get(String(p._id))), score, reason }
     })
 
     items.sort((a, b) => b.score - a.score)
     res.json(diversify(items).slice(0, FEED_SIZE))
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// fresh scores + reasons for the cards already on screen, e.g. after the buyer (un-)favourites something.
+// The page notes the new scores but keeps its order; the ranking only changes when the feed loads again.
+// -> { productId: { score, reason } }
+router.get('/:userId/scores', async (req, res) => {
+  try {
+    const ids = String(req.query.ids || '').split(',').filter((id) => mongoose.isValidObjectId(id))
+    if (ids.length === 0) return res.json({})
+    const products = await Product.find({ _id: { $in: ids } })
+      .select('-images')
+      .populate('shop', 'name nearestMrt location stats createdAt')
+    const signals = await loadSignals(req.params.userId)
+    const result = {}
+    products.filter((p) => p.shop).forEach((p) => (result[String(p._id)] = scoreProduct(p, signals)))
+    res.json(result)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

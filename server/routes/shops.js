@@ -5,7 +5,7 @@ import Shop from '../models/Shop.js'
 import Product from '../models/Product.js'
 
 // Owner: Cheyenne
-// GET /shops   GET /shops/name-available   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
+// GET /shops   GET /shops/map   GET /shops/name-available   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
 const router = express.Router()
 
 // certificate photos: images only, max 5MB each
@@ -36,6 +36,27 @@ router.get('/', async (req, res) => {
   try {
     const shops = await Shop.find().select(`-address -postalCode ${NO_CERT_IMAGES}`)
     res.json(shops)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// shops for the map page: public fields + starting price and number of listings
+// NOTE: must be defined BEFORE '/:id'
+router.get('/map', async (req, res) => {
+  try {
+    const [shops, prices] = await Promise.all([
+      Shop.find().select('name nearestMrt categories description stats location').lean(),
+      Product.aggregate([
+        { $match: { isAvailable: { $ne: false } } },
+        { $group: { _id: '$shop', minPrice: { $min: '$price' }, listingCount: { $sum: 1 } } },
+      ]),
+    ])
+    const byShop = new Map(prices.map((p) => [String(p._id), p]))
+    res.json(shops.map((shop) => {
+      const p = byShop.get(String(shop._id))
+      return { ...shop, minPrice: p ? p.minPrice : null, listingCount: p ? p.listingCount : 0 }
+    }))
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
