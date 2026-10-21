@@ -37,10 +37,14 @@ onMounted(() => {
   loadUnread()
   socket.on('new-message', loadUnread)
   socket.on('unread-changed', loadUnread)
+  socket.on('connect', loadUnread) // reconnected (e.g. server restarted): catch up on missed messages
+  window.addEventListener('focus', loadUnread) // came back to this tab
 })
 onUnmounted(() => {
   socket.off('new-message', loadUnread)
   socket.off('unread-changed', loadUnread)
+  socket.off('connect', loadUnread)
+  window.removeEventListener('focus', loadUnread)
 })
 </script>
  

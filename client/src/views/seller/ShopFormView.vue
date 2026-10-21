@@ -95,6 +95,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
@@ -107,11 +108,11 @@ onMounted(async () => {
   try {
     if (!currentUser.value || !currentUser.value._id) return
 
-    const res = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
+    const res = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
     
     if (res.data) {
       shop.value = res.data
-      const prodRes = await axios.get(`http://localhost:8000/api/products/shop/${shop.value._id}`)
+      const prodRes = await axios.get(`${API_URL}/products/shop/${shop.value._id}`)
       products.value = prodRes.data
     }
   } catch (error) {
@@ -153,7 +154,7 @@ const updateProduct = async () => {
     formData.append('isAvailable', editingProduct.value.isAvailable ?? true)
     formData.append('orderSlots', JSON.stringify(editingProduct.value.orderSlots))
 
-    const res = await axios.put(`http://localhost:8000/api/products/${editingProduct.value._id}`, formData)
+    const res = await axios.put(`${API_URL}/products/${editingProduct.value._id}`, formData)
     
     const index = products.value.findIndex(p => p._id === res.data._id)
     if (index !== -1) products.value[index] = res.data
@@ -171,7 +172,7 @@ onMounted(async () => {
   try {
     if (!currentUser.value || !currentUser.value._id) return
 
-    const res = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
+    const res = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
     if (res.data) {
       shop.value = res.data
       // Temporarily bypass product fetching to see if the page loads instantly

@@ -137,7 +137,7 @@ const fetchProfile = async () => {
     profile.value.name = currentUser.value.name + "'s Shop" // suggested name for a new shop
 
     // Fetch the shop tied to the logged-in user
-    const { data } = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
+    const { data } = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
     if (data) {
       profile.value = data
       myShopId.value = data._id
@@ -168,11 +168,11 @@ const saveProfile = async () => {
   try {
     if (myShopId.value) {
       // If the shop already exists, update it
-      await axios.put(`http://localhost:8000/api/shops/${myShopId.value}`, profile.value)
+      await axios.put(`${API_URL}/shops/${myShopId.value}`, profile.value)
     } else {
       // If the shop does not exist yet, create a new one
       profile.value.owner = currentUser.value._id
-      const res = await axios.post(`http://localhost:8000/api/shops`, profile.value)
+      const res = await axios.post(`${API_URL}/shops`, profile.value)
       myShopId.value = res.data._id
     }
     nameError.value = ''
