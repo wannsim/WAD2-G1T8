@@ -5,6 +5,20 @@ import Shop from '../models/Shop.js'
 import Interaction from '../models/Interaction.js'
 import Review from '../models/Review.js'
 import { updateShopStats } from '../utils/trust.js'
+import { notify } from '../utils/notify.js'
+import { formatDateTime } from '../utils/format.js'
+
+// what the buyer is told when the seller changes their order
+const BUYER_UPDATE = {
+  accepted: (product, shop) => ({ title: 'Order accepted', message: `${shop} accepted your order for ${product}.` }),
+  declined: (product, shop) => ({ title: 'Order declined', message: `${shop} declined your order for ${product}.` }),
+  rescheduled: (product, shop, order) => ({
+    title: 'New time proposed',
+    message: `${shop} proposed ${formatDateTime(order.proposedTime)} for ${product}. Please accept or cancel.`,
+  }),
+  completed: (product, shop) => ({ title: 'Order completed', message: `Your order for ${product} from ${shop} is completed.` }),
+  cancelled: (product, shop) => ({ title: 'Order cancelled', message: `${shop} cancelled your order for ${product}.` }),
+}
 
 // Owner: Basile
 // POST /orders   GET /orders/buyer/:userId   GET /orders/shop/:shopId   PUT /orders/:id/status
@@ -164,6 +178,12 @@ router.post('/', async (req, res) => {
       totalPrice: p.price * quantity,
     })
     await Interaction.create({ user: buyer, product, shop: p.shop, type: 'order' }) // feeds the FYP
+    await notify(req, shop.owner, {
+      type: 'new-order',
+      title: 'New order',
+      message: `${quantity} x ${p.name} for ${formatDateTime(requestedTime)}`,
+      link: '/seller/orders',
+    })
     res.status(201).json(order)
   } catch (err) {
     res.status(500).json({ message: err.message })
@@ -249,6 +269,24 @@ router.put('/:id/status', async (req, res) => {
     order.status = status
     await order.save()
     await updateShopStats(order.shop) // keep seller stats up to date
+
+    if (actor === 'seller') {
+      // tell the buyer; when completed, also remind them they can leave a review
+      await order.populate([{ path: 'product', select: 'name' }, { path: 'shop', select: 'name' }])
+      const productName = order.product?.name || 'your item'
+      const shopName = order.shop?.name || 'The seller'
+      await notify(req, order.buyer, { type: 'order-update', link: '/orders', ...BUYER_UPDATE[status](productName, shopName, order) })
+      if (status === 'completed') {
+        await notify(req, order.buyer, {
+          type: 'review-reminder',
+          title: 'Leave a review?',
+          message: `How was ${productName}? You can now review your order (optional).`,
+          link: `/review/${order._id}`,
+          product: order.product?._id,
+        })
+      }
+      order.depopulate()
+    }
     res.json(order)
   } catch (err) {
     res.status(500).json({ message: err.message })

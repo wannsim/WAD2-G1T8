@@ -108,8 +108,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
@@ -118,6 +118,7 @@ import EditProductModal from '@/components/EditProductModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
 
 const router = useRouter()
+const route = useRoute()
 const shop = ref(null)
 const products = ref([])
 const loadingProducts = ref(true)
@@ -233,6 +234,19 @@ async function loadShop() {
 }
 
 // load on open, and again if the user logs in as someone else
+// /seller/shop?review=<productId>#product-reviews (from a "new review" notification):
+// filter the reviews to that product and scroll down to them
+async function showRequestedReviews() {
+  const productId = route.query.review
+  if (!productId || !products.value.some((p) => p._id === productId)) return
+  selectedReviewProduct.value = productId
+  router.replace({ query: {}, hash: '#product-reviews' }) // only do this once, not after every reload
+  await nextTick()
+  document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })
+}
+watch(() => route.query.review, showRequestedReviews) // clicked while already on this page
+watch(products, showRequestedReviews) // clicked from another page: wait for the products to load
+
 watch(() => [currentUser.value?._id, currentUser.value?.role], loadShop, { immediate: true })
 onBeforeUnmount(() => shopController?.abort())
 </script>

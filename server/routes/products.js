@@ -7,6 +7,13 @@ import Favourite from '../models/Favourite.js'
 import Interaction from '../models/Interaction.js'
 import { withImageUrl, imageCounts } from '../utils/images.js'
 import { checkProduct, toPrice, cleanTags } from '../utils/productRules.js'
+import { notify } from '../utils/notify.js'
+
+// buyers who saved this product (to tell them it is sold out / deleted)
+async function favouritedBy(productId) {
+  const favs = await Favourite.find({ product: productId }).select('user').lean()
+  return favs.map((f) => f.user)
+}
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage() })
@@ -15,7 +22,7 @@ const upload = multer({ storage: multer.memoryStorage() })
 // (a seller can only list products after setting up their shop profile)
 router.post('/', upload.array('images', 5), async (req, res) => {
   try {
-    const shop = mongoose.isValidObjectId(req.body.shopId) ? await Shop.findById(req.body.shopId).select('owner').lean() : null
+    const shop = mongoose.isValidObjectId(req.body.shopId) ? await Shop.findById(req.body.shopId).select('owner name followers').lean() : null
     if (!shop) return res.status(400).json({ error: 'Please set up your shop profile before adding products.' })
     if (String(shop.owner) !== String(req.body.user)) return res.status(403).json({ error: 'You can only add products to your own shop.' })
 
@@ -45,6 +52,16 @@ router.post('/', upload.array('images', 5), async (req, res) => {
     })
     
     await newProduct.save()
+    if (newProduct.isAvailable) {
+      // tell the shop's followers about the new item
+      await notify(req, (shop.followers || []).filter((f) => String(f) !== String(shop.owner)), {
+        type: 'new-product',
+        title: `${shop.name} added a new item`,
+        message: `${newProduct.name} - $${newProduct.price.toFixed(2)} / ${newProduct.unit}`,
+        link: `/products/${newProduct._id}`,
+        product: newProduct._id,
+      })
+    }
     res.status(201).json(withImageUrl(req, newProduct))
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -134,8 +151,18 @@ router.put('/:id', upload.array('images', 5), async (req, res) => {
       })
     }
 
+    const before = await Product.findById(req.params.id).select('isAvailable').lean()
     const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-images').lean()
     if (!updatedProduct) return res.status(404).json({ error: 'Product not found' })
+    if (before && before.isAvailable !== false && updatedProduct.isAvailable === false) {
+      // just became unavailable -> tell buyers who saved it
+      await notify(req, await favouritedBy(updatedProduct._id), {
+        type: 'favourite-unavailable',
+        title: `${updatedProduct.name} is sold out`,
+        message: 'An item in your favourites is no longer available.',
+        product: updatedProduct._id,
+      })
+    }
     const counts = await imageCounts([updatedProduct._id]) // keep the photo carousel right after an edit
     res.status(200).json(withImageUrl(req, updatedProduct, counts.get(String(updatedProduct._id))))
   } catch (error) {
@@ -148,7 +175,7 @@ router.put('/:id', upload.array('images', 5), async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' })
-    const product = await Product.findById(req.params.id).select('shop').lean()
+    const product = await Product.findById(req.params.id).select('shop name').lean()
     if (!product) return res.status(404).json({ error: 'Product not found' })
     const shop = await Shop.findById(product.shop).select('owner').lean()
     if (!shop || String(shop.owner) !== String(req.body?.user)) {
@@ -157,8 +184,15 @@ router.delete('/:id', async (req, res) => {
 
     await Product.deleteOne({ _id: product._id })
     await Shop.updateOne({ _id: product.shop }, { $pull: { pinnedProducts: product._id } })
-    await Favourite.deleteMany({ product: product._id })
     await Interaction.deleteMany({ product: product._id })
+    // favourites are kept (the Favourites page hides deleted products) so the buyer can press
+    // "Remove" on this notification to clear it from their favourites
+    await notify(req, await favouritedBy(product._id), {
+      type: 'favourite-unavailable',
+      title: `${product.name} was removed by the seller`,
+      message: 'An item in your favourites is no longer available.',
+      product: product._id,
+    })
     res.json({ deleted: req.params.id })
   } catch (error) {
     res.status(500).json({ error: error.message })

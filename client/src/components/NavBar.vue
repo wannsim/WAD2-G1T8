@@ -5,6 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { socket } from '@/utils/socket'
 import { currentUser, isLoggedIn, isSeller, clearUser } from '@/utils/auth'
+import NotificationBell from './NotificationBell.vue'
 
 // Owner: Wan Sim
 const router = useRouter()
@@ -127,6 +128,10 @@ onUnmounted(() => {
         <!-- right side: Login button, or the user's name with a small menu.
              It sits inside a navbar-nav list so Bootstrap places the menu correctly on phones too. -->
         <ul class="navbar-nav mt-2 mt-xl-0">
+          <!-- bell: new orders / reviews for sellers, order updates etc. for buyers -->
+          <li v-if="isLoggedIn" class="nav-item me-xl-1">
+            <NotificationBell />
+          </li>
            <li v-if="isLoggedIn" class="nav-item me-xl-1">
             <RouterLink class="nav-link nav-pill d-flex align-items-center" to="/chats" title="Chats">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

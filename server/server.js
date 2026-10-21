@@ -14,6 +14,7 @@ import feedRoutes from './routes/feed.js'
 import orderRoutes from './routes/orders.js'
 import reviewRoutes from './routes/reviews.js'
 import chatRoutes from './routes/chats.js'
+import notificationRoutes from './routes/notifications.js'
  
 dotenv.config({ path: './config.env' })
  
@@ -46,6 +47,7 @@ app.use('/feed', feedRoutes)
 app.use('/orders', orderRoutes)
 app.use('/reviews', reviewRoutes)
 app.use('/chats', chatRoutes)
+app.use('/notifications', notificationRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/shops', shopRoutes)
  

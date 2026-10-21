@@ -2,6 +2,9 @@ import express from 'express'
 import Review from '../models/Review.js'
 import Order from '../models/Order.js'
 import { updateShopStats } from '../utils/trust.js'
+import Shop from '../models/Shop.js'
+import Product from '../models/Product.js'
+import { notify } from '../utils/notify.js'
 
 // Owner: Yu Chen
 // POST /reviews   GET /reviews/shop/:shopId
@@ -28,6 +31,19 @@ router.post('/', async (req, res) => {
       comment,
     })
     await updateShopStats(order.shop) // recalculates rating + trust score
+
+    // tell the seller; the link opens My Shop's reviews section filtered to this product
+    const [shop, product] = await Promise.all([
+      Shop.findById(order.shop).select('owner').lean(),
+      Product.findById(order.product).select('name').lean(),
+    ])
+    await notify(req, shop?.owner, {
+      type: 'new-review',
+      title: `New ${rating}-star review`,
+      message: `${product?.name || 'A product'}${comment ? `: "${comment.slice(0, 80)}${comment.length > 80 ? '...' : ''}"` : ''}`,
+      link: `/seller/shop?review=${order.product}#product-reviews`,
+      product: order.product,
+    })
     res.status(201).json(review)
   } catch (err) {
     res.status(500).json({ message: err.message })
