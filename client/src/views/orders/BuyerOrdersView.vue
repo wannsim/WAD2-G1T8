@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
-import { ORDER_STATUS_BADGE } from '@/utils/constants'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 
 // Owner: Basile - buyer's order dashboard
@@ -29,6 +28,16 @@ const STATUS_HELP = {
   completed: 'Done. You can leave a review.',
   declined: 'The seller could not take this order.',
   cancelled: 'This order was cancelled.',
+}
+
+// Sets the colour of each order status tag.
+const STATUS_BADGE = {
+  pending: 'bg-warning text-dark',
+  accepted: 'bg-success',
+  declined: 'bg-danger',
+  rescheduled: 'bg-info text-dark',
+  completed: 'bg-success',
+  cancelled: 'bg-dark',
 }
 
 // Groups orders that are waiting for a reply or a new time to be accepted.
@@ -259,7 +268,7 @@ onMounted(() => {
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                   <div class="d-flex flex-wrap gap-2 align-self-start">
-                    <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                    <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                   </div>
                 </div>

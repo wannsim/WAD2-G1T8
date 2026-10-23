@@ -34,6 +34,16 @@ const STATUS_HELP_SELLER = {
   cancelled: 'This order was cancelled.',
 }
 
+// Sets the colour of each order status tag.
+const STATUS_BADGE = {
+  pending: 'bg-warning text-dark',
+  accepted: 'bg-success',
+  declined: 'bg-danger',
+  rescheduled: 'bg-info text-dark',
+  completed: 'bg-success',
+  cancelled: 'bg-dark',
+}
+
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
   const groupedOrders = []
@@ -327,7 +337,7 @@ onMounted(() => {
                     <div class="order-text d-flex flex-column flex-grow-1">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
                     <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
@@ -378,7 +388,7 @@ onMounted(() => {
                     <div class="order-text d-flex flex-column flex-grow-1">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
                     <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
@@ -413,7 +423,7 @@ onMounted(() => {
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                       <div class="d-flex flex-wrap gap-2 align-self-start">
-                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                         <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                       </div>
                     </div>
@@ -463,7 +473,7 @@ onMounted(() => {
                       <div class="order-text d-flex flex-column flex-grow-1">
                       <div class="d-flex justify-content-between flex-wrap gap-2">
                         <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                       </div>
                       <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                       <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
