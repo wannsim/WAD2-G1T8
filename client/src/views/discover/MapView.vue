@@ -75,7 +75,7 @@ function cycleStationShop(event) {
   lastCardScrollAt = now
   const direction = event.deltaY > 0 ? 1 : -1
   const current = Math.max(0, selectedShopPosition.value)
-  const next = (current + direction + shopsAtSelectedMrt.value.length) % shopsAtSelectedMrt.value.length
+  const next = Math.min(shopsAtSelectedMrt.value.length - 1, Math.max(0, current + direction))
   selectedId.value = shopsAtSelectedMrt.value[next]._id
 }
 

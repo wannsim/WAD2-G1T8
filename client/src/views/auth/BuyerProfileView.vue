@@ -58,42 +58,41 @@ async function save() {
 </script>
  
 <template>
-  <div class="row justify-content-center">
-    <div class="col-12 page-narrow">
+  <div class="page-narrow">
       <h2 class="page-title">My profile</h2>
       <div v-if="message" class="alert alert-info">{{ message }}</div>
- 
-      <div class="row g-3 mb-3">
-        <div class="col-12 col-sm-6">
-          <label class="form-label">Name</label>
-          <input type="text" class="form-control" v-model.trim="name" />
-        </div>
-        <div class="col-12 col-sm-6">
-          <label for="preferred-mrt" class="form-label">Preferred MRT station</label>
-          <input id="preferred-mrt" v-model.trim="preferredMrt" class="form-control" placeholder="e.g. Bishan" />
-        </div>
-      </div>
-
-      <div class="mb-4">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" :value="email" disabled />
-
-      </div>
- 
-      <!-- interests feed the For You page -->
-      <div class="mb-3">
-        <label class="form-label">What are you interested in?</label>
-        <div class="interest-grid">
-          <div v-for="category in CATEGORIES" :key="category" class="form-check">
-          <input class="form-check-input" type="checkbox" :id="category" :value="category" v-model="preferences" />
-          <label class="form-check-label" :for="category">{{ category }}</label>
+      <section class="card p-4 shadow-sm mb-4">
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="buyer-name">Name</label>
+            <input id="buyer-name" type="text" class="form-control" v-model.trim="name" />
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="buyer-email">Email</label>
+            <input id="buyer-email" type="email" class="form-control" :value="email" disabled />
           </div>
         </div>
-      </div>
- 
-      <button class="btn btn-brand" @click="save">Save</button>
 
-      <section class="profile-section mt-5">
+        <div class="mb-3">
+          <label for="preferred-mrt" class="form-label">Preferred MRT station</label>
+          <input id="preferred-mrt" v-model.trim="preferredMrt" class="form-control" placeholder="e.g. Bishan" />
+          <!-- <div class="form-text">The map opens at this station when you switch from Browse.</div> -->
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">What are you interested in?</label>
+          <div class="interest-grid">
+            <div v-for="category in CATEGORIES" :key="category" class="form-check">
+              <input class="form-check-input" type="checkbox" :id="category" :value="category" v-model="preferences" />
+              <label class="form-check-label" :for="category">{{ category }}</label>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary w-100" @click="save">Save profile</button>
+      </section>
+
+      <section class="card p-4 shadow-sm mb-4">
         <div class="d-flex justify-content-between align-items-end mb-2">
           <div><h3 class="h5 mb-1">Past purchases</h3><p class="small text-muted mb-0">Completed orders</p></div>
           <RouterLink to="/orders" class="small">View orders</RouterLink>
@@ -109,7 +108,7 @@ async function save() {
         </div>
       </section>
 
-      <section class="profile-section mt-4">
+      <section class="card p-4 shadow-sm mb-5">
         <h3 class="h5 mb-2">Shops you follow</h3>
         <p v-if="loadingActivity" class="text-muted small">Loading followed shops...</p>
         <p v-else-if="followedShops.length === 0" class="text-muted small">You are not following any shops yet.</p>
@@ -120,7 +119,6 @@ async function save() {
           </RouterLink>
         </div>
       </section>
-    </div>
   </div>
 </template>
 
