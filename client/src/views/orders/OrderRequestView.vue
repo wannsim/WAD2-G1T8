@@ -144,7 +144,7 @@ async function submitOrder() {
         <p class="mb-2">No upcoming slots for this product.</p>
         <div v-if="currentUser && currentUser.role === 'buyer'">
           <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="chatBusy" @click="messageSeller" data-testid="order-message-seller">Message seller</button>
+            <button type="button" class="btn btn-sm btn-secondary" :disabled="chatBusy" @click="messageSeller" data-testid="order-message-seller">Message seller</button>
           </div>
           <p v-if="chatError" class="text-danger small mt-2 mb-0" data-testid="order-chat-error">{{ chatError }}</p>
         </div>

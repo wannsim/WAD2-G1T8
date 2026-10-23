@@ -296,18 +296,18 @@ onMounted(() => {
                   <template v-if="confirmId === o._id">
                     <p class="mb-1">Cancel this order?</p>
                     <div class="d-flex flex-wrap gap-2">
-                      <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, 'cancelled')" data-testid="order-confirm-yes">Yes, cancel</button>
-                      <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                      <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="updateStatus(o, 'cancelled')" data-testid="order-confirm-yes">Yes, cancel</button>
+                      <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                     </div>
                   </template>
                   <div v-else class="d-flex flex-wrap gap-2">
                     <button v-if="o.status === 'rescheduled'" class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
-                    <button v-if="o.status === 'pending' || o.status === 'rescheduled' || o.status === 'accepted'" class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
+                    <button v-if="o.status === 'pending' || o.status === 'rescheduled' || o.status === 'accepted'" class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
                     <template v-if="o.status === 'completed'">
-                      <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-brand" data-testid="order-review-link">Leave a review</RouterLink>
+                      <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-success" data-testid="order-review-link">Leave a review</RouterLink>
                       <span v-else class="badge bg-light text-dark border" data-testid="order-reviewed">Reviewed</span>
                     </template>
-                    <button v-if="o.shop" class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
+                    <button v-if="o.shop" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
                   </div>
                   <div class="d-flex justify-content-end mt-2">
                     <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>

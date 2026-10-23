@@ -367,22 +367,22 @@ onMounted(() => {
                       <div v-if="confirmId === o._id" class="mt-2">
                         <p class="mb-1">Decline this order?</p>
                         <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
-                          <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                          <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
+                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                         </div>
                       </div>
                       <template v-else>
                         <div class="d-flex flex-wrap gap-2">
                           <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
-                          <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
-                          <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
-                          <button v-if="o.buyer" class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                          <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
+                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
+                          <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                         </div>
                         <div v-if="proposeOpenId === o._id" class="mt-2">
                           <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
                           <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
                           <div class="d-flex flex-wrap gap-2 mt-2">
-                            <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
+                            <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
                           </div>
                         </div>
                       </template>
@@ -418,7 +418,7 @@ onMounted(() => {
                     <p class="mb-0 text-muted">Waiting for the buyer to accept {{ formatDateTime(o.proposedTime) }}</p>
                     <div class="mt-auto pt-2">
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
-                      <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                      <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                     </div>
                     <div class="d-flex justify-content-end mt-2">
                       <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
@@ -456,14 +456,14 @@ onMounted(() => {
                       <div v-if="confirmId === o._id" class="mt-2">
                         <p class="mb-1">Cancel this order?</p>
                         <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, cancel</button>
-                          <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                          <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, cancel</button>
+                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                         </div>
                       </div>
                       <div v-else class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-brand" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
-                        <button v-if="o.buyer" class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                        <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
+                        <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
+                        <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                       </div>
                       <div class="d-flex justify-content-end mt-2">
                         <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
@@ -479,7 +479,7 @@ onMounted(() => {
           <div v-if="activeGroup === 'done'" class="mb-3" data-testid="group-done">
             <h5 class="mb-2">Done ({{ done.length }})</h5>
             <div class="d-flex flex-wrap gap-2 mb-3">
-              <button class="btn btn-sm btn-outline-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + done.length + ')' }}</button>
+              <button class="btn btn-sm btn-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + done.length + ')' }}</button>
             </div>
             <template v-if="showDone">
               <p v-if="done.length === 0" data-testid="group-empty">Nothing here.</p>
@@ -500,7 +500,7 @@ onMounted(() => {
                       <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                       <div class="mt-auto pt-2">
                       <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
-                        <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                        <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                       </div>
                       <div class="d-flex justify-content-end mt-2">
                         <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
