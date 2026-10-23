@@ -31,7 +31,7 @@ const pendingOrders = computed(() => {
   return groupedOrders
 })
 
-// Groups accepted orders for the Upcoming tab.
+// Groups accepted orders for the Accepted tab.
 const upcomingOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
@@ -189,7 +189,7 @@ onMounted(() => {
             <button class="nav-link" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button>
           </li>
           <li class="nav-item">
-            <button class="nav-link" :class="{ active: activeTab === 'upcoming' }" @click="activeTab = 'upcoming'" data-testid="tab-upcoming">Upcoming ({{ upcomingOrders.length }})</button>
+            <button class="nav-link" :class="{ active: activeTab === 'upcoming' }" @click="activeTab = 'upcoming'" data-testid="tab-upcoming">Accepted ({{ upcomingOrders.length }})</button>
           </li>
           <li class="nav-item">
             <button class="nav-link" :class="{ active: activeTab === 'completed' }" @click="activeTab = 'completed'" data-testid="tab-completed">Completed ({{ completedOrders.length }})</button>
@@ -201,7 +201,7 @@ onMounted(() => {
 
         <div v-if="visibleOrders.length === 0" class="text-muted" data-testid="buyer-orders-tab-empty">
           <p v-if="activeTab === 'pending'">No orders waiting for the seller.</p>
-          <p v-else-if="activeTab === 'upcoming'">No upcoming pickups.</p>
+          <p v-else-if="activeTab === 'upcoming'">No accepted orders yet.</p>
           <p v-else-if="activeTab === 'completed'">No completed orders yet.</p>
           <p v-else>No declined or cancelled orders.</p>
         </div>

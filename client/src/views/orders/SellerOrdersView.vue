@@ -86,7 +86,7 @@ const breakdown = computed(() => {
   const groups = [
     { label: 'Needs reply', status: 'pending', count: needsReply.value.length, percent: 0 },
     { label: 'Waiting on buyer', status: 'rescheduled', count: waitingOnBuyer.value.length, percent: 0 },
-    { label: 'Upcoming', status: 'accepted', count: upcoming.value.length, percent: 0 },
+    { label: 'Accepted', status: 'accepted', count: upcoming.value.length, percent: 0 },
   ]
   for (let i = 0; i < groups.length; i++) {
     if (totalActive.value > 0) { // Avoid dividing by zero when there are no active orders.
@@ -238,7 +238,7 @@ onMounted(() => {
           <div class="col-6 col-lg-3">
             <div class="card"><div class="card-body">
               <p class="fs-3 fw-bold mb-1" data-testid="stat-upcoming">{{ upcoming.length }}</p>
-              <p class="mb-0">Upcoming</p>
+              <p class="mb-0">Accepted</p>
             </div></div>
           </div>
           <div class="col-6 col-lg-3">
@@ -351,7 +351,7 @@ onMounted(() => {
           </div>
 
           <div class="mb-4" data-testid="group-upcoming">
-            <h3>Upcoming ({{ upcoming.length }})</h3>
+            <h3>Accepted ({{ upcoming.length }})</h3>
             <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in upcoming" :key="o._id">
