@@ -19,6 +19,7 @@ const confirmId = ref('')
 const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
+const searchText = ref('')
 
 // Explains each order status to the buyer.
 const STATUS_HELP = {
@@ -89,6 +90,22 @@ const visibleOrders = computed(() => {
   } else {
     return pastOrders.value
   }
+})
+
+// Keeps orders in the current tab whose product or shop name matches the search.
+const searchedOrders = computed(() => {
+  const text = searchText.value.trim().toLowerCase()
+  if (text === '') return visibleOrders.value // An empty search shows the whole tab.
+  const matchingOrders = []
+  for (let i = 0; i < visibleOrders.value.length; i++) {
+    const order = visibleOrders.value[i]
+    const productName = order.product ? order.product.name.toLowerCase() : ''
+    const shopName = order.shop ? order.shop.name.toLowerCase() : ''
+    if (productName.includes(text) || shopName.includes(text)) {
+      matchingOrders.push(order)
+    }
+  }
+  return matchingOrders
 })
 
 // Returns the first product photo or the placeholder when it is unavailable.
@@ -217,16 +234,24 @@ onMounted(() => {
           </li>
         </ul>
 
+        <div class="row mb-3">
+          <div class="col-12 col-md-6 col-lg-4">
+            <label class="form-label" for="order-search">Search my orders</label>
+            <input type="search" class="form-control" id="order-search" v-model="searchText" placeholder="Search by product or shop" data-testid="order-search" />
+          </div>
+        </div>
+
         <div v-if="visibleOrders.length === 0" class="text-muted" data-testid="buyer-orders-tab-empty">
           <p v-if="activeTab === 'pending'">No orders waiting for the seller.</p>
           <p v-else-if="activeTab === 'upcoming'">No accepted orders yet.</p>
           <p v-else-if="activeTab === 'completed'">No completed orders yet.</p>
           <p v-else>No declined or cancelled orders.</p>
         </div>
+        <p v-else-if="searchedOrders.length === 0" class="text-muted" data-testid="order-search-empty">No orders match your search. Clear the search to see all orders.</p>
 
         <!-- every card is the same size: grid rows all match the tallest card -->
         <div v-else class="list-grid">
-          <div v-for="o in visibleOrders" :key="o._id">
+          <div v-for="o in searchedOrders" :key="o._id">
             <div class="card h-100" data-testid="order-row">
               <div class="card-body d-flex gap-3">
                 <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
