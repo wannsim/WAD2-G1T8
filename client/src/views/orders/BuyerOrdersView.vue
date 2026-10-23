@@ -19,6 +19,16 @@ const confirmId = ref('')
 const chatBusyId = ref('')
 const chatError = ref('')
 
+// Explains each order status to the buyer.
+const STATUS_HELP = {
+  pending: 'Waiting for the seller to reply.',
+  rescheduled: 'The seller suggested a new time. Accept it or cancel.',
+  accepted: 'Accepted by the seller. Collect it at the time shown.',
+  completed: 'Done. You can leave a review.',
+  declined: 'The seller could not take this order.',
+  cancelled: 'This order was cancelled.',
+}
+
 // Groups orders that are waiting for a reply or a new time to be accepted.
 const pendingOrders = computed(() => {
   const groupedOrders = []
@@ -212,15 +222,17 @@ onMounted(() => {
             <div class="card h-100" data-testid="order-row">
               <div class="card-body d-flex flex-column">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
-                  <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
+                  <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                   <div class="d-flex flex-wrap gap-2 align-self-start">
-                    <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
-                    <span v-if="isOverdue(o)" class="badge bg-danger" data-testid="order-overdue">Overdue</span>
+                    <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                    <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                   </div>
                 </div>
-                <p class="mb-1 text-muted">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
-                <p class="mb-1">Time: {{ formatDateTime(o.requestedTime) }}</p>
+                <p class="mb-1 text-body-secondary">{{ o.shop ? o.shop.name : 'Shop removed' }}</p>
+                <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
+                <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                 <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
+                <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Message the seller if you still need it.' : STATUS_HELP[o.status] }}</p>
 
                 <!-- The server enforces privacy; this check only decides what to display. -->
                 <div v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="mb-2" data-testid="order-pickup-details">
@@ -255,6 +267,9 @@ onMounted(() => {
                 <div v-if="o.shop" class="d-flex flex-wrap gap-2 mt-2">
                   <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
                 </div>
+                  <div class="d-flex justify-content-end mt-2">
+                    <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
