@@ -21,6 +21,17 @@ const confirmId = ref('')
 const confirmStatus = ref('')
 const chatBusyId = ref('')
 const chatError = ref('')
+const brokenImages = ref({})
+
+// Explains each order status to the seller.
+const STATUS_HELP_SELLER = {
+  pending: 'Waiting for your reply.',
+  rescheduled: 'Waiting for the buyer to accept your new time.',
+  accepted: 'Accepted. Hand it over at the time shown.',
+  completed: 'Done.',
+  declined: 'You declined this order.',
+  cancelled: 'This order was cancelled.',
+}
 
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
@@ -103,6 +114,13 @@ const nextPickup = computed(() => {
   }
   return null
 })
+
+// Returns the first product photo or the placeholder when it is unavailable.
+function imageFor(order) {
+  if (!order.product) return '/placeholder.svg' // A deleted product has no photo.
+  if (brokenImages.value[order._id]) return '/placeholder.svg' // A failed photo uses the placeholder.
+  return `${API_URL}/products/${order.product._id}/image/0`
+}
 
 // Uses the server's error message, or a general message if none is available.
 function getErrorMessage(err) {
@@ -290,15 +308,20 @@ onMounted(() => {
             <p v-if="needsReply.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in needsReply" :key="o._id">
-                <div class="card" data-testid="order-row">
-                  <div class="card-body">
+                <div class="card h-100" data-testid="order-row">
+                  <div class="card-body d-flex gap-3">
+                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                    <div class="order-text d-flex flex-column flex-grow-1">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
-                      <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                      <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                      <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
+                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
-                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
-                    <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
+                    <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                    <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
+                    <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
+                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                    <div class="mt-auto pt-2">
                     <div class="d-flex flex-wrap gap-2">
                       <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
                       <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
@@ -320,6 +343,11 @@ onMounted(() => {
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
                       <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                     </div>
+                    <div class="d-flex justify-content-end mt-2">
+                      <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                    </div>
+                    </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -331,18 +359,28 @@ onMounted(() => {
             <p v-if="waitingOnBuyer.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in waitingOnBuyer" :key="o._id">
-                <div class="card" data-testid="order-row">
-                  <div class="card-body">
+                <div class="card h-100" data-testid="order-row">
+                  <div class="card-body d-flex gap-3">
+                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                    <div class="order-text d-flex flex-column flex-grow-1">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
-                      <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                      <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                      <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
+                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
-                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
-                    <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
+                    <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                    <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
+                    <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
+                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <p class="mb-0 text-muted">Waiting for the buyer to accept {{ formatDateTime(o.proposedTime) }}</p>
+                    <div class="mt-auto pt-2">
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
                       <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                    </div>
+                    <div class="d-flex justify-content-end mt-2">
+                      <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                    </div>
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -355,18 +393,23 @@ onMounted(() => {
             <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in upcoming" :key="o._id">
-                <div class="card" data-testid="order-row">
-                  <div class="card-body">
+                <div class="card h-100" data-testid="order-row">
+                  <div class="card-body d-flex gap-3">
+                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                    <div class="order-text d-flex flex-column flex-grow-1">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
-                      <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
+                      <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                       <div class="d-flex flex-wrap gap-2 align-self-start">
-                        <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
-                        <span v-if="isOverdue(o)" class="badge bg-danger" data-testid="order-overdue">Overdue</span>
+                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                        <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                       </div>
                     </div>
-                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
-                    <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
+                    <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                    <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
+                    <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
+                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                    <div class="mt-auto pt-2">
                     <div class="d-flex flex-wrap gap-2">
                       <button class="btn btn-sm btn-brand" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
                       <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
@@ -380,6 +423,11 @@ onMounted(() => {
                     </div>
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
                       <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                    </div>
+                    <div class="d-flex justify-content-end mt-2">
+                      <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                    </div>
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -396,17 +444,27 @@ onMounted(() => {
               <p v-if="done.length === 0" data-testid="group-empty">Nothing here.</p>
               <div v-else class="list-grid">
                 <div v-for="o in done" :key="o._id">
-                  <div class="card" data-testid="order-row">
-                    <div class="card-body">
+                  <div class="card h-100" data-testid="order-row">
+                    <div class="card-body d-flex gap-3">
+                      <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                      <div class="order-text d-flex flex-column flex-grow-1">
                       <div class="d-flex justify-content-between flex-wrap gap-2">
-                        <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                        <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                        <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
+                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                       </div>
-                      <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
-                      <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
+                      <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                      <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
+                      <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                       <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
+                      <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                      <div class="mt-auto pt-2">
                       <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
                         <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                      </div>
+                      <div class="d-flex justify-content-end mt-2">
+                        <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                      </div>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -419,3 +477,16 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.order-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.order-text {
+  min-width: 0;
+}
+</style>
