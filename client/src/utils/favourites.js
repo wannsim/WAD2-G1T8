@@ -21,9 +21,33 @@ export async function loadSavedIds() {
   }
 }
 
-// saves the product, or un-saves it if already saved
-export async function toggleSaved(productId) {
-  const response = await axios.post(`${API_URL}/favourites`, { user: currentUser.value._id, product: productId })
-  if (response.data.saved) savedIds.value.push(productId)
-  else savedIds.value = savedIds.value.filter((id) => id !== productId)
+function setSaved(productId, saved) {
+  const has = savedIds.value.includes(productId)
+  if (saved && !has) savedIds.value = [...savedIds.value, productId]
+  if (!saved && has) savedIds.value = savedIds.value.filter((id) => id !== productId)
+}
+
+// Saves the product, or un-saves it if already saved.
+// The ♥ changes STRAIGHT AWAY (no waiting for the server). Requests for the same product are sent one
+// after another, each saying the state wanted, so fast clicking always ends on the last click.
+// If the server fails, the ♥ goes back to how it was.
+const lastWanted = new Map() // productId -> state of the latest click
+const queue = new Map()      // productId -> the request that is still running
+export function toggleSaved(productId) {
+  const saved = !savedIds.value.includes(productId)
+  lastWanted.set(productId, saved)
+  setSaved(productId, saved)
+
+  const send = () => axios.post(`${API_URL}/favourites`, { user: currentUser.value._id, product: productId, saved })
+  const request = (queue.get(productId) || Promise.resolve())
+    .then(send)
+    .then((response) => {
+      if (lastWanted.get(productId) === saved) setSaved(productId, response.data.saved)
+    })
+    .catch((err) => {
+      if (lastWanted.get(productId) === saved) setSaved(productId, !saved) // undo
+      throw err
+    })
+  queue.set(productId, request.catch(() => {}))
+  return request
 }

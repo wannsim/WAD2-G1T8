@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String }, 
     role: { type: String, enum: ['buyer', 'seller'], default: 'buyer' },
     preferences: { type: [String], default: [] }, // buyer's favourite categories (used by FYP)
+    preferredMrt: { type: String, default: '', trim: true },
   },
   { timestamps: true }
 )

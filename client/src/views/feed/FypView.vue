@@ -8,6 +8,7 @@ import { savedIds } from '@/utils/favourites'
 // Owner: Jessie - the home page with For You / Following (Trending to be added later) tabs
 const TABS = [
   { key: 'foryou', label: 'For you' },
+  { key: 'trending', label: 'Trending' },
   { key: 'following', label: 'Following' },
 ]
 const tab = ref('foryou')
@@ -85,8 +86,8 @@ watch(savedIds, () => {
   scoreTimer = setTimeout(refreshScores, 300) // several quick ♥ clicks = one request
 }, { deep: true })
 
-// gold / silver / bronze for the top 3 of For you (Following is newest-first, so no ranks there)
-const rankOf = (index) => (tab.value === 'foryou' && index < 3 ? index + 1 : 0)
+// gold / silver / bronze for the top 3 of For you and Trending (Following is newest-first, so no ranks there)
+const rankOf = (index) => (tab.value !== 'following' && index < 3 ? index + 1 : 0)
 
 onMounted(loadFeed)
 watch(tab, loadFeed)
@@ -116,13 +117,17 @@ watch(tab, loadFeed)
 
     <p v-if="tab === 'foryou' && !currentUser" class="text-muted">Log in to get recommendations that match your interests.</p>
     <p v-if="tab === 'following' && !currentUser" class="text-muted">Log in and follow shops to see them here.</p>
+    <p v-if="tab === 'trending'" class="small text-muted trending-note">
+      <span aria-hidden="true">🔥</span> Most popular on Homly Hauls this week (orders, saves and views), boosted by
+      what people are searching for online right now.
+    </p>
 
     <p v-if="loading && items.length === 0" class="text-muted">Loading...</p>
     <p v-else-if="!loading && items.length === 0" class="text-muted">Nothing here yet.</p>
 
     <div class="card-grid" :class="{ refreshing: loading && items.length > 0 }">
       <div v-for="(item, index) in items" :key="item.product._id" class="feed-cell" :class="rankOf(index) ? `rank rank-${rankOf(index)}` : ''">
-        <span v-if="rankOf(index)" class="rank-badge" :aria-label="`Ranked number ${rankOf(index)} for you`">{{ rankOf(index) }}</span>
+        <span v-if="rankOf(index)" class="rank-badge" :aria-label="tab === 'trending' ? `Number ${rankOf(index)} trending` : `Ranked number ${rankOf(index)} for you`">{{ rankOf(index) }}</span>
         <ProductCard :product="item.product" :reason="item.reason" favourite @open="logClick(item)" />
       </div>
     </div>
@@ -135,11 +140,11 @@ watch(tab, loadFeed)
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 1rem;
-  border: 1px solid #ece6dc;
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
   font-weight: 500;
-  color: #2b2b2b;
+  color: var(--ink);
 }
 .refresh-btn:hover:not(:disabled) {
   border-color: var(--brand);
@@ -153,8 +158,8 @@ watch(tab, loadFeed)
   animation: nudge 1.6s ease-in-out infinite;
 }
 @keyframes nudge {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(194, 65, 12, 0.35); }
-  50% { box-shadow: 0 0 0 6px rgba(194, 65, 12, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--brand-rgb), 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(var(--brand-rgb), 0); }
 }
 .new-picks {
   color: var(--brand-dark);
@@ -175,8 +180,8 @@ watch(tab, loadFeed)
   position: relative;
 }
 .rank :deep(.product-card) {
-  border-width: 3px;
-  border-color: var(--rank-colour);
+  --bs-card-border-width: 3px; /* Bootstrap then shrinks the photo's corners to match: no gap */
+  --bs-card-border-color: var(--rank-colour);
   box-shadow: 0 6px 18px var(--rank-glow);
 }
 .rank-1 { --rank-colour: #d4a017; --rank-glow: rgba(212, 160, 23, 0.3); }

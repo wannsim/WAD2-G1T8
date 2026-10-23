@@ -62,6 +62,18 @@ router.get('/map', async (req, res) => {
   }
 })
 
+// Public shop cards for a buyer's following list.
+router.get('/following/:userId', async (req, res) => {
+  try {
+    const shops = await Shop.find({ followers: req.params.userId })
+      .select('name nearestMrt categories stats')
+      .sort({ name: 1 })
+    res.json(shops)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 // is a shop name free? ?name=...&except=<my shop id>  -> { available, message }
 // NOTE: must be defined BEFORE '/:id'
 router.get('/name-available', async (req, res) => {

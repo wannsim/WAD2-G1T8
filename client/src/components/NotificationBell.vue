@@ -70,13 +70,13 @@ onUnmounted(() => {
   border-radius: 0.75rem;
   background: transparent;
   font-weight: 500;
-  color: #2b2b2b;
+  color: var(--ink);
 }
 .bell-btn:hover {
-  background: #f3f0ea;
+  background: var(--surface-hover);
 }
 .bell-btn.active {
-  background: rgba(194, 65, 12, 0.1);
+  background: rgba(var(--brand-rgb), 0.1);
   color: var(--brand);
 }
 /* "Notifications" label under the bell on hover (wide screens; on phones the word is already shown) */
@@ -90,7 +90,7 @@ onUnmounted(() => {
     transform: translateX(-50%);
     padding: 2px 8px;
     border-radius: 4px;
-    background: #212529;
+    background: var(--navy);
     color: #fff;
     font-size: 0.75rem;
     font-weight: 400;
@@ -115,13 +115,13 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 .view-all {
-  border-top: 1px solid #eee8de;
+  border-top: 1px solid var(--line);
   font-weight: 500;
   color: var(--brand);
   text-decoration: none;
 }
 .view-all:hover {
-  background: #f8f6f2;
+  background: var(--surface-hover);
 }
 /* inside the collapsed phone menu: show the pop-up in the menu instead of floating */
 @media (max-width: 1199.98px) {

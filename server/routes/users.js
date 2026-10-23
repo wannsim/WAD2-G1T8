@@ -9,7 +9,7 @@ const router = express.Router()
 
 // never send the password hash back to the client
 function safeUser(u) {
-  return { _id: u._id, name: u.name, email: u.email, role: u.role, preferences: u.preferences }
+  return { _id: u._id, name: u.name, email: u.email, role: u.role, preferences: u.preferences, preferredMrt: u.preferredMrt || '' }
 }
 
 router.post('/register', async (req, res) => {
@@ -78,10 +78,10 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { name, preferences } = req.body
+    const { name, preferences, preferredMrt } = req.body
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { name, preferences },
+      { name, preferences, preferredMrt: String(preferredMrt || '').trim() },
       { new: true, runValidators: true }
     )
     if (!user) return res.status(404).json({ message: 'User not found' })

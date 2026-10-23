@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import express from 'express'
 import Favourite from '../models/Favourite.js'
 import Interaction from '../models/Interaction.js'
@@ -5,7 +6,7 @@ import Product from '../models/Product.js'
 import { withImageUrl, imageCounts } from '../utils/images.js'
 
 // Owner: Tanya (Discovery)
-// GET /favourites/:userId   GET /favourites/:userId/ids   POST /favourites  (toggles)
+// GET /favourites/:userId   GET /favourites/:userId/ids   POST /favourites  (save / un-save)
 const router = express.Router()
 
 router.get('/:userId/ids', async (req, res) => {
@@ -32,20 +33,35 @@ router.get('/:userId', async (req, res) => {
   }
 })
 
-// body: { user, product }  -> saves it, or un-saves it if already saved
+// body: { user, product, saved }
+//   saved: true  -> save it      saved: false -> un-save it      (no saved -> toggle, for older callers)
+// Saying the wanted state (instead of "toggle") means quick double-clicks can never get out of sync.
+// Only ONE database write happens before we answer, so the ♥ feels instant; the FYP "save" signal
+// is logged after the answer has been sent.
 router.post('/', async (req, res) => {
   try {
     const { user, product } = req.body
-    const existing = await Favourite.findOne({ user, product })
-    if (existing) {
-      await existing.deleteOne()
+    if (!mongoose.isValidObjectId(user) || !mongoose.isValidObjectId(product)) {
+      return res.status(400).json({ message: 'Log in to save products' })
+    }
+    let saved = req.body.saved
+    if (typeof saved !== 'boolean') saved = !(await Favourite.exists({ user, product })) // toggle
+
+    if (!saved) {
+      await Favourite.deleteOne({ user, product })
       return res.json({ saved: false })
     }
-    await Favourite.create({ user, product })
-    const p = await Product.findById(product)
-    await Interaction.create({ user, product, shop: p?.shop, type: 'save' }) // feeds the FYP
+    const result = await Favourite.updateOne({ user, product }, { $setOnInsert: { user, product } }, { upsert: true })
     res.json({ saved: true })
+
+    // newly saved -> tell the FYP (in the background, after answering)
+    if (result.upsertedCount === 1) {
+      Product.findById(product).select('shop').lean()
+        .then((p) => Interaction.create({ user, product, shop: p?.shop, type: 'save' }))
+        .catch((err) => console.error('Could not log save:', err.message))
+    }
   } catch (err) {
+    if (err.code === 11000) return res.json({ saved: true }) // two clicks raced: it is saved either way
     res.status(500).json({ message: err.message })
   }
 })

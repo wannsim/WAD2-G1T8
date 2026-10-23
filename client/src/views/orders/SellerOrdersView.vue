@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import SearchBox from '@/components/SearchBox.vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -83,6 +84,25 @@ const done = computed(() => {
     if (order.status === 'completed' || order.status === 'declined' || order.status === 'cancelled') groupedOrders.push(order) // Done includes the three final statuses.
   }
   return groupedOrders
+})
+
+// ---- search (product, buyer, note, status) - filters the order lists, not the dashboard numbers ----
+const search = ref('')
+function matchesSearch(order) {
+  const q = search.value.trim().toLowerCase()
+  if (!q) return true
+  return [order.product?.name, order.buyer?.name, order.customisation, order.status, order.fulfilment]
+    .some((text) => (text || '').toLowerCase().includes(q))
+}
+const shown = computed(() => ({
+  needsReply: needsReply.value.filter(matchesSearch),
+  waitingOnBuyer: waitingOnBuyer.value.filter(matchesSearch),
+  upcoming: upcoming.value.filter(matchesSearch),
+  done: done.value.filter(matchesSearch),
+}))
+const shownCount = computed(() => Object.values(shown.value).reduce((sum, list) => sum + list.length, 0))
+watch(search, (q) => {
+  if (q.trim()) showDone.value = true // matches in Done should be visible too
 })
 
 // Counts accepted orders whose pickup time has passed.
@@ -329,27 +349,32 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        <!-- search the order lists (long lists are easier to go through) -->
+        <div v-if="orders.length > 0" class="d-flex align-items-center flex-wrap gap-2 mb-3">
+          <SearchBox v-model="search" class="flex-grow-1 order-search" placeholder="Search by product, buyer or note" label="Search orders" />
+          <span v-if="search.trim()" class="small text-muted" aria-live="polite">{{ shownCount }} {{ shownCount === 1 ? 'order' : 'orders' }} found</span>
+        </div>
         <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
         <template v-else>
           <ul class="nav nav-pills mb-3" data-testid="seller-orders-tabs">
             <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'needs-reply' }" @click="activeGroup = 'needs-reply'" data-testid="seller-tab-needs-reply">Needs reply ({{ needsReply.length }})</button>
+              <button class="nav-link" :class="{ active: activeGroup === 'needs-reply' }" @click="activeGroup = 'needs-reply'" data-testid="seller-tab-needs-reply">Needs reply ({{ shown.needsReply.length }})</button>
             </li>
             <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'waiting-buyer' }" @click="activeGroup = 'waiting-buyer'" data-testid="seller-tab-waiting-buyer">Waiting on buyer ({{ waitingOnBuyer.length }})</button>
+              <button class="nav-link" :class="{ active: activeGroup === 'waiting-buyer' }" @click="activeGroup = 'waiting-buyer'" data-testid="seller-tab-waiting-buyer">Waiting on buyer ({{ shown.waitingOnBuyer.length }})</button>
             </li>
             <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'upcoming' }" @click="activeGroup = 'upcoming'" data-testid="seller-tab-upcoming">Accepted ({{ upcoming.length }})</button>
+              <button class="nav-link" :class="{ active: activeGroup === 'upcoming' }" @click="activeGroup = 'upcoming'" data-testid="seller-tab-upcoming">Accepted ({{ shown.upcoming.length }})</button>
             </li>
             <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'done' }" @click="activeGroup = 'done'" data-testid="seller-tab-done">Done ({{ done.length }})</button>
+              <button class="nav-link" :class="{ active: activeGroup === 'done' }" @click="activeGroup = 'done'" data-testid="seller-tab-done">Done ({{ shown.done.length }})</button>
             </li>
           </ul>
           <div v-if="activeGroup === 'needs-reply'" class="mb-4" data-testid="group-needs-reply">
-            <h5 class="mb-2">Needs reply ({{ needsReply.length }})</h5>
-            <p v-if="needsReply.length === 0" data-testid="group-empty">Nothing here.</p>
+            <h5 class="mb-2">Needs reply ({{ shown.needsReply.length }})</h5>
+            <p v-if="shown.needsReply.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
             <div v-else class="list-grid mb-4">
-              <div v-for="o in needsReply" :key="o._id">
+              <div v-for="o in shown.needsReply" :key="o._id">
                 <div class="card h-100" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
                     <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
@@ -398,10 +423,10 @@ onMounted(() => {
           </div>
 
           <div v-if="activeGroup === 'waiting-buyer'" class="mb-4" data-testid="group-waiting-buyer">
-            <h5 class="mb-2">Waiting on buyer ({{ waitingOnBuyer.length }})</h5>
-            <p v-if="waitingOnBuyer.length === 0" data-testid="group-empty">Nothing here.</p>
+            <h5 class="mb-2">Waiting on buyer ({{ shown.waitingOnBuyer.length }})</h5>
+            <p v-if="shown.waitingOnBuyer.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
             <div v-else class="list-grid mb-4">
-              <div v-for="o in waitingOnBuyer" :key="o._id">
+              <div v-for="o in shown.waitingOnBuyer" :key="o._id">
                 <div class="card h-100" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
                     <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
@@ -432,10 +457,10 @@ onMounted(() => {
           </div>
 
           <div v-if="activeGroup === 'upcoming'" class="mb-4" data-testid="group-upcoming">
-            <h5 class="mb-2">Accepted ({{ upcoming.length }})</h5>
-            <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
+            <h5 class="mb-2">Accepted ({{ shown.upcoming.length }})</h5>
+            <p v-if="shown.upcoming.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
             <div v-else class="list-grid mb-4">
-              <div v-for="o in upcoming" :key="o._id">
+              <div v-for="o in shown.upcoming" :key="o._id">
                 <div class="card h-100" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
                     <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
@@ -477,14 +502,14 @@ onMounted(() => {
           </div>
 
           <div v-if="activeGroup === 'done'" class="mb-4" data-testid="group-done">
-            <h5 class="mb-2">Done ({{ done.length }})</h5>
+            <h5 class="mb-2">Done ({{ shown.done.length }})</h5>
             <div class="d-flex flex-wrap gap-2 mb-3">
-              <button class="btn btn-sm btn-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + done.length + ')' }}</button>
+              <button class="btn btn-sm btn-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + shown.done.length + ')' }}</button>
             </div>
             <template v-if="showDone">
-              <p v-if="done.length === 0" data-testid="group-empty">Nothing here.</p>
+              <p v-if="shown.done.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
               <div v-else class="list-grid mb-4">
-                <div v-for="o in done" :key="o._id">
+                <div v-for="o in shown.done" :key="o._id">
                   <div class="card h-100" data-testid="order-row">
                     <div class="card-body d-flex gap-3">
                       <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
