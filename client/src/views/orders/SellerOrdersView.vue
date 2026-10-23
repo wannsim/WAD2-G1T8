@@ -247,7 +247,7 @@ onMounted(() => {
       </p>
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
       <template v-else>
-        <div class="card mb-3" data-testid="seller-dashboard-stats">
+        <div class="card mb-3 h-auto" data-testid="seller-dashboard-stats">
           <div class="row g-0">
             <div class="col-6 col-lg-3 p-3 border-end">
               <p class="small text-body-secondary mb-1">Needs reply</p>
