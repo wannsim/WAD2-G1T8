@@ -284,6 +284,35 @@ router.put('/:id/status', async (req, res) => {
       }
       order.depopulate()
     }
+
+    // Tells the seller when the buyer cancels or accepts a new time.
+    if (actor === 'buyer' && (status === 'cancelled' || status === 'accepted')) {
+      try {
+        const shop = await Shop.findById(order.shop)
+        const product = await Product.findById(order.product).select('name')
+        let productName = 'an item'
+        if (product) productName = product.name
+        if (shop) {
+          if (status === 'cancelled') {
+            await notify(req, shop.owner, {
+              type: 'order-update',
+              title: 'Order cancelled',
+              message: `The buyer cancelled their order for ${productName} (${formatDateTime(order.requestedTime)}).`,
+              link: '/seller/orders',
+            })
+          } else {
+            await notify(req, shop.owner, {
+              type: 'order-update',
+              title: 'New time accepted',
+              message: `The buyer accepted your new time for ${productName}: ${formatDateTime(order.requestedTime)}.`,
+              link: '/seller/orders',
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Could not notify the seller:', err.message)
+      }
+    }
     res.json(order)
   } catch (err) {
     res.status(500).json({ message: err.message })
