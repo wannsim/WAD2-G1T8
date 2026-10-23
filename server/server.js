@@ -14,6 +14,8 @@ import feedRoutes from './routes/feed.js'
 import orderRoutes from './routes/orders.js'
 import reviewRoutes from './routes/reviews.js'
 import chatRoutes from './routes/chats.js'
+import notificationRoutes from './routes/notifications.js'
+import { startRealtime } from './utils/realtime.js'
  
 dotenv.config({ path: './config.env' })
  
@@ -46,6 +48,7 @@ app.use('/feed', feedRoutes)
 app.use('/orders', orderRoutes)
 app.use('/reviews', reviewRoutes)
 app.use('/chats', chatRoutes)
+app.use('/notifications', notificationRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/shops', shopRoutes)
  
@@ -57,6 +60,7 @@ mongoose
   .connect(process.env.DB)
   .then(() => {
     console.log('MongoDB connected')
+    startRealtime(io) // live chat / notifications, even when each teammate runs their own server
     // NOTE: httpServer.listen (not app.listen) so Socket.IO works
     httpServer.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
   })

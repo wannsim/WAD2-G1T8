@@ -7,6 +7,7 @@ import feedRoutes from './feed.routes'
 import orderRoutes from './order.routes'       
 import reviewRoutes from './review.routes'     
 import chatRoutes from './chat.routes' 
+import notificationRoutes from './notification.routes'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,6 +20,7 @@ const router = createRouter({
     ...orderRoutes,
     ...reviewRoutes,
     ...chatRoutes, 
+    ...notificationRoutes,
     { path: '/:pathMatch(.*)*', redirect: '/home' }, // unknown URL -> home
   ],
 })

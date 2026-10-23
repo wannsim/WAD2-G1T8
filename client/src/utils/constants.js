@@ -1,4 +1,4 @@
-// Shared lists. If you add a category here, tell the team (server/models/Product.js does not restrict it).
+// Shared lists. If you add a category here, also add it to server/utils/productRules.js (the server checks it).
 export const CATEGORIES = [
   'Baked goods',
   'Meals',
@@ -7,6 +7,9 @@ export const CATEGORIES = [
   'Handmade crafts',
   'Others',
 ]
+
+// units a seller can sell by (price is "per unit")
+export const UNITS = ['piece', 'box', 'pack', 'set', 'dozen', 'slice', 'jar', 'bottle', 'kg', 'session', 'hour']
 
 // Bootstrap badge classes for each order status (used with :class="ORDER_STATUS_BADGE[order.status]")
 export const ORDER_STATUS_BADGE = {

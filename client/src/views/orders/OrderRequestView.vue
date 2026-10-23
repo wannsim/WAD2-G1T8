@@ -126,7 +126,7 @@ async function submitOrder() {
 
 <template>
   <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6">
+    <div class="col-12 page-narrow">
       <p v-if="loading" data-testid="order-loading">
         <span class="spinner-border spinner-border-sm"></span> Loading...
       </p>
@@ -150,7 +150,7 @@ async function submitOrder() {
         </div>
       </div>
       <div v-else-if="product" data-testid="order-form">
-        <h2>Request: {{ product.name }}</h2>
+        <h2 class="page-title">Request: {{ product.name }}</h2>
         <p class="text-muted">from {{ product.shop.name }} &middot; {{ formatPrice(product.price) }} / {{ product.unit }}</p>
         <div v-if="error" class="alert alert-danger" data-testid="order-error">{{ error }}</div>
 

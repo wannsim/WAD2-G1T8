@@ -1,17 +1,17 @@
 <template>
-  <p v-if="loading" class="container mt-4 text-muted">Loading shop...</p>
-  <div v-else-if="loadError" class="container mt-4 alert alert-warning">
+  <p v-if="loading" class="text-muted">Loading shop...</p>
+  <div v-else-if="loadError" class="alert alert-warning">
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>
 
-  <div class="container mt-4 mb-5" v-else-if="shop">
+  <div class="mb-5" v-else-if="shop">
     <div class="p-4 bg-light rounded mb-4">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <h2 class="mb-1">{{ shop.name }}</h2>
+        <h2 class="page-title mb-1">{{ shop.name }}</h2>
         <FollowButton :shop="shop" :followerCountTF="true"/>
       </div>
       <p v-if="shop.description" class="text-muted">{{ shop.description }}</p>
-      <p v-if="shop.nearestMrt"><strong>Location (Nearest MRT):</strong> {{ shop.nearestMrt }}</p>
+      <p v-if="shop.nearestMrt"><strong>Location (nearest MRT):</strong> {{ shop.nearestMrt }}</p>
       <p v-if="shop.experience"><strong>Experience:</strong> {{ shop.experience }}</p>
       <p v-if="shop.certifications && shop.certifications.length">
         <strong>Certifications:</strong> {{ shop.certifications.join(', ') }}
@@ -29,10 +29,10 @@
       </div>
     </div>
 
-    <h4>Products & Services <span class="text-muted fs-6">({{ products.length }})</span></h4>
+    <h4>Products & services <span class="text-muted fs-6">({{ products.length }})</span></h4>
     <p v-if="products.length === 0" class="text-muted">This shop has no listings yet.</p>
-    <div class="row g-3">
-      <div class="col-sm-6 col-lg-3" v-for="item in sortedProducts" :key="item._id">
+    <div class="card-grid">
+      <div v-for="item in sortedProducts" :key="item._id">
         <ProductCard :product="item">
           <span v-if="isPinned(item)" class="badge bg-warning text-dark">Pinned</span>
           <!-- only the shop owner can edit -->

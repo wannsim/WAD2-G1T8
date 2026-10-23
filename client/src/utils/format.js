@@ -10,3 +10,23 @@ export function formatDateTime(d) {
     timeZone: 'Asia/Singapore',
   })
 }
+// short date + time for notifications, e.g. "21 Oct, 3:30 pm" (adds the year if it is not this year)
+export function formatShortDateTime(d) {
+  if (!d) return ''
+  const date = new Date(d)
+  const thisYear = date.getFullYear() === new Date().getFullYear()
+  return date.toLocaleString('en-SG', {
+    day: 'numeric',
+    month: 'short',
+    year: thisYear ? undefined : 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'Asia/Singapore',
+  })
+}
+
+// first letter in capitals, for values saved in lowercase, e.g. "accepted" -> "Accepted", "pickup" -> "Pickup"
+export function capitalize(text) {
+  const s = String(text ?? '')
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}

@@ -17,7 +17,7 @@ const reviewCount = computed(() => props.shop.stats.reviewCount)
 </script>
 
 <template>
-    <div class="card h-100 shadow-sm" style="width: 400px;">
+    <div class="card h-100 shadow-sm">
         <!-- <img :src="shop.imageUrl || '/placeholder.svg'" class="card-img-top product-img" :alt="shop.name" /> -->
         <div class="card-body d-flex flex-column">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">

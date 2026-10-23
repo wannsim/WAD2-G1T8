@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import Conversation from '../models/Conversation.js'
 import Message from '../models/Message.js'
 import Shop from '../models/Shop.js'
+import { emitFromRoute } from '../utils/realtime.js'
  
 // Save as: server/routes/chats.js
 // POST /chats/start               find or create the chat between a buyer and a shop
@@ -97,7 +98,7 @@ router.get('/:id/messages', async (req, res) => {
       isBuyer ? { buyerUnread: 0 } : { sellerUnread: 0 }
     )
  
-    req.app.get('io').to(`user:${userId}`).emit('unread-changed') // navbar badge refreshes
+    emitFromRoute([userId], 'unread-changed') // navbar badge refreshes
  
     const messages = await Message.find({ conversation: conversation._id }).sort({ createdAt: 1 })
     res.json({ title: isBuyer ? conversation.shop.name : conversation.buyer.name, messages })
@@ -133,12 +134,11 @@ router.post('/:id/messages', async (req, res) => {
       }
     )
  
-    // real-time push: both people's browsers hear about it straight away
-    req.app
-      .get('io')
-      .to(`user:${conversation.buyer}`)
-      .to(`user:${conversation.seller}`)
-      .emit('new-message', { conversationId: String(conversation._id), sender: String(sender) })
+    // real-time push: both people's browsers hear about it straight away (see utils/realtime.js)
+    emitFromRoute([conversation.buyer, conversation.seller], 'new-message', {
+      conversationId: String(conversation._id),
+      sender: String(sender),
+    })
  
     res.status(201).json(message)
   } catch (err) {

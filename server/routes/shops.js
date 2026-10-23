@@ -5,7 +5,7 @@ import Shop from '../models/Shop.js'
 import Product from '../models/Product.js'
 
 // Owner: Cheyenne
-// GET /shops   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
+// GET /shops   GET /shops/map   GET /shops/name-available   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
 const router = express.Router()
 
 // certificate photos: images only, max 5MB each
@@ -18,11 +18,57 @@ const upload = multer({
 // certificate photos are big Base64 strings - never send them inside the shop JSON
 const NO_CERT_IMAGES = '-certificationFiles.image'
 
+// Shop names must be unique (ignoring upper/lower case and extra spaces), so buyers can tell shops apart.
+// returns an error message, or '' if the name is OK. exceptShopId = the shop being renamed (it may keep its own name)
+const cleanName = (name) => String(name ?? '').trim().replace(/\s+/g, ' ')
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+async function checkShopName(name, exceptShopId) {
+  if (!name) return 'Shop name is required.'
+  if (name.length > 60) return 'Shop name is too long (max 60 characters).'
+  const query = { name: new RegExp(`^${escapeRegex(name)}$`, 'i') }
+  if (exceptShopId) query._id = { $ne: exceptShopId }
+  if (await Shop.exists(query)) return `The shop name "${name}" is already taken. Please choose another name.`
+  return ''
+}
+
 // list all shops (the map uses this). The private street address is left out.
 router.get('/', async (req, res) => {
   try {
     const shops = await Shop.find().select(`-address -postalCode ${NO_CERT_IMAGES}`)
     res.json(shops)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// shops for the map page: public fields + starting price and number of listings
+// NOTE: must be defined BEFORE '/:id'
+router.get('/map', async (req, res) => {
+  try {
+    const [shops, prices] = await Promise.all([
+      Shop.find().select('name nearestMrt categories description stats location').lean(),
+      Product.aggregate([
+        { $match: { isAvailable: { $ne: false } } },
+        { $group: { _id: '$shop', minPrice: { $min: '$price' }, listingCount: { $sum: 1 } } },
+      ]),
+    ])
+    const byShop = new Map(prices.map((p) => [String(p._id), p]))
+    res.json(shops.map((shop) => {
+      const p = byShop.get(String(shop._id))
+      return { ...shop, minPrice: p ? p.minPrice : null, listingCount: p ? p.listingCount : 0 }
+    }))
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// is a shop name free? ?name=...&except=<my shop id>  -> { available, message }
+// NOTE: must be defined BEFORE '/:id'
+router.get('/name-available', async (req, res) => {
+  try {
+    const except = mongoose.isValidObjectId(req.query.except) ? req.query.except : undefined
+    const message = await checkShopName(cleanName(req.query.name), except)
+    res.json({ available: !message, message })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -53,6 +99,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { certificationFiles, ...data } = req.body // photos are uploaded separately
+    data.name = cleanName(data.name)
+    const problem = await checkShopName(data.name)
+    if (problem) return res.status(409).json({ message: problem })
     const shop = await Shop.create(data)
     res.status(201).json(shop)
   } catch (err) {
@@ -65,6 +114,12 @@ router.put('/:id', async (req, res) => {
     // never let the client overwrite the owner or the trust stats
     // certificate photos have their own routes below, so they can't be wiped by a profile save
     const { owner, stats, pinnedProducts, followers, certificationFiles, ...changes } = req.body
+    if ('name' in changes) {
+      if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Shop not found' })
+      changes.name = cleanName(changes.name)
+      const problem = await checkShopName(changes.name, req.params.id)
+      if (problem) return res.status(409).json({ message: problem })
+    }
     const shop = await Shop.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true }).select(NO_CERT_IMAGES)
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
     res.json(shop)

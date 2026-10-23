@@ -1,10 +1,10 @@
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
-import { currentUser } from '@/utils/auth'
+import { currentUser, isSeller } from '@/utils/auth'
 import { socket } from '@/utils/socket'
  
 // Save as: client/src/views/chat/ChatView.vue
@@ -50,8 +50,73 @@ async function loadMessages() {
   }
 }
  
+// ---- search 1: find a chat by name (shop name for buyers, buyer name for sellers) ----
+const nameSearch = ref('')
+const shownConversations = computed(() => {
+  const q = nameSearch.value.trim().toLowerCase()
+  return q ? conversations.value.filter((c) => (c.title || '').toLowerCase().includes(q)) : conversations.value
+})
+
+// ---- search 2: find a message inside the open chat ----
+const messageSearchOpen = ref(false)
+const messageSearch = ref('')
+const messageSearchInput = ref(null)
+const matchIndex = ref(0) // which match is selected (0 = oldest)
+const matchIds = computed(() => {
+  const q = messageSearch.value.trim().toLowerCase()
+  return q ? messages.value.filter((m) => m.text.toLowerCase().includes(q)).map((m) => m._id) : []
+})
+const currentMatchId = computed(() => matchIds.value[matchIndex.value])
+
+async function scrollToMatch() {
+  await nextTick()
+  const el = currentMatchId.value && document.getElementById(`msg-${currentMatchId.value}`)
+  if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+// typing a new search jumps to the newest match
+watch(messageSearch, () => {
+  matchIndex.value = Math.max(matchIds.value.length - 1, 0)
+  scrollToMatch()
+})
+// step = -1 older, +1 newer (wraps around)
+function goToMatch(step) {
+  const count = matchIds.value.length
+  if (count === 0) return
+  matchIndex.value = (matchIndex.value + step + count) % count
+  scrollToMatch()
+}
+async function openMessageSearch() {
+  messageSearchOpen.value = true
+  await nextTick()
+  messageSearchInput.value?.focus()
+}
+function closeMessageSearch() {
+  messageSearchOpen.value = false
+  messageSearch.value = ''
+}
+
+// splits a message so the searched words can be highlighted (no v-html, so messages stay plain text)
+function highlightParts(text) {
+  const q = messageSearch.value.trim()
+  if (!q) return [{ text, match: false }]
+  const parts = []
+  const lower = text.toLowerCase()
+  const needle = q.toLowerCase()
+  let start = 0
+  let found = lower.indexOf(needle)
+  while (found !== -1) {
+    if (found > start) parts.push({ text: text.slice(start, found), match: false })
+    parts.push({ text: text.slice(found, found + q.length), match: true })
+    start = found + q.length
+    found = lower.indexOf(needle, start)
+  }
+  if (start < text.length) parts.push({ text: text.slice(start), match: false })
+  return parts
+}
+
 async function selectChat(conversation) {
   error.value = ''
+  closeMessageSearch()
   activeId.value = conversation._id
   messages.value = []
   await loadMessages()
@@ -73,6 +138,35 @@ async function send() {
     error.value = err.response?.data?.message || err.message
   }
 }
+
+function dayKey(date) {
+  return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
+}
+
+function dayLabel(date) {
+  const key = dayKey(date)
+  const today = dayKey(new Date())
+  const yesterday = dayKey(new Date(Date.now() - 24 * 60 * 60 * 1000))
+  if (key === today) return 'Today'
+  if (key === yesterday) return 'Yesterday'
+  const options = { month: 'long', day: 'numeric', timeZone: 'Asia/Singapore' }
+  if (key.slice(0, 4) !== today.slice(0, 4)) options.year = 'numeric'
+  return new Date(date).toLocaleDateString('en-US', options)
+}
+
+const chatItems = computed(() => {
+  const items = []
+  let lastDay = ''
+  messages.value.forEach((m) => {
+    const day = dayKey(m.createdAt)
+    if (day !== lastDay) {
+      items.push({ id: 'date-' + day, type: 'date', label: dayLabel(m.createdAt) })
+      lastDay = day
+    }
+    items.push({ id: m._id, type: 'message', message: m })
+  })
+  return items
+})
 
 function goBack() {
   if (window.history.state && window.history.state.back) {
@@ -127,7 +221,7 @@ onUnmounted(() => {
       </svg>
       Back
     </button>
-      <h2 class="ms-1 mb-0">Chats</h2>
+      <h2 class="page-title ms-1 mb-0">Chats</h2>
     </div>
     <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
  
@@ -137,9 +231,19 @@ onUnmounted(() => {
         <p v-if="conversations.length === 0" class="text-muted">
           No chats yet. Open a product and tap "Chat with seller".
         </p>
+        <div v-else class="search-box mb-2">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+          </svg>
+          <input type="search" class="form-control" v-model="nameSearch"
+            :placeholder="isSeller ? 'Search by buyer name...' : 'Search by shop name...'" aria-label="Search chats by name" />
+        </div>
+        <p v-if="conversations.length > 0 && shownConversations.length === 0" class="text-muted small">
+          No chats match "{{ nameSearch }}".
+        </p>
         <div class="list-group">
           <button
-            v-for="c in conversations"
+            v-for="c in shownConversations"
             :key="c._id"
             type="button"
             class="list-group-item list-group-item-action"
@@ -159,23 +263,55 @@ onUnmounted(() => {
       <div class="col-md-8" :class="{ 'd-none d-md-block': !activeId }">
         <div v-if="activeId" class="card">
           <div class="card-header bg-white d-flex align-items-center gap-2">
-            <button class="btn btn-sm btn-outline-secondary d-md-none" @click="activeId = null">All Chats</button>
+            <button class="btn btn-sm btn-outline-secondary d-md-none" @click="closeMessageSearch(); activeId = null">All chats</button>
             <strong>{{ activeTitle }}</strong>
+            <button type="button" class="btn btn-sm ms-auto icon-btn" :class="messageSearchOpen ? 'btn-secondary' : 'btn-outline-secondary'"
+              :data-label="messageSearchOpen ? null : 'Search messages'" aria-label="Search messages"
+              @click="messageSearchOpen ? closeMessageSearch() : openMessageSearch()">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- search inside this chat -->
+          <div v-if="messageSearchOpen" class="d-flex align-items-center gap-2 px-3 py-2 border-bottom bg-white">
+            <input ref="messageSearchInput" type="search" class="form-control form-control-sm" v-model="messageSearch"
+              placeholder="Search in this chat..." aria-label="Search messages in this chat"
+              @keydown.enter.prevent="goToMatch($event.shiftKey ? 1 : -1)" @keydown.esc="closeMessageSearch" />
+            <span class="small text-muted text-nowrap match-count">
+              {{ messageSearch.trim() ? (matchIds.length ? `${matchIndex + 1} of ${matchIds.length}` : 'No results') : '' }}
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="matchIds.length < 2"
+              aria-label="Older match" title="Older match" @click="goToMatch(-1)">&uarr;</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="matchIds.length < 2"
+              aria-label="Newer match" title="Newer match" @click="goToMatch(1)">&darr;</button>
+            <button type="button" class="btn-close" aria-label="Close search" @click="closeMessageSearch"></button>
           </div>
  
           <div id="chat-box" class="chat-box p-3">
             <p v-if="messages.length === 0" class="text-muted text-center mt-4">Say hi 👋</p>
-            <div
-              v-for="m in messages"
-              :key="m._id"
-              class="d-flex mb-2"
-              :class="m.sender === currentUser._id ? 'justify-content-end' : 'justify-content-start'"
-            >
-              <div class="bubble" :class="m.sender === currentUser._id ? 'mine' : 'theirs'">
-                <div>{{ m.text }}</div>
-                <div class="time">{{ formatTime(m.createdAt) }}</div>
+            <template v-for="item in chatItems" :key="item.id">
+              <div v-if="item.type === 'date'" class="text-center my-3">
+                <span class="date-pill">{{ item.label }}</span>
               </div>
-            </div>
+
+              <div
+                v-else
+                :id="`msg-${item.message._id}`"
+                class="d-flex mb-2"
+                :class="item.message.sender === currentUser._id ? 'justify-content-end' : 'justify-content-start'"
+              >
+                <div class="bubble" :class="[item.message.sender === currentUser._id ? 'mine' : 'theirs', { 'current-match': item.message._id === currentMatchId }]">
+                  <div>
+                    <template v-for="(part, i) in highlightParts(item.message.text)" :key="i">
+                      <mark v-if="part.match" class="hit">{{ part.text }}</mark><template v-else>{{ part.text }}</template>
+                    </template>
+                  </div>
+                  <div class="time">{{ formatTime(item.message.createdAt) }}</div>
+                </div>
+              </div>
+            </template>
           </div>
  
           <div class="card-footer bg-white d-flex gap-2">
@@ -226,5 +362,65 @@ onUnmounted(() => {
 }
 .chat-active {
   background: rgba(194, 65, 12, 0.1);
+}
+.search-box {
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: #8a8478;
+  pointer-events: none;
+}
+.search-box .form-control {
+  padding-left: 2rem;
+}
+.match-count {
+  min-width: 4.5rem;
+  text-align: center;
+}
+/* searched words inside a message */
+.hit {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: #fde68a;
+  color: #2b2b2b;
+}
+/* the match the arrows are on */
+.current-match {
+  box-shadow: 0 0 0 3px #f59e0b;
+}
+.current-match .hit {
+  background: #f59e0b;
+}
+.icon-btn {
+  position: relative;
+}
+/* "Search messages" label under the icon on hover */
+.icon-btn[data-label]:hover::after,
+.icon-btn[data-label]:focus-visible::after {
+  content: attr(data-label);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #212529;
+  color: #fff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+.date-pill {
+  display: inline-block;
+  padding: 0.2rem 0.8rem;
+  border-radius: 1rem;
+  background: #e9e3d8;
+  color: #4b4b4b;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 </style>

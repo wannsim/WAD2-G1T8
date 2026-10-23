@@ -37,7 +37,7 @@ async function register() {
 <template>
   <div class="auth-stage">
     <div class="auth-card">
-      <h2 class="auth-title text-center">Create an Account</h2>
+      <h2 class="auth-title text-center">Create an account</h2>
       <p class="text-center text-muted mb-4">Please enter your details</p>
  
       <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
@@ -90,7 +90,7 @@ async function register() {
       </div>
  
       <button class="btn btn-brand w-100 auth-btn" :disabled="loading" @click="register">
-        {{ loading ? 'Creating account...' : 'Sign Up' }}
+        {{ loading ? 'Creating account...' : 'Sign up' }}
       </button>
  
       <p class="mt-4 mb-0 text-center small">

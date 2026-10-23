@@ -5,7 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import { ORDER_STATUS_BADGE } from '@/utils/constants'
-import { formatPrice, formatDateTime } from '@/utils/format'
+import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 
 // Owner: Basile - seller's order dashboard: accept / decline / propose new time / complete
 const router = useRouter()
@@ -222,7 +222,7 @@ onMounted(() => {
 <template>
   <div class="row">
     <div class="col-12">
-      <h2 class="mb-3">Order dashboard</h2>
+      <h2 class="page-title">Order dashboard</h2>
       <p v-if="loading" data-testid="seller-orders-loading">
         <span class="spinner-border spinner-border-sm"></span> Loading...
       </p>
@@ -288,15 +288,15 @@ onMounted(() => {
           <div class="mb-4" data-testid="group-needs-reply">
             <h3>Needs reply ({{ needsReply.length }})</h3>
             <p v-if="needsReply.length === 0" data-testid="group-empty">Nothing here.</p>
-            <div v-else class="row g-3">
-              <div v-for="o in needsReply" :key="o._id" class="col-12 col-lg-6">
+            <div v-else class="list-grid">
+              <div v-for="o in needsReply" :key="o._id">
                 <div class="card" data-testid="order-row">
                   <div class="card-body">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                      <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                      <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
-                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
+                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                     <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <div class="d-flex flex-wrap gap-2">
@@ -329,15 +329,15 @@ onMounted(() => {
           <div class="mb-4" data-testid="group-waiting-buyer">
             <h3>Waiting on buyer ({{ waitingOnBuyer.length }})</h3>
             <p v-if="waitingOnBuyer.length === 0" data-testid="group-empty">Nothing here.</p>
-            <div v-else class="row g-3">
-              <div v-for="o in waitingOnBuyer" :key="o._id" class="col-12 col-lg-6">
+            <div v-else class="list-grid">
+              <div v-for="o in waitingOnBuyer" :key="o._id">
                 <div class="card" data-testid="order-row">
                   <div class="card-body">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                      <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                      <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
-                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
+                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                     <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <p class="mb-0 text-muted">Waiting for the buyer to accept {{ formatDateTime(o.proposedTime) }}</p>
@@ -353,18 +353,18 @@ onMounted(() => {
           <div class="mb-4" data-testid="group-upcoming">
             <h3>Upcoming ({{ upcoming.length }})</h3>
             <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
-            <div v-else class="row g-3">
-              <div v-for="o in upcoming" :key="o._id" class="col-12 col-lg-6">
+            <div v-else class="list-grid">
+              <div v-for="o in upcoming" :key="o._id">
                 <div class="card" data-testid="order-row">
                   <div class="card-body">
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
                       <div class="d-flex flex-wrap gap-2 align-self-start">
-                        <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                        <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                         <span v-if="isOverdue(o)" class="badge bg-danger" data-testid="order-overdue">Overdue</span>
                       </div>
                     </div>
-                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
+                    <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                     <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <div class="d-flex flex-wrap gap-2">
@@ -394,15 +394,15 @@ onMounted(() => {
             </div>
             <template v-if="showDone">
               <p v-if="done.length === 0" data-testid="group-empty">Nothing here.</p>
-              <div v-else class="row g-3">
-                <div v-for="o in done" :key="o._id" class="col-12 col-lg-6">
+              <div v-else class="list-grid">
+                <div v-for="o in done" :key="o._id">
                   <div class="card" data-testid="order-row">
                     <div class="card-body">
                       <div class="d-flex justify-content-between flex-wrap gap-2">
                         <h5>{{ o.product ? o.product.name : 'Product removed' }} x {{ o.quantity }}</h5>
-                        <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ o.status }}</span>
+                        <span class="badge align-self-start" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                       </div>
-                      <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ o.fulfilment }} &middot; {{ formatPrice(o.totalPrice) }}</p>
+                      <p class="mb-1 text-muted">{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatPrice(o.totalPrice) }}</p>
                       <p class="mb-1">Requested time: {{ formatDateTime(o.requestedTime) }}</p>
                       <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                       <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">

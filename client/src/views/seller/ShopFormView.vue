@@ -1,17 +1,17 @@
 <template>
-  <div class="container mt-4 mb-5" v-if="shop">
+  <div class="mb-5" v-if="shop">
     <div class="p-4 bg-light rounded mb-4">
-      <h2>{{ shop.name }}</h2>
-      <p><strong>Location (Nearest MRT):</strong> {{ shop.nearestMrt }}</p>
+      <h2 class="page-title">{{ shop.name }}</h2>
+      <p><strong>Location (nearest MRT):</strong> {{ shop.nearestMrt }}</p>
       <p><strong>Experience:</strong> {{ shop.experience }}</p>
       <div>
         <span class="badge bg-secondary me-1" v-for="cat in shop.categories" :key="cat">{{ cat }}</span>
       </div>
     </div>
 
-    <h4>Products & Services</h4>
-    <div class="row">
-      <div class="col-md-3 mb-3" v-for="item in products" :key="item._id">
+    <h4>Products & services</h4>
+    <div class="card-grid">
+      <div v-for="item in products" :key="item._id">
         <div class="card h-100 shadow-sm">
           <!-- Renders just the first lightweight image preview -->
           <img v-if="item.images && item.images.length" :src="item.images[0]" class="card-img-top" style="height:150px; object-fit:cover;">
@@ -19,12 +19,12 @@
             <h6 class="card-title">{{ item.name }}</h6>
             <!-- Line 25 Fix: Uses item.category safely without calling .toUpperCase() on undefined -->
             <span class="badge bg-success mb-2" style="width: fit-content;">
-              {{ item.category || 'PRODUCT' }}
+              {{ capitalize(item.category || 'Others') }}
             </span>
             <p class="card-text mt-1 text-truncate">{{ item.description }}</p>
             <p class="fw-bold mb-2">${{ item.price }} / {{ item.unit || 'piece' }}</p>
             
-            <button class="btn btn-outline-primary btn-sm mt-auto" @click="openEditModal(item)">Edit Product / Slots</button>
+            <button class="btn btn-outline-primary btn-sm mt-auto" @click="openEditModal(item)">Edit product / slots</button>
           </div>
         </div>
       </div>
@@ -63,10 +63,10 @@
 
               <!-- Order Slots Section -->
               <div class="card p-3 mb-3 bg-light">
-                <h6>Manage Order Slots</h6>
+                <h6>Manage order slots</h6>
                 <div v-for="(slot, index) in editingProduct.orderSlots" :key="index" class="row align-items-end mb-2">
                   <div class="col-md-6">
-                    <label class="form-label small">Start Time</label>
+                    <label class="form-label small">Start time</label>
                     <input type="datetime-local" class="form-control" v-model="slot.start" required>
                   </div>
                   <div class="col-md-4">
@@ -77,12 +77,12 @@
                     <button type="button" class="btn btn-outline-danger btn-sm w-100" @click="removeSlot(index)">X</button>
                   </div>
                 </div>
-                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @click="addSlot">+ Add Slot</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @click="addSlot">+ Add slot</button>
               </div>
 
               <div class="text-end">
                 <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-success">Save Changes</button>
+                <button type="submit" class="btn btn-success">Save changes</button>
               </div>
             </form>
           </div>
@@ -95,6 +95,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { API_URL } from '@/utils/config'
+import { capitalize } from '@/utils/format'
 import { currentUser } from '@/utils/auth'
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
@@ -107,11 +109,11 @@ onMounted(async () => {
   try {
     if (!currentUser.value || !currentUser.value._id) return
 
-    const res = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
+    const res = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
     
     if (res.data) {
       shop.value = res.data
-      const prodRes = await axios.get(`http://localhost:8000/api/products/shop/${shop.value._id}`)
+      const prodRes = await axios.get(`${API_URL}/products/shop/${shop.value._id}`)
       products.value = prodRes.data
     }
   } catch (error) {
@@ -153,7 +155,7 @@ const updateProduct = async () => {
     formData.append('isAvailable', editingProduct.value.isAvailable ?? true)
     formData.append('orderSlots', JSON.stringify(editingProduct.value.orderSlots))
 
-    const res = await axios.put(`http://localhost:8000/api/products/${editingProduct.value._id}`, formData)
+    const res = await axios.put(`${API_URL}/products/${editingProduct.value._id}`, formData)
     
     const index = products.value.findIndex(p => p._id === res.data._id)
     if (index !== -1) products.value[index] = res.data
@@ -171,7 +173,7 @@ onMounted(async () => {
   try {
     if (!currentUser.value || !currentUser.value._id) return
 
-    const res = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
+    const res = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
     if (res.data) {
       shop.value = res.data
       // Temporarily bypass product fetching to see if the page loads instantly

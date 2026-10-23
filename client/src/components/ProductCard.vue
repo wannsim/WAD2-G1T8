@@ -73,8 +73,8 @@ function useFallbackImage(event) {
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
       </div>
       <div class="card-body d-flex flex-column">
-        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold" @click="$emit('open')">{{ product.name }}</RouterLink>
-        <p v-if="shopName" class="text-muted small mb-1">
+        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
+        <p v-if="shopName" class="text-muted small mb-1 clamp-1">
           {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
         </p>
         <p class="fw-bold mb-2">
@@ -82,10 +82,17 @@ function useFallbackImage(event) {
           <span class="text-muted small fw-normal">/ {{ product.unit }}</span>
         </p>
 
-        <details v-if="reason" class="small mb-2 reason">
-          <summary>Why recommended?</summary>
-          {{ reason }}
-        </details>
+        <!-- grey hint; the reason shows in a tooltip on hover (or keyboard focus) -->
+        <div v-if="reason" class="reason mb-2">
+          <span class="reason-hint" tabindex="0" :aria-label="`Why recommended: ${reason}`">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+              <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
+            </svg>
+            Why recommended?
+          </span>
+          <span class="reason-tip" role="tooltip">{{ reason }}</span>
+        </div>
 
         <div class="mt-auto">
           <RouterLink :to="`/products/${product._id}`" class="btn btn-brand btn-sm w-100 mb-2" @click="$emit('open')">
@@ -110,7 +117,7 @@ function useFallbackImage(event) {
 }
 
 /* body stretches to fill the card, so "View full details" (mt-auto) sits at the bottom
-   and lines up across a row even when one card's "Why recommended?" is open */
+   and lines up across a row */
 .card-summary {
   height: 100%;
   display: flex;
@@ -119,11 +126,6 @@ function useFallbackImage(event) {
 
 .card-summary .card-body {
   flex: 1 1 auto;
-}
-
-.product-img {
-  height: 180px;
-  object-fit: cover;
 }
 
 .carousel-box {
@@ -195,8 +197,45 @@ function useFallbackImage(event) {
   z-index: 1;
 }
 
-.reason summary {
-  cursor: pointer;
-  color: #c2410c;
+.reason {
+  position: relative;
+}
+.reason-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: #9a948a; /* greyed out */
+  cursor: help;
+  border-radius: 4px;
+}
+.reason-hint:hover,
+.reason-hint:focus-visible {
+  color: #6b665e;
+  outline: none;
+}
+/* tooltip above the hint, kept inside the card */
+.reason-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  width: max-content;
+  max-width: 100%;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: #212529;
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.reason-hint:hover + .reason-tip,
+.reason-hint:focus-visible + .reason-tip {
+  opacity: 1;
+  transform: none;
 }
 </style>

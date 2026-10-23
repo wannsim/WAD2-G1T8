@@ -1,6 +1,6 @@
 <template>
-  <div class="container mt-4">
-    <h3>Seller Profile Setup</h3>
+  <div class="page-narrow">
+    <h2 class="page-title">Seller profile setup</h2>
 
     <!-- shop stats: how many people follow the shop, and how many listings it has -->
     <div v-if="myShopId" class="d-flex flex-wrap gap-3 mb-3">
@@ -15,33 +15,41 @@
       <RouterLink :to="`/shops/${myShopId}`" class="align-self-center small">View my shop as a buyer →</RouterLink>
     </div>
     <form @submit.prevent="saveProfile" class="card p-4 shadow-sm">
-      
+
       <div class="mb-3">
-        <label class="form-label">Nearest MRT (For Location Pin)</label>
-        <input type="text" class="form-control" v-model="profile.nearestMrt" placeholder="e.g. Dhoby Ghaut MRT" required>
+        <label class="form-label" for="shopName">Shop name <span class="text-danger">*</span></label>
+        <input id="shopName" type="text" class="form-control" v-model="profile.name" maxlength="60" required
+          :class="{ 'is-invalid': nameError }" @input="onNameInput">
+        <div class="invalid-feedback">{{ nameError }}</div>
+        <div v-if="!nameError" class="form-text">Must be different from every other shop on Homly Hauls.</div>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Categories (Comma-separated)</label>
-        <input type="text" class="form-control" v-model="categoriesInput" placeholder="e.g. Baked Goods, Crafts">
+        <label class="form-label">Nearest MRT (for location pin)</label>
+        <input type="text" class="form-control" v-model="profile.nearestMrt" placeholder="E.g. Dhoby Ghaut MRT" required>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Experience & Background</label>
+        <label class="form-label">Categories (comma-separated)</label>
+        <input type="text" class="form-control" v-model="categoriesInput" placeholder="E.g. baked goods, crafts">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Experience & background</label>
         <textarea class="form-control" v-model="profile.experience" rows="3" placeholder="Describe your experience..."></textarea>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Certifications (Comma-separated)</label>
-        <input type="text" class="form-control" v-model="certsInput" placeholder="e.g. WSQ Food Hygiene">
+        <label class="form-label">Certifications (comma-separated)</label>
+        <input type="text" class="form-control" v-model="certsInput" placeholder="E.g. WSQ Food Hygiene">
       </div>
 
-      <button type="submit" class="btn btn-primary w-100">Update Profile</button>
+      <button type="submit" class="btn btn-primary w-100">Update profile</button>
     </form>
 
     <!-- Certificate photos (uploaded straight away, separate from the form above) -->
     <div class="card p-4 shadow-sm mt-4 mb-5">
-      <h5>Certificate Photos</h5>
+      <h5>Certificate photos</h5>
       <p class="text-muted small">Upload a photo or scan of each certificate so buyers can trust your shop (images only, max 5MB).</p>
 
       <p v-if="!myShopId" class="text-muted">Save your profile above first, then you can upload certificates.</p>
@@ -50,7 +58,7 @@
         <div class="row g-2 align-items-end mb-3">
           <div class="col-md-5">
             <label class="form-label small">Certificate name</label>
-            <input type="text" class="form-control" v-model.trim="certName" placeholder="e.g. WSQ Food Hygiene">
+            <input type="text" class="form-control" v-model.trim="certName" placeholder="E.g. WSQ Food Hygiene">
           </div>
           <div class="col-md-5">
             <label class="form-label small">Image</label>
@@ -89,7 +97,7 @@ import axios from 'axios'
 import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
 
-const profile = ref({ nearestMrt: '', experience: '', categories: [], certifications: [] })
+const profile = ref({ name: '', nearestMrt: '', experience: '', categories: [], certifications: [] })
 const categoriesInput = ref('')
 const certsInput = ref('')
 const myShopId = ref('')
@@ -104,12 +112,32 @@ const certFileInput = ref(null)
 const uploadingCert = ref(false)
 const certError = ref('')
 
+// shop names must be unique - check while the seller types (the server checks again when saving)
+const nameError = ref('')
+let nameTimer = null
+const onNameInput = () => {
+  nameError.value = ''
+  clearTimeout(nameTimer)
+  nameTimer = setTimeout(checkName, 400)
+}
+const checkName = async () => {
+  const name = (profile.value.name || '').trim()
+  if (!name) return
+  try {
+    const { data } = await axios.get(`${API_URL}/shops/name-available`, { params: { name, except: myShopId.value || undefined } })
+    if (name === (profile.value.name || '').trim()) nameError.value = data.message // ignore answers for old text
+  } catch (err) {
+    console.error('Could not check shop name', err)
+  }
+}
+
 const fetchProfile = async () => {
   try {
     if (!currentUser.value || !currentUser.value._id) return
+    profile.value.name = currentUser.value.name + "'s Shop" // suggested name for a new shop
 
     // Fetch the shop tied to the logged-in user
-    const { data } = await axios.get(`http://localhost:8000/api/shops/mine/${currentUser.value._id}`)
+    const { data } = await axios.get(`${API_URL}/shops/mine/${currentUser.value._id}`)
     if (data) {
       profile.value = data
       myShopId.value = data._id
@@ -120,6 +148,8 @@ const fetchProfile = async () => {
 
       const products = await axios.get(`${API_URL}/products/shop/${data._id}`)
       listingCount.value = products.data.length
+    } else {
+      checkName() // warn straight away if the suggested name is already taken
     }
   } catch (err) {
     console.error("Error fetching profile:", err)
@@ -138,16 +168,21 @@ const saveProfile = async () => {
   try {
     if (myShopId.value) {
       // If the shop already exists, update it
-      await axios.put(`http://localhost:8000/api/shops/${myShopId.value}`, profile.value)
+      await axios.put(`${API_URL}/shops/${myShopId.value}`, profile.value)
     } else {
       // If the shop does not exist yet, create a new one
       profile.value.owner = currentUser.value._id
-      profile.value.name = currentUser.value.name + "'s Shop"
-      const res = await axios.post(`http://localhost:8000/api/shops`, profile.value)
+      const res = await axios.post(`${API_URL}/shops`, profile.value)
       myShopId.value = res.data._id
     }
+    nameError.value = ''
     alert('Profile Saved!')
   } catch (err) {
+    if (err.response?.status === 409) {
+      nameError.value = err.response.data.message // shop name already taken
+      document.getElementById('shopName')?.focus()
+      return
+    }
     console.error(err)
     alert('Failed to save profile. Check console for details.')
   }
