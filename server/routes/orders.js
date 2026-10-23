@@ -151,6 +151,7 @@ router.post('/', async (req, res) => {
     if (!p) return res.status(404).json({ message: 'Product not found' })
     const shop = await Shop.findById(p.shop)
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
+    if (String(shop.owner) === String(buyer)) return res.status(403).json({ message: 'You cannot order from your own shop.' }) // Sellers cannot buy their own products.
 
     const message = checkNewOrder(req.body, p, shop)
     if (message) return res.status(400).json({ message }) // Reject invalid order fields.
@@ -246,6 +247,17 @@ router.put('/:id/status', async (req, res) => {
       const newTime = new Date(proposedTime).getTime()
       if (!proposedTime || !(now < newTime)) { // The proposed time must be present and in the future.
         return res.status(400).json({ message: 'Please choose a new time in the future.' })
+      }
+    }
+
+    // A time that has already passed cannot be accepted.
+    if (status === 'accepted') {
+      let acceptedTime = order.requestedTime
+      if (order.status === 'rescheduled') acceptedTime = order.proposedTime // The buyer is accepting the seller's new time.
+      if (!(new Date().getTime() < new Date(acceptedTime).getTime())) { // The time must still be in the future.
+        let message = 'This pickup time has passed. Propose a new time instead.'
+        if (actor === 'buyer') message = 'This new time has passed. Message the seller for another time.'
+        return res.status(400).json({ message })
       }
     }
 
