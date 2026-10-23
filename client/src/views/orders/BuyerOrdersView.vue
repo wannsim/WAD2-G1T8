@@ -261,7 +261,7 @@ onMounted(() => {
         <!-- every card is the same size: grid rows all match the tallest card -->
         <div v-else class="list-grid mb-4">
           <div v-for="o in searchedOrders" :key="o._id">
-            <div class="card h-100" data-testid="order-row">
+            <div class="card h-auto" data-testid="order-row">
               <div class="card-body d-flex gap-3">
                 <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                 <div class="order-text d-flex flex-column flex-grow-1">

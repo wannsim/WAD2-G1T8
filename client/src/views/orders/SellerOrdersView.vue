@@ -375,7 +375,7 @@ onMounted(() => {
             <p v-if="shown.needsReply.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
             <div v-else class="list-grid mb-4">
               <div v-for="o in shown.needsReply" :key="o._id">
-                <div class="card h-100" data-testid="order-row">
+                <div class="card h-auto" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
                     <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                     <div class="order-text d-flex flex-column flex-grow-1">
@@ -427,7 +427,7 @@ onMounted(() => {
             <p v-if="shown.waitingOnBuyer.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
             <div v-else class="list-grid mb-4">
               <div v-for="o in shown.waitingOnBuyer" :key="o._id">
-                <div class="card h-100" data-testid="order-row">
+                <div class="card h-auto" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
                     <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                     <div class="order-text d-flex flex-column flex-grow-1">
@@ -461,7 +461,7 @@ onMounted(() => {
             <p v-if="shown.upcoming.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
             <div v-else class="list-grid mb-4">
               <div v-for="o in shown.upcoming" :key="o._id">
-                <div class="card h-100" data-testid="order-row">
+                <div class="card h-auto" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
                     <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                     <div class="order-text d-flex flex-column flex-grow-1">
@@ -510,7 +510,7 @@ onMounted(() => {
               <p v-if="shown.done.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
               <div v-else class="list-grid mb-4">
                 <div v-for="o in shown.done" :key="o._id">
-                  <div class="card h-100" data-testid="order-row">
+                  <div class="card h-auto" data-testid="order-row">
                     <div class="card-body d-flex gap-3">
                       <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                       <div class="order-text d-flex flex-column flex-grow-1">
