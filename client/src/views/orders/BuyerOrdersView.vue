@@ -208,7 +208,7 @@ onMounted(() => {
     <div class="col-12">
       <h2 class="page-title">My orders</h2>
       <p v-if="loading" data-testid="buyer-orders-loading">
-        <span class="spinner-border spinner-border-sm"></span> Loading...
+        <span class="spinner-border spinner-border-sm"></span> Loading…
       </p>
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
       <div v-else-if="orders.length === 0" data-testid="buyer-orders-empty">

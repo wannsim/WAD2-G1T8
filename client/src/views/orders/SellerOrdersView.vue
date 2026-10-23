@@ -243,7 +243,7 @@ onMounted(() => {
     <div class="col-12">
       <h2 class="page-title">Order dashboard</h2>
       <p v-if="loading" data-testid="seller-orders-loading">
-        <span class="spinner-border spinner-border-sm"></span> Loading...
+        <span class="spinner-border spinner-border-sm"></span> Loading…
       </p>
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
       <template v-else>

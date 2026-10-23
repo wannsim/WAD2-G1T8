@@ -128,7 +128,7 @@ async function submitOrder() {
   <div class="row justify-content-center">
     <div class="col-12 page-narrow">
       <p v-if="loading" data-testid="order-loading">
-        <span class="spinner-border spinner-border-sm"></span> Loading...
+        <span class="spinner-border spinner-border-sm"></span> Loading…
       </p>
       <div v-else-if="loadError" class="alert alert-danger" data-testid="order-load-error">{{ loadError }}</div>
       <div v-else-if="sent && product" class="alert alert-success" data-testid="order-success">
