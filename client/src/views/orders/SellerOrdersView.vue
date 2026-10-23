@@ -20,6 +20,7 @@ const message = ref('')
 const busyId = ref('')
 const confirmId = ref('')
 const confirmStatus = ref('')
+const proposeOpenId = ref('') // The order whose new-time input is open.
 const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
@@ -187,12 +188,28 @@ async function loadOrders() {
 function askConfirm(order, status) {
   confirmId.value = order._id
   confirmStatus.value = status
+  proposeOpenId.value = ''
 }
 
 // Closes the confirmation without changing an order.
 function clearConfirm() {
   confirmId.value = ''
   confirmStatus.value = ''
+}
+
+// Opens or closes the new-time input for one order.
+function toggleProposal(order) {
+  if (proposeOpenId.value === order._id) {
+    proposeOpenId.value = ''
+  } else {
+    proposeOpenId.value = order._id
+    clearConfirm()
+  }
+}
+
+// Closes the new-time input without changing an order.
+function closeProposal() {
+  proposeOpenId.value = ''
 }
 
 // Changes one order at a time, shows the result and refreshes the dashboard.
@@ -213,11 +230,13 @@ async function updateStatus(order, status) {
     if (status === 'completed') message.value = 'Order marked as completed.' // Explain the completed order.
     if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the cancelled order.
     clearConfirm()
+    closeProposal()
     busyId.value = ''
     await loadOrders()
   } catch (err) {
     error.value = getErrorMessage(err)
     clearConfirm()
+    closeProposal()
     busyId.value = ''
     await loadOrders()
   }
@@ -345,30 +364,31 @@ onMounted(() => {
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <div class="mt-auto pt-2">
-                    <div class="d-flex flex-wrap gap-2">
-                      <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
-                      <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
-                    </div>
-                    <div class="mt-2">
-                      <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
-                      <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
-                      <div class="d-flex flex-wrap gap-2 mt-2">
-                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Propose new time</button>
+                      <div v-if="confirmId === o._id" class="mt-2">
+                        <p class="mb-1">Decline this order?</p>
+                        <div class="d-flex flex-wrap gap-2">
+                          <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
+                          <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                        </div>
                       </div>
-                    </div>
-                    <div v-if="confirmId === o._id" class="mt-2">
-                      <p class="mb-1">Decline this order?</p>
-                      <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
-                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                      <template v-else>
+                        <div class="d-flex flex-wrap gap-2">
+                          <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
+                          <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
+                          <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
+                          <button v-if="o.buyer" class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                        </div>
+                        <div v-if="proposeOpenId === o._id" class="mt-2">
+                          <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
+                          <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
+                          <div class="d-flex flex-wrap gap-2 mt-2">
+                            <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
+                          </div>
+                        </div>
+                      </template>
+                      <div class="d-flex justify-content-end mt-2">
+                        <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
                       </div>
-                    </div>
-                    <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
-                      <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                    </div>
-                    <div class="d-flex justify-content-end mt-2">
-                      <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
-                    </div>
                     </div>
                     </div>
                   </div>
@@ -433,23 +453,21 @@ onMounted(() => {
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <div class="mt-auto pt-2">
-                    <div class="d-flex flex-wrap gap-2">
-                      <button class="btn btn-sm btn-brand" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                      <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
-                    </div>
-                    <div v-if="confirmId === o._id" class="mt-2">
-                      <p class="mb-1">Cancel this order?</p>
-                      <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, cancel</button>
-                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                      <div v-if="confirmId === o._id" class="mt-2">
+                        <p class="mb-1">Cancel this order?</p>
+                        <div class="d-flex flex-wrap gap-2">
+                          <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, cancel</button>
+                          <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                        </div>
                       </div>
-                    </div>
-                    <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
-                      <button class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                    </div>
-                    <div class="d-flex justify-content-end mt-2">
-                      <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
-                    </div>
+                      <div v-else class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-brand" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-complete">Mark completed</button>
+                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
+                        <button v-if="o.buyer" class="btn btn-sm btn-outline-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                      </div>
+                      <div class="d-flex justify-content-end mt-2">
+                        <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                      </div>
                     </div>
                     </div>
                   </div>
