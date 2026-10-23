@@ -290,7 +290,11 @@ onMounted(() => {
           <div class="col-12 col-md-6 col-xl-4">
             <div class="card" data-testid="next-pickup">
               <div class="card-body p-3">
-                <p v-if="nextPickup" class="mb-0 text-break">Next pickup: {{ nextPickup.product ? nextPickup.product.name : 'Product removed' }} for {{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} at {{ formatDateTime(nextPickup.requestedTime) }}</p>
+                <h6>Next pickup</h6>
+                <template v-if="nextPickup">
+                  <p class="mb-1 fw-bold text-break">{{ nextPickup.product ? nextPickup.product.name : 'Product removed' }}</p>
+                  <p class="mb-0 small text-body-secondary text-break">{{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} &middot; {{ formatDateTime(nextPickup.requestedTime) }}</p>
+                </template>
                 <p v-else class="mb-0">No upcoming pickups.</p>
               </div>
             </div>
