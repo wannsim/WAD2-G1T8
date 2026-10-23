@@ -229,11 +229,8 @@ onMounted(() => {
                   <p v-if="!o.pickupAddress && !o.pickupPostalCode" class="mb-1">The seller has not added an address yet.</p>
                 </div>
 
-                <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mt-2" data-testid="order-proposal">
+                <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mb-2" data-testid="order-proposal">
                   Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>
-                  <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
-                  </div>
                 </div>
 
                 <!-- buttons sit at the bottom of every card, so they line up -->
@@ -247,6 +244,7 @@ onMounted(() => {
                     </div>
                   </template>
                   <div v-else class="d-flex flex-wrap gap-2">
+                    <button v-if="o.status === 'rescheduled'" class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
                     <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
                   </div>
                 </div>
