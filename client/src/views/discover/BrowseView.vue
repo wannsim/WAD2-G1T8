@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -15,6 +15,9 @@ const maxPrice = ref('')
 const products = ref([])
 const shops = ref([])
 const savedIds = ref([])
+const mapRoute = computed(() => currentUser.value?.preferredMrt
+  ? { path: '/map', query: { mrt: currentUser.value.preferredMrt } }
+  : '/map')
 
 async function search() {
   try {
@@ -87,7 +90,7 @@ onMounted(() => {
   <div>
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2 class="page-title">Browse</h2>
-      <RouterLink to="/map" class="btn btn-outline-secondary btn-sm">Switch to map</RouterLink>
+      <RouterLink :to="mapRoute" class="btn btn-outline-secondary btn-sm">Switch to map</RouterLink>
     </div>
 
     <div class="search-toolbar mb-4">

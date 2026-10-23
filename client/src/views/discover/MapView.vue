@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
+import { useRoute } from 'vue-router'
 import { CATEGORIES } from '@/utils/constants'
 import { formatPrice } from '@/utils/format'
 import { cleanMrtName, mapEmbedUrl, googleMapsLink } from '@/utils/googleMaps'
@@ -17,6 +18,7 @@ const search = ref('')
 const category = ref('All')
 const selectedId = ref(null)
 const filterOpen = ref(false) // category chips slide out of the Filter button
+const route = useRoute()
 
 // ---- left panel ----
 const shownShops = computed(() => {
@@ -29,14 +31,24 @@ const shownShops = computed(() => {
   })
 })
 const selectedShop = computed(() => shops.value.find((s) => s._id === selectedId.value) || null)
-const mapUrl = computed(() => mapEmbedUrl(selectedShop.value))
+const shopsAtSelectedMrt = computed(() => {
+  const station = cleanMrtName(selectedShop.value?.nearestMrt).toLowerCase()
+  return station ? shops.value.filter((shop) => cleanMrtName(shop.nearestMrt).toLowerCase() === station) : []
+})
+const selectedShopPosition = computed(() => shopsAtSelectedMrt.value.findIndex((shop) => shop._id === selectedId.value))
+const preferredMrt = computed(() => String(route.query.mrt || '').trim())
+const mapSubject = computed(() => selectedShop.value || (preferredMrt.value ? { nearestMrt: preferredMrt.value } : null))
+const mapUrl = computed(() => mapEmbedUrl(mapSubject.value))
 
 // keep a shop selected so the map is never empty (first one in the list)
 watch(shownShops, (list) => {
-  if (!list.some((s) => s._id === selectedId.value)) selectedId.value = list[0]?._id || null
-})
+  if (!list.some((s) => s._id === selectedId.value)) {
+    const preferred = cleanMrtName(preferredMrt.value).toLowerCase()
+    selectedId.value = (preferred && list.find((shop) => cleanMrtName(shop.nearestMrt).toLowerCase() === preferred)?._id) || list[0]?._id || null
+  }
+}, { immediate: true })
 
-const stationLabel = (shop) => (cleanMrtName(shop.nearestMrt) ? `${cleanMrtName(shop.nearestMrt)} MRT` : 'No MRT given')
+const stationLabel = (shop) => (cleanMrtName(shop?.nearestMrt) ? `${cleanMrtName(shop.nearestMrt)} MRT` : 'No MRT given')
 const categoryLabel = (shop) => (shop.categories?.length ? shop.categories.join(', ') : 'No category yet')
 
 // same colour for the same shop every time
@@ -49,9 +61,21 @@ function avatarColour(name) {
 
 // the card can be closed to see the whole map; picking a shop shows it again
 const showCard = ref(true)
+let lastCardScrollAt = 0
 function selectShop(shop) {
   selectedId.value = shop._id
   showCard.value = true
+}
+
+function cycleStationShop(event) {
+  if (shopsAtSelectedMrt.value.length < 2) return
+  const now = Date.now()
+  if (now - lastCardScrollAt < 350) return
+  lastCardScrollAt = now
+  const direction = event.deltaY > 0 ? 1 : -1
+  const current = Math.max(0, selectedShopPosition.value)
+  const next = (current + direction + shopsAtSelectedMrt.value.length) % shopsAtSelectedMrt.value.length
+  selectedId.value = shopsAtSelectedMrt.value[next]._id
 }
 
 onMounted(async () => {
@@ -137,10 +161,11 @@ onMounted(async () => {
         </div>
 
         <!-- details of the selected shop -->
-        <div v-if="selectedShop && showCard" class="detail-card">
+        <div v-if="selectedShop && showCard" class="detail-card" @wheel.prevent="cycleStationShop">
           <button type="button" class="btn-close close-btn" aria-label="Close" @click="showCard = false"></button>
           <div class="d-flex align-items-center gap-2 flex-wrap mb-2 pe-4">
             <span class="station-chip"><span class="dot"></span>{{ stationLabel(selectedShop) }}</span>
+            <span v-if="shopsAtSelectedMrt.length > 1" class="small text-muted">{{ selectedShopPosition + 1 }} / {{ shopsAtSelectedMrt.length }} · scroll for more shops</span>
             <a v-if="googleMapsLink(selectedShop)" :href="googleMapsLink(selectedShop)" target="_blank"
               rel="noopener" class="small link-secondary">Open in Google Maps</a>
           </div>
