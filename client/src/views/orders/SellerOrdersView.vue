@@ -296,23 +296,34 @@ onMounted(() => {
       </p>
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
       <template v-else>
-        <div class="card mb-3 h-auto" data-testid="seller-dashboard-stats">
-          <div class="row g-0">
-            <div class="col-6 col-lg-3 p-3 border-end">
-              <p class="small text-body-secondary mb-1">Needs reply</p>
-              <p class="fs-4 fw-bold mb-0" data-testid="stat-needs-reply">{{ needsReply.length }}</p>
+        <!-- Shows the seller's current order counts. -->
+        <div class="row g-3 mb-3" data-testid="seller-dashboard-stats">
+          <div class="col-6 col-lg-3">
+            <div class="card p-3">
+              <h3 class="h6 text-body-secondary mb-1">Needs reply</h3>
+              <p class="stat-value mb-1" data-testid="stat-needs-reply">{{ needsReply.length }}</p>
+              <p class="small text-body-secondary mb-0">Waiting for your answer</p>
             </div>
-            <div class="col-6 col-lg-3 p-3 order-stat-divider">
-              <p class="small text-body-secondary mb-1">Accepted</p>
-              <p class="fs-4 fw-bold mb-0" data-testid="stat-upcoming">{{ upcoming.length }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card p-3">
+              <h3 class="h6 text-body-secondary mb-1">Accepted</h3>
+              <p class="stat-value mb-1" data-testid="stat-upcoming">{{ upcoming.length }}</p>
+              <p class="small text-body-secondary mb-0">Pickups coming up</p>
             </div>
-            <div class="col-6 col-lg-3 p-3 border-end">
-              <p class="small text-body-secondary mb-1">Overdue</p>
-              <p class="fs-4 fw-bold mb-0" data-testid="stat-overdue">{{ overdueCount }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card p-3">
+              <h3 class="h6 text-body-secondary mb-1">Overdue</h3>
+              <p class="stat-value mb-1" data-testid="stat-overdue">{{ overdueCount }}</p>
+              <p class="small text-body-secondary mb-0">Pickup time has passed</p>
             </div>
-            <div class="col-6 col-lg-3 p-3">
-              <p class="small text-body-secondary mb-1">Total active</p>
-              <p class="fs-4 fw-bold mb-0" data-testid="stat-total-active">{{ totalActive }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="card p-3">
+              <h3 class="h6 text-body-secondary mb-1">Total active</h3>
+              <p class="stat-value mb-1" data-testid="stat-total-active">{{ totalActive }}</p>
+              <p class="small text-body-secondary mb-0">Not completed yet</p>
             </div>
           </div>
         </div>
@@ -561,9 +572,10 @@ onMounted(() => {
   border-radius: 999px;
 }
 
-@media (min-width: 992px) {
-  .order-stat-divider {
-    border-right: 1px solid var(--bs-border-color);
-  }
+.stat-value {
+  color: var(--brand-dark);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
 }
 </style>
