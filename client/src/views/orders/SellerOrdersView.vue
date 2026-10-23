@@ -73,7 +73,7 @@ const upcoming = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'accepted') groupedOrders.push(order) // Upcoming includes all accepted orders.
+    if (order.status === 'accepted') groupedOrders.push(order) // The Accepted tab holds all accepted orders.
   }
   return groupedOrders
 })
@@ -111,7 +111,7 @@ watch(search, (q) => {
 const overdueCount = computed(() => {
   let count = 0
   for (let i = 0; i < upcoming.value.length; i++) {
-    if (isOverdue(upcoming.value[i])) count++ // Overdue orders remain in Upcoming.
+    if (isOverdue(upcoming.value[i])) count++ // Overdue orders stay in the Accepted tab.
   }
   return count
 })

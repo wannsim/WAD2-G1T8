@@ -59,7 +59,7 @@ const upcomingOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'accepted') { // Upcoming includes accepted orders.
+    if (order.status === 'accepted') { // The Accepted tab holds accepted orders.
       groupedOrders.push(order)
     }
   }
@@ -309,7 +309,7 @@ onMounted(() => {
                   Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>
                 </div>
 
-                <!-- buttons sit at the bottom of every card, so they line up -->
+                <!-- action buttons and the price close each card -->
                 <div class="mt-auto pt-2">
                   <template v-if="confirmId === o._id">
                     <p class="mb-1">Cancel this order?</p>
