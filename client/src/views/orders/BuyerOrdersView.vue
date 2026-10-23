@@ -259,7 +259,7 @@ onMounted(() => {
         <p v-else-if="searchedOrders.length === 0" class="text-muted" data-testid="order-search-empty">No orders match your search. Clear the search to see all orders.</p>
 
         <!-- every card is the same size: grid rows all match the tallest card -->
-        <div v-else class="list-grid">
+        <div v-else class="list-grid mb-4">
           <div v-for="o in searchedOrders" :key="o._id">
             <div class="card h-100" data-testid="order-row">
               <div class="card-body d-flex gap-3">

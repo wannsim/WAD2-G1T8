@@ -345,10 +345,10 @@ onMounted(() => {
               <button class="nav-link" :class="{ active: activeGroup === 'done' }" @click="activeGroup = 'done'" data-testid="seller-tab-done">Done ({{ done.length }})</button>
             </li>
           </ul>
-          <div v-if="activeGroup === 'needs-reply'" class="mb-3" data-testid="group-needs-reply">
+          <div v-if="activeGroup === 'needs-reply'" class="mb-4" data-testid="group-needs-reply">
             <h5 class="mb-2">Needs reply ({{ needsReply.length }})</h5>
             <p v-if="needsReply.length === 0" data-testid="group-empty">Nothing here.</p>
-            <div v-else class="list-grid">
+            <div v-else class="list-grid mb-4">
               <div v-for="o in needsReply" :key="o._id">
                 <div class="card h-100" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
@@ -397,10 +397,10 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="activeGroup === 'waiting-buyer'" class="mb-3" data-testid="group-waiting-buyer">
+          <div v-if="activeGroup === 'waiting-buyer'" class="mb-4" data-testid="group-waiting-buyer">
             <h5 class="mb-2">Waiting on buyer ({{ waitingOnBuyer.length }})</h5>
             <p v-if="waitingOnBuyer.length === 0" data-testid="group-empty">Nothing here.</p>
-            <div v-else class="list-grid">
+            <div v-else class="list-grid mb-4">
               <div v-for="o in waitingOnBuyer" :key="o._id">
                 <div class="card h-100" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
@@ -431,10 +431,10 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="activeGroup === 'upcoming'" class="mb-3" data-testid="group-upcoming">
+          <div v-if="activeGroup === 'upcoming'" class="mb-4" data-testid="group-upcoming">
             <h5 class="mb-2">Accepted ({{ upcoming.length }})</h5>
             <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
-            <div v-else class="list-grid">
+            <div v-else class="list-grid mb-4">
               <div v-for="o in upcoming" :key="o._id">
                 <div class="card h-100" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
@@ -476,14 +476,14 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="activeGroup === 'done'" class="mb-3" data-testid="group-done">
+          <div v-if="activeGroup === 'done'" class="mb-4" data-testid="group-done">
             <h5 class="mb-2">Done ({{ done.length }})</h5>
             <div class="d-flex flex-wrap gap-2 mb-3">
               <button class="btn btn-sm btn-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + done.length + ')' }}</button>
             </div>
             <template v-if="showDone">
               <p v-if="done.length === 0" data-testid="group-empty">Nothing here.</p>
-              <div v-else class="list-grid">
+              <div v-else class="list-grid mb-4">
                 <div v-for="o in done" :key="o._id">
                   <div class="card h-100" data-testid="order-row">
                     <div class="card-body d-flex gap-3">
