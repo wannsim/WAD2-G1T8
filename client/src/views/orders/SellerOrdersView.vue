@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
+import { notifications } from '@/utils/notifications'
 import { ORDER_STATUS_BADGE } from '@/utils/constants'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 
@@ -13,6 +14,7 @@ const router = useRouter()
 const orders = ref([])
 const proposals = ref({}) // { orderId: 'new datetime' } - one input per order
 const loading = ref(true)
+const refreshing = ref(false)
 const error = ref('')
 const showDone = ref(true)
 const activeGroup = ref('needs-reply')
@@ -204,6 +206,17 @@ async function loadOrders() {
   }
 }
 
+// Reloads the orders when the Refresh button is clicked.
+async function refreshOrders() {
+  refreshing.value = true
+  error.value = ''
+  await loadOrders()
+  refreshing.value = false
+}
+
+// A new notification from the server reloads this list, so reload the orders too.
+watch(notifications, () => { loadOrders() })
+
 // Stores the order and action that need the seller's confirmation.
 function askConfirm(order, status) {
   confirmId.value = order._id
@@ -290,7 +303,12 @@ onMounted(() => {
 <template>
   <div class="row">
     <div class="col-12">
-      <h2 class="page-title">Order dashboard</h2>
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <h2 class="page-title">Order dashboard</h2>
+        <button class="btn btn-outline-secondary" :disabled="refreshing" @click="refreshOrders" data-testid="seller-orders-refresh">
+          {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+        </button>
+      </div>
       <p v-if="loading" data-testid="seller-orders-loading">
         <span class="spinner-border spinner-border-sm"></span> Loading…
       </p>
