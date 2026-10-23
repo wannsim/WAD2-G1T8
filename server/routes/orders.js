@@ -142,7 +142,7 @@ function safeOrderForBuyer(order, reviewedIds) {
   return safeOrder
 }
 
-// Creates an order after checking its fields, repeats and slot capacity.
+// Creates an order after checking its fields and slot capacity. Repeat orders are allowed.
 router.post('/', async (req, res) => {
   try {
     const { buyer, product, quantity, customisation, fulfilment, requestedTime } = req.body
@@ -155,13 +155,10 @@ router.post('/', async (req, res) => {
     const message = checkNewOrder(req.body, p, shop)
     if (message) return res.status(400).json({ message }) // Reject invalid order fields.
 
-    const already = await Order.findOne({ buyer, product, requestedTime, status: 'pending' })
-    if (already) return res.status(409).json({ message: 'You already sent this request.' }) // Reject the same pending request.
-
     const slot = findSlot(p, requestedTime)
     const used = await countSlotOrders(product, requestedTime)
     let capacity = slot.capacity
-    if (capacity === undefined) capacity = 1 // Match Product.js's default when capacity is missing.
+    if (capacity === undefined) capacity = 10 // Same default as Product.js when capacity is missing.
     if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // Count orders, not quantity.
 
     let customisationNote = customisation
