@@ -258,7 +258,7 @@ onMounted(() => {
         </div>
         <p v-else-if="searchedOrders.length === 0" class="text-muted" data-testid="order-search-empty">No orders match your search. Clear the search to see all orders.</p>
 
-        <!-- every card is the same size: grid rows all match the tallest card -->
+        <!-- each card is only as tall as its own content -->
         <div v-else class="list-grid mb-4">
           <div v-for="o in searchedOrders" :key="o._id">
             <div class="card h-auto" data-testid="order-row">
@@ -275,7 +275,7 @@ onMounted(() => {
                 <p class="mb-1 text-body-secondary text-break">{{ o.shop ? o.shop.name : 'Shop removed' }}</p>
                 <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                 <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
-                <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>
+                <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                 <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Message the seller if you still need it.' : STATUS_HELP[o.status] }}</p>
 
                 <!-- The server enforces privacy; this check only decides what to display. -->
