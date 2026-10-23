@@ -107,6 +107,24 @@ watch(search, (q) => {
   if (q.trim()) showDone.value = true // matches in Done should be visible too
 })
 
+// Which done orders to show: 'all', 'completed', 'declined' or 'cancelled'.
+const doneStatus = ref('all')
+// Order of the done list: 'newest' or 'oldest' pickup first.
+const doneSort = ref('newest')
+
+// Done orders after the status filter, newest or oldest pickup first.
+const doneList = computed(() => {
+  const filtered = []
+  for (let i = 0; i < shown.value.done.length; i++) {
+    const order = shown.value.done[i]
+    if (doneStatus.value === 'all' || order.status === doneStatus.value) filtered.push(order) // Keep orders with the chosen status.
+  }
+  if (doneSort.value === 'oldest') return filtered // The server already sends the oldest pickup first.
+  const newestFirst = []
+  for (let i = filtered.length - 1; i >= 0; i--) newestFirst.push(filtered[i]) // Walk backwards for newest first.
+  return newestFirst
+})
+
 // Counts accepted orders whose pickup time has passed.
 const overdueCount = computed(() => {
   let count = 0
@@ -536,9 +554,27 @@ onMounted(() => {
               <button class="btn btn-sm btn-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + shown.done.length + ')' }}</button>
             </div>
             <template v-if="showDone">
-              <p v-if="shown.done.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
+              <div class="d-flex flex-wrap gap-3 mb-3">
+                <div>
+                  <label class="form-label small mb-1" for="done-status">Show</label>
+                  <select id="done-status" class="form-select form-select-sm" v-model="doneStatus" data-testid="done-filter-status">
+                    <option value="all">All</option>
+                    <option value="completed">Completed</option>
+                    <option value="declined">Declined</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label small mb-1" for="done-sort">Sort</label>
+                  <select id="done-sort" class="form-select form-select-sm" v-model="doneSort" data-testid="done-sort">
+                    <option value="newest">Newest pickup first</option>
+                    <option value="oldest">Oldest pickup first</option>
+                  </select>
+                </div>
+              </div>
+              <p v-if="doneList.length === 0" data-testid="group-empty">{{ search.trim() || doneStatus !== 'all' ? 'No matching orders.' : 'Nothing here.' }}</p>
               <div v-else class="list-grid order-list mb-4">
-                <div v-for="o in shown.done" :key="o._id">
+                <div v-for="o in doneList" :key="o._id">
                   <div class="card h-auto" data-testid="order-row">
                     <div class="card-body d-flex gap-3">
                       <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
