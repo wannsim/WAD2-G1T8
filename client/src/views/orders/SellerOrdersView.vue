@@ -13,7 +13,8 @@ const orders = ref([])
 const proposals = ref({}) // { orderId: 'new datetime' } - one input per order
 const loading = ref(true)
 const error = ref('')
-const showDone = ref(false)
+const showDone = ref(true)
+const activeGroup = ref('needs-reply')
 const shop = ref(null)
 const message = ref('')
 const busyId = ref('')
@@ -297,7 +298,21 @@ onMounted(() => {
         </div>
         <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
         <template v-else>
-          <div class="mb-3" data-testid="group-needs-reply">
+          <ul class="nav nav-pills mb-3" data-testid="seller-orders-tabs">
+            <li class="nav-item">
+              <button class="nav-link" :class="{ active: activeGroup === 'needs-reply' }" @click="activeGroup = 'needs-reply'" data-testid="seller-tab-needs-reply">Needs reply ({{ needsReply.length }})</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" :class="{ active: activeGroup === 'waiting-buyer' }" @click="activeGroup = 'waiting-buyer'" data-testid="seller-tab-waiting-buyer">Waiting on buyer ({{ waitingOnBuyer.length }})</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" :class="{ active: activeGroup === 'upcoming' }" @click="activeGroup = 'upcoming'" data-testid="seller-tab-upcoming">Accepted ({{ upcoming.length }})</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" :class="{ active: activeGroup === 'done' }" @click="activeGroup = 'done'" data-testid="seller-tab-done">Done ({{ done.length }})</button>
+            </li>
+          </ul>
+          <div v-if="activeGroup === 'needs-reply'" class="mb-3" data-testid="group-needs-reply">
             <h5 class="mb-2">Needs reply ({{ needsReply.length }})</h5>
             <p v-if="needsReply.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
@@ -348,7 +363,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="mb-3" data-testid="group-waiting-buyer">
+          <div v-if="activeGroup === 'waiting-buyer'" class="mb-3" data-testid="group-waiting-buyer">
             <h5 class="mb-2">Waiting on buyer ({{ waitingOnBuyer.length }})</h5>
             <p v-if="waitingOnBuyer.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
@@ -382,7 +397,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="mb-3" data-testid="group-upcoming">
+          <div v-if="activeGroup === 'upcoming'" class="mb-3" data-testid="group-upcoming">
             <h5 class="mb-2">Accepted ({{ upcoming.length }})</h5>
             <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
@@ -429,7 +444,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="mb-3" data-testid="group-done">
+          <div v-if="activeGroup === 'done'" class="mb-3" data-testid="group-done">
             <h5 class="mb-2">Done ({{ done.length }})</h5>
             <div class="d-flex flex-wrap gap-2 mb-3">
               <button class="btn btn-sm btn-outline-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + done.length + ')' }}</button>
