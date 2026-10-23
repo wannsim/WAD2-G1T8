@@ -18,6 +18,7 @@ const busyId = ref('')
 const confirmId = ref('')
 const chatBusyId = ref('')
 const chatError = ref('')
+const brokenImages = ref({})
 
 // Explains each order status to the buyer.
 const STATUS_HELP = {
@@ -89,6 +90,13 @@ const visibleOrders = computed(() => {
     return pastOrders.value
   }
 })
+
+// Returns the first product photo or the placeholder when it is unavailable.
+function imageFor(order) {
+  if (!order.product) return '/placeholder.svg' // A deleted product has no photo.
+  if (brokenImages.value[order._id]) return '/placeholder.svg' // A failed photo uses the placeholder.
+  return `${API_URL}/products/${order.product._id}/image/0`
+}
 
 // Checks whether an accepted order's requested time has passed.
 function isOverdue(order) {
@@ -220,7 +228,9 @@ onMounted(() => {
         <div v-else class="list-grid">
           <div v-for="o in visibleOrders" :key="o._id">
             <div class="card h-100" data-testid="order-row">
-              <div class="card-body d-flex flex-column">
+              <div class="card-body d-flex gap-3">
+                <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                <div class="order-text d-flex flex-column flex-grow-1">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                   <div class="d-flex flex-wrap gap-2 align-self-start">
@@ -273,6 +283,7 @@ onMounted(() => {
                     <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
                   </div>
                 </div>
+                </div>
               </div>
             </div>
           </div>
@@ -281,4 +292,17 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.order-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.order-text {
+  min-width: 0;
+}
+</style>
 
