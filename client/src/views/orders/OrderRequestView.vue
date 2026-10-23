@@ -184,11 +184,11 @@ async function submitOrder() {
         <div class="mb-3">
           <div v-if="product.shop.pickup" class="form-check">
             <input class="form-check-input" type="radio" id="pickup" value="pickup" v-model="fulfilment" data-testid="order-fulfilment-pickup" />
-            <label class="form-label form-check-label" for="pickup">Pickup</label>
+            <label class="form-check-label" for="pickup">Pickup</label>
           </div>
           <div v-if="product.shop.delivery" class="form-check">
             <input class="form-check-input" type="radio" id="delivery" value="delivery" v-model="fulfilment" data-testid="order-fulfilment-delivery" />
-            <label class="form-label form-check-label" for="delivery">Delivery</label>
+            <label class="form-check-label" for="delivery">Delivery</label>
           </div>
         </div>
 
