@@ -155,7 +155,8 @@ function scoreProduct(p, signals, trending = null) {
     if (points > 0.15 && !matchedTerm) matchedTerm = s.term
     searchPoints += points
   })
-  if (searchPoints > 0.15) add(Math.min(searchPoints, 2) * 1.25, `You searched for "${matchedTerm}"`)
+  // searching is a strong sign of what they want right now: a fully matching recent search = 2 points
+  if (searchPoints > 0.15) add(Math.min(searchPoints, 2) * 2, `You searched for "${matchedTerm}"`)
 
   // FOLLOWED SHOPS
   if (signals.followedShopIds.has(String(p.shop._id))) add(3, `You are following "${p.shop.name}"`)

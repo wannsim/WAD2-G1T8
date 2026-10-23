@@ -11,7 +11,8 @@ const props = defineProps({
 })
 
 const router = useRouter()
-const busy = ref(false)
+const pop = ref(false) // little "pop" when saving
+const error = ref(false)
 const saved = computed(() => !!currentUser.value && savedIds.value.includes(props.productId))
 
 onMounted(loadSavedIds)
@@ -21,20 +22,23 @@ async function toggle() {
     router.push('/login')
     return
   }
-  busy.value = true
+  error.value = false
+  const willSave = !saved.value
+  pop.value = false
+  if (willSave) requestAnimationFrame(() => (pop.value = true))
   try {
-    await toggleSaved(props.productId)
+    await toggleSaved(props.productId) // the ♥ has already changed; this only waits for the server
   } catch (err) {
+    error.value = true // ♥ went back; shake so the buyer notices
+    setTimeout(() => (error.value = false), 600)
     console.log(err.message)
-  } finally {
-    busy.value = false
   }
 }
 </script>
 
 <template>
-  <button type="button" class="fav-btn" :class="{ saved }" :disabled="busy"
-    :aria-label="saved ? 'Remove from favourites' : 'Add to favourites'" :aria-pressed="saved" @click="toggle">
+  <button type="button" class="fav-btn" :class="{ saved, pop, error }"
+    :aria-label="saved ? 'Remove from favourites' : 'Add to favourites'" :aria-pressed="saved" @click.stop.prevent="toggle" @animationend="pop = false">
     {{ saved ? '♥' : '♡' }}
   </button>
 </template>
@@ -59,5 +63,24 @@ async function toggle() {
 
 .fav-btn.saved {
   color: var(--rose);
+}
+.fav-btn.pop {
+  animation: pop 0.3s ease;
+}
+.fav-btn.error {
+  animation: shake 0.4s ease;
+}
+@keyframes pop {
+  50% { transform: scale(1.3); }
+}
+@keyframes shake {
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fav-btn.pop,
+  .fav-btn.error {
+    animation: none;
+  }
 }
 </style>

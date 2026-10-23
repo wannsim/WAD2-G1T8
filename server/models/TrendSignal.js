@@ -10,6 +10,7 @@ const trendSignalSchema = new mongoose.Schema(
     recentViews: { type: Number, default: 0 },   // page views in the last 7 days
     previousViews: { type: Number, default: 0 }, // page views in the 7 days before that
     growth: { type: Number, default: 0 },        // (recent - previous) / previous, e.g. 0.35 = +35%
+    version: { type: Number, default: 1 },       // which matching rules found the article (utils/trends.js MATCH_VERSION)
   },
   { timestamps: true }
 )
