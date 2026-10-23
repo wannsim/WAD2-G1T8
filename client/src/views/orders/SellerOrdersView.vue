@@ -402,7 +402,7 @@ onMounted(() => {
           <div v-if="activeGroup === 'needs-reply'" class="mb-4" data-testid="group-needs-reply">
             <h5 class="mb-2">Needs reply ({{ shown.needsReply.length }})</h5>
             <p v-if="shown.needsReply.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-            <div v-else class="list-grid mb-4">
+            <div v-else class="list-grid order-list mb-4">
               <div v-for="o in shown.needsReply" :key="o._id">
                 <div class="card h-auto" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
@@ -454,7 +454,7 @@ onMounted(() => {
           <div v-if="activeGroup === 'waiting-buyer'" class="mb-4" data-testid="group-waiting-buyer">
             <h5 class="mb-2">Waiting on buyer ({{ shown.waitingOnBuyer.length }})</h5>
             <p v-if="shown.waitingOnBuyer.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-            <div v-else class="list-grid mb-4">
+            <div v-else class="list-grid order-list mb-4">
               <div v-for="o in shown.waitingOnBuyer" :key="o._id">
                 <div class="card h-auto" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
@@ -488,7 +488,7 @@ onMounted(() => {
           <div v-if="activeGroup === 'upcoming'" class="mb-4" data-testid="group-upcoming">
             <h5 class="mb-2">Accepted ({{ shown.upcoming.length }})</h5>
             <p v-if="shown.upcoming.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-            <div v-else class="list-grid mb-4">
+            <div v-else class="list-grid order-list mb-4">
               <div v-for="o in shown.upcoming" :key="o._id">
                 <div class="card h-auto" data-testid="order-row">
                   <div class="card-body d-flex gap-3">
@@ -537,7 +537,7 @@ onMounted(() => {
             </div>
             <template v-if="showDone">
               <p v-if="shown.done.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-              <div v-else class="list-grid mb-4">
+              <div v-else class="list-grid order-list mb-4">
                 <div v-for="o in shown.done" :key="o._id">
                   <div class="card h-auto" data-testid="order-row">
                     <div class="card-body d-flex gap-3">
@@ -595,5 +595,10 @@ onMounted(() => {
   font-size: 2rem;
   font-weight: 700;
   line-height: 1.1;
+}
+
+/* each row is only as tall as its own cards (the team grid makes every row equal) */
+.order-list {
+  grid-auto-rows: auto;
 }
 </style>
