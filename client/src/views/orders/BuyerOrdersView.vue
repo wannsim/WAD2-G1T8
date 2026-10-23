@@ -236,8 +236,10 @@ onMounted(() => {
 
                 <!-- The server enforces privacy; this check only decides what to display. -->
                 <div v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="mb-2" data-testid="order-pickup-details">
-                  <p v-if="o.pickupAddress" class="mb-1">Pickup address: {{ o.pickupAddress }}</p>
-                  <p v-if="o.pickupPostalCode" class="mb-1">Postal code: {{ o.pickupPostalCode }}</p>
+                  <p class="small text-body-secondary mb-1">Pickup at</p>
+                  <p v-if="o.pickupAddress" class="mb-1" data-testid="order-pickup-address">{{ o.pickupAddress }}</p>
+                  <p v-if="o.pickupPostalCode" class="mb-1">Singapore {{ o.pickupPostalCode }}</p>
+                  <p v-if="o.shop && o.shop.nearestMrt" class="mb-1">Nearest MRT: {{ o.shop.nearestMrt }}</p>
                   <p v-if="!o.pickupAddress && !o.pickupPostalCode" class="mb-1">The seller has not added an address yet.</p>
                 </div>
 
