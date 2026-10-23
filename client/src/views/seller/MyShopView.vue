@@ -16,7 +16,7 @@
         <template v-if="selecting">
           <span class="small text-muted">{{ selectedIds.length }} selected</span>
           <button type="button" class="btn btn-sm btn-outline-secondary" @click="toggleSelectAll">
-            {{ selectedIds.length === products.length ? 'Clear all' : 'Select all' }}
+            {{ shownProducts.length && shownProducts.every((p) => selectedIds.includes(p._id)) ? 'Clear all' : 'Select all' }}
           </button>
           <button type="button" class="btn btn-sm btn-danger" :disabled="selectedIds.length === 0 || deleting" @click="deleteSelected">
             {{ deleting ? 'Deleting...' : 'Delete' }}
@@ -32,8 +32,13 @@
     <p v-if="actionError" class="text-danger small">{{ actionError }}</p>
     <p v-if="loadingProducts" class="text-muted">Loading products...</p>
     <p v-else-if="products.length === 0" class="text-muted">You have not listed any products yet.</p>
+    <template v-else>
+      <SearchBox v-model="productSearch" class="mb-3" placeholder="Search your products & services by name, category or tag"
+        label="Search my products and services" />
+      <p v-if="shownProducts.length === 0" class="text-muted">No products match "{{ productSearch }}".</p>
+    </template>
     <div class="card-grid">
-      <div v-for="item in sortedProducts" :key="item._id">
+      <div v-for="item in shownProducts" :key="item._id">
         <div class="card h-100 shadow-sm"
           :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting }"
           @click="selecting && toggleSelected(item)">
@@ -116,6 +121,7 @@ import { API_URL } from '@/utils/config'
 import { formatPrice, capitalize } from '@/utils/format'
 import EditProductModal from '@/components/EditProductModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
+import SearchBox from '@/components/SearchBox.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -137,6 +143,15 @@ const isPinned = (item) => pinnedIds.value.includes(item._id)
 // pinned first (in the order they were pinned), the rest stay newest first
 const pinRank = (item) => (isPinned(item) ? pinnedIds.value.indexOf(item._id) : MAX_PINS)
 const sortedProducts = computed(() => [...products.value].sort((a, b) => pinRank(a) - pinRank(b)))
+
+// search my own listings (name, category, tags, description) - handy once the list gets long
+const productSearch = ref('')
+const shownProducts = computed(() => {
+  const q = productSearch.value.trim().toLowerCase()
+  if (!q) return sortedProducts.value
+  return sortedProducts.value.filter((p) =>
+    [p.name, p.category, p.description, ...(p.tags || [])].some((text) => (text || '').toLowerCase().includes(q)))
+})
 
 async function togglePin(item) {
   actionError.value = ''
@@ -160,7 +175,9 @@ function toggleSelected(item) {
   selectedIds.value = isSelected(item) ? selectedIds.value.filter((id) => id !== item._id) : [...selectedIds.value, item._id]
 }
 function toggleSelectAll() {
-  selectedIds.value = selectedIds.value.length === products.value.length ? [] : products.value.map((p) => p._id)
+  // "Select all" = all products shown (so it respects the search)
+  const ids = shownProducts.value.map((p) => p._id)
+  selectedIds.value = ids.every((id) => selectedIds.value.includes(id)) ? [] : ids
 }
 function stopSelecting() {
   selecting.value = false
@@ -271,7 +288,7 @@ onBeforeUnmount(() => shopController?.abort())
   transform: translateX(-50%);
   padding: 2px 8px;
   border-radius: 4px;
-  background: #212529;
+  background: var(--navy);
   color: #fff;
   font-size: 0.75rem;
   white-space: nowrap;

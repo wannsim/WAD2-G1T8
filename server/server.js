@@ -16,6 +16,7 @@ import reviewRoutes from './routes/reviews.js'
 import chatRoutes from './routes/chats.js'
 import notificationRoutes from './routes/notifications.js'
 import { startRealtime } from './utils/realtime.js'
+import { startTrendRefresh } from './utils/trends.js'
  
 dotenv.config({ path: './config.env' })
  
@@ -61,6 +62,7 @@ mongoose
   .then(() => {
     console.log('MongoDB connected')
     startRealtime(io) // live chat / notifications, even when each teammate runs their own server
+    startTrendRefresh() // online trends for the Trending tab (free Wikimedia API, no key)
     // NOTE: httpServer.listen (not app.listen) so Socket.IO works
     httpServer.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
   })

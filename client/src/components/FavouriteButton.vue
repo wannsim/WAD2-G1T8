@@ -46,7 +46,7 @@ async function toggle() {
   border: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
-  color: #6c757d;
+  color: var(--muted);
   font-size: 1.15rem;
   line-height: 1;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
@@ -58,6 +58,6 @@ async function toggle() {
 }
 
 .fav-btn.saved {
-  color: #dc3545;
+  color: var(--rose);
 }
 </style>

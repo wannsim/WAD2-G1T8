@@ -205,13 +205,13 @@ function useFallbackImage(event) {
   align-items: center;
   gap: 0.3rem;
   font-size: 0.8rem;
-  color: #9a948a; /* greyed out */
+  color: var(--muted); /* greyed out */
   cursor: help;
   border-radius: 4px;
 }
 .reason-hint:hover,
 .reason-hint:focus-visible {
-  color: #6b665e;
+  color: var(--ink-soft);
   outline: none;
 }
 /* tooltip above the hint, kept inside the card */
@@ -224,7 +224,7 @@ function useFallbackImage(event) {
   max-width: 100%;
   padding: 0.35rem 0.6rem;
   border-radius: 6px;
-  background: #212529;
+  background: var(--navy);
   color: #fff;
   font-size: 0.78rem;
   line-height: 1.3;

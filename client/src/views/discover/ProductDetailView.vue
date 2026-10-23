@@ -6,6 +6,8 @@ import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import FollowButton from '@/components/FollowButton.vue'
+import ShopStrip from '@/components/ShopStrip.vue'
+import ProductReviews from '@/components/ProductReviews.vue'
 
 // Owner: Member 3 - /products/:id
 const route = useRoute()
@@ -29,6 +31,7 @@ async function chatWithSeller() {
 
 const loading = ref(true)
 const loadError = ref('')
+const shopProductCount = ref(null) // "Products" in the seller box
 
 // photo gallery: the server sends one imageUrl per photo in imageUrls
 const images = computed(() => product.value?.imageUrls?.length ? product.value.imageUrls : [product.value?.imageUrl || '/placeholder.svg'])
@@ -59,6 +62,11 @@ onMounted(async () => {
   try {
     const response = await axios.get(`${API_URL}/products/${route.params.id}`)
     product.value = response.data
+    if (product.value.shop?._id) {
+      axios.get(`${API_URL}/products/shop/${product.value.shop._id}`)
+        .then((res) => (shopProductCount.value = res.data.length))
+        .catch(() => {})
+    }
   } catch (error) {
     loadError.value = error.response?.status === 404
       ? 'This product could not be found. It may have been removed by the seller.'
@@ -88,7 +96,8 @@ onMounted(async () => {
   <div v-else-if="loadError" class="alert alert-warning">
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>
-  <div v-else-if="product" class="row g-4 align-items-start">
+  <div v-else-if="product">
+  <div class="row g-4 align-items-start">
     <div class="col-md-6">
       <!-- fixed square frame so every product lines up the same, whatever the photo's shape -->
       <div class="product-image-frame" @touchstart.passive="onTouchStart" @touchend="onTouchEnd">
@@ -160,6 +169,13 @@ onMounted(async () => {
       </p>
     </div>
   </div>
+
+  <!-- about the seller + every review of this product (like Shopee) -->
+  <ShopStrip v-if="product.shop" class="mt-4" :shop="product.shop" :product-count="shopProductCount"
+    :can-chat="!!currentUser && currentUser.role === 'buyer'" @chat="chatWithSeller" />
+  <p v-if="chatError && !(currentUser && currentUser.role === 'buyer')" class="text-danger small mt-2">{{ chatError }}</p>
+  <ProductReviews class="mt-4 mb-5" :product-id="product._id" />
+  </div>
 </template>
 
 
@@ -167,7 +183,7 @@ onMounted(async () => {
 .product-image-frame {
   aspect-ratio: 1 / 1;
   width: 100%;
-  background: #f5f5f5;
+  background: var(--surface-hover);
   border-radius: 0.5rem;
   overflow: hidden;
   display: flex;
@@ -221,12 +237,12 @@ onMounted(async () => {
   border: 2px solid transparent;
   border-radius: 0.375rem;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--surface-hover);
   opacity: 0.7;
 }
 
 .gallery-thumb.active {
-  border-color: #c2410c;
+  border-color: var(--brand);
   opacity: 1;
 }
 
@@ -238,7 +254,7 @@ onMounted(async () => {
 
 .info-section {
   padding: 1rem 0;
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid var(--line);
 }
 
 .info-section h6 {
@@ -247,12 +263,12 @@ onMounted(async () => {
 }
 
 .chatBtn{
-  color: #c2410c;
-  border-color: #c2410c
+  color: var(--brand);
+  border-color: var(--brand)
 }
 
 .chatBtn:hover{
-  color: #9a3412;
-  border-color: #9a3412
+  color: var(--brand-dark);
+  border-color: var(--brand-dark)
 }
 </style>
