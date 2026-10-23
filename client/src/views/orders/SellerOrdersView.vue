@@ -290,7 +290,7 @@ onMounted(() => {
           <div class="col-12 col-md-6 col-xl-4">
             <div class="card" data-testid="next-pickup">
               <div class="card-body p-3">
-                <p v-if="nextPickup" class="mb-0">Next pickup: {{ nextPickup.product ? nextPickup.product.name : 'Product removed' }} for {{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} at {{ formatDateTime(nextPickup.requestedTime) }}</p>
+                <p v-if="nextPickup" class="mb-0 text-break">Next pickup: {{ nextPickup.product ? nextPickup.product.name : 'Product removed' }} for {{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} at {{ formatDateTime(nextPickup.requestedTime) }}</p>
                 <p v-else class="mb-0">No upcoming pickups.</p>
               </div>
             </div>
@@ -325,7 +325,7 @@ onMounted(() => {
                       <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                       <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
-                    <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                    <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
@@ -343,10 +343,10 @@ onMounted(() => {
                       </div>
                     </div>
                     <div v-if="confirmId === o._id" class="mt-2">
-                      <p class="mb-1">Are you sure?</p>
+                      <p class="mb-1">Decline this order?</p>
                       <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes</button>
-                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">No</button>
+                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
+                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                       </div>
                     </div>
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
@@ -376,7 +376,7 @@ onMounted(() => {
                       <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                       <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     </div>
-                    <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                    <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
@@ -413,7 +413,7 @@ onMounted(() => {
                         <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                       </div>
                     </div>
-                    <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                    <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>
@@ -424,10 +424,10 @@ onMounted(() => {
                       <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
                     </div>
                     <div v-if="confirmId === o._id" class="mt-2">
-                      <p class="mb-1">Are you sure?</p>
+                      <p class="mb-1">Cancel this order?</p>
                       <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes</button>
-                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">No</button>
+                        <button class="btn btn-sm btn-outline-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, cancel</button>
+                        <button class="btn btn-sm btn-outline-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                       </div>
                     </div>
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
@@ -461,7 +461,7 @@ onMounted(() => {
                         <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                         <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="ORDER_STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                       </div>
-                      <p class="mb-1 text-body-secondary">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
+                      <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                       <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                       <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                       <p v-if="o.customisation" class="mb-2">Note: {{ o.customisation }}</p>

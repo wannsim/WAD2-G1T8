@@ -263,7 +263,7 @@ onMounted(() => {
                     <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                   </div>
                 </div>
-                <p class="mb-1 text-body-secondary">{{ o.shop ? o.shop.name : 'Shop removed' }}</p>
+                <p class="mb-1 text-body-secondary text-break">{{ o.shop ? o.shop.name : 'Shop removed' }}</p>
                 <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                 <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                 <p v-if="o.customisation" class="mb-1">Note: {{ o.customisation }}</p>

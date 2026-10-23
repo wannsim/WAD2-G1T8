@@ -132,13 +132,13 @@ async function submitOrder() {
       </p>
       <div v-else-if="loadError" class="alert alert-danger" data-testid="order-load-error">{{ loadError }}</div>
       <div v-else-if="sent && product" class="alert alert-success" data-testid="order-success">
-        <p>Request sent to {{ product.shop.name }}. The seller will accept, decline or suggest another time.</p>
+        <p class="text-break">Request sent to {{ product.shop.name }}. The seller will accept, decline or suggest another time.</p>
         <div class="d-flex flex-wrap gap-2">
           <RouterLink to="/orders" class="btn btn-brand" data-testid="order-view-orders-link">View my orders</RouterLink>
         </div>
       </div>
       <div v-else-if="product && product.isAvailable === false" class="alert alert-warning" data-testid="order-unavailable">
-        This product is not available right now.
+        This product is not available right now. Please browse other products.
       </div>
       <div v-else-if="futureSlots.length === 0" class="alert alert-info" data-testid="order-no-slots">
         <p class="mb-2">No upcoming slots for this product.</p>
@@ -150,8 +150,8 @@ async function submitOrder() {
         </div>
       </div>
       <div v-else-if="product" data-testid="order-form">
-        <h2 class="page-title">Request: {{ product.name }}</h2>
-        <p class="text-muted">from {{ product.shop.name }} &middot; {{ formatPrice(product.price) }} / {{ product.unit }}</p>
+        <h2 class="page-title text-break">Request: {{ product.name }}</h2>
+        <p class="text-muted text-break">from {{ product.shop.name }} &middot; {{ formatPrice(product.price) }} / {{ product.unit }}</p>
         <div v-if="error" class="alert alert-danger" data-testid="order-error">{{ error }}</div>
 
         <div class="mb-3">
@@ -196,7 +196,7 @@ async function submitOrder() {
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-brand" :disabled="submitting" @click="submitOrder" data-testid="order-submit">
             <template v-if="submitting">
-              <span class="spinner-border spinner-border-sm"></span> Sending...
+              <span class="spinner-border spinner-border-sm"></span> Sending…
             </template>
             <template v-else>Send request</template>
           </button>
