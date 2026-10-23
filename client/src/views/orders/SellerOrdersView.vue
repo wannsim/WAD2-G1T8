@@ -469,7 +469,7 @@ onMounted(() => {
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
-                    <p class="mb-0 text-muted">Waiting for the buyer to accept {{ formatDateTime(o.proposedTime) }}</p>
+                    <p class="mb-1">Proposed time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></p>
                     <div class="mt-auto pt-2">
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2 mt-2">
                       <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
