@@ -53,10 +53,14 @@ async function loadProduct() {
   }
 }
 
-// Checks the login before loading the product.
+// Checks the login and the role before loading the product.
 onMounted(() => {
   if (!currentUser.value) {
     router.push('/login')
+    return
+  }
+  if (currentUser.value.role === 'seller') { // Sellers manage orders on their dashboard; only buyers place orders.
+    router.push('/seller/orders')
     return
   }
   loadProduct()
