@@ -89,7 +89,7 @@ router.get('/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Product not found' })
     const product = await Product.findById(req.params.id)
       .select('-images')
-      .populate('shop', 'name nearestMrt location stats pickup delivery owner followers')
+      .populate('shop', 'name nearestMrt location stats pickup delivery owner followers categories createdAt')
       .lean()
     if (!product) return res.status(404).json({ message: 'Product not found' })
     const counts = await imageCounts([product._id]) // product page shows every photo

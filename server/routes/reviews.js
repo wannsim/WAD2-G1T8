@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import express from 'express'
 import Review from '../models/Review.js'
 import Order from '../models/Order.js'
@@ -7,7 +8,7 @@ import Product from '../models/Product.js'
 import { notify } from '../utils/notify.js'
 
 // Owner: Yu Chen
-// POST /reviews   GET /reviews/shop/:shopId
+// POST /reviews   GET /reviews/shop/:shopId   GET /reviews/product/:productId
 const router = express.Router()
 
 // body: { order, buyer, rating, comment }
@@ -45,6 +46,20 @@ router.post('/', async (req, res) => {
       product: order.product,
     })
     res.status(201).json(review)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// every review of one product, newest first (the product page's "Product ratings")
+router.get('/product/:productId', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.productId)) return res.json([])
+    const reviews = await Review.find({ product: req.params.productId })
+      .select('buyer rating comment createdAt')
+      .populate('buyer', 'name')
+      .sort({ createdAt: -1 })
+    res.json(reviews)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

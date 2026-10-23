@@ -49,14 +49,20 @@ onUnmounted(() => {
 </script>
  
 <template>
-  <header class="container pt-3">
+  <header class="container pt-3 site-header">
     <nav class="navbar navbar-expand-xl nav-card">
       <!-- logo + name -->
-      <RouterLink class="navbar-brand d-flex align-items-center gap-2 me-lg-4" to="/home">
+      <RouterLink class="navbar-brand d-flex align-items-center gap-2 me-xl-3" to="/home">
         <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
-          <rect width="34" height="34" rx="9" fill="#c2410c" />
+          <defs>
+            <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#3ba7b6" />
+              <stop offset="1" stop-color="#a98bd6" />
+            </linearGradient>
+          </defs>
+          <rect width="34" height="34" rx="10" fill="url(#logo-gradient)" />
           <path d="M8 16 17 8l9 8v10H8z" fill="#fff" />
-          <rect x="14" y="19" width="6" height="7" fill="#c2410c" />
+          <rect x="14" y="19" width="6" height="7" fill="#1f2a44" />
         </svg>
         <span>Homly Hauls</span>
       </RouterLink>
@@ -167,38 +173,51 @@ onUnmounted(() => {
 </template>
  
 <style scoped>
+/* The nav bar (and its pop-ups: notifications, user menu) must sit ABOVE the page.
+   The frosted-glass effect below gives the bar its own layer, so without this the product cards
+   further down the page were drawn on top of the notification pop-up. */
+.site-header {
+  position: relative;
+  z-index: 1030;
+}
+
 /* the white floating bar */
 .nav-card {
   padding: 0.6rem 1rem;
-  border-radius: 1rem;
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
  
 /* tab pills */
 .nav-pill {
-  padding: 0.5rem 1rem !important;
-  border-radius: 0.75rem;
+  padding: 0.45rem 0.75rem !important;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  white-space: nowrap; /* "For you" / "Shop orders" never break onto two lines */
   font-weight: 500;
-  color: #2b2b2b;
+  color: var(--ink);
 }
 .nav-pill:hover {
-  background: #f3f0ea;
+  background: var(--surface-hover);
 }
-/* active tab: tinted background + brand-coloured text (same idea as the blue "Home" pill) */
+/* active tab: navy pill with white text (same as the tabs and the List / Map toggle) */
 .nav-pill.router-link-active {
-  background: rgba(194, 65, 12, 0.1);
-  color: var(--brand);
+  background: var(--navy);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(var(--navy-rgb), 0.25);
 }
  
 /* outlined Login / user button */
 .nav-login {
   padding: 0.45rem 1.1rem;
-  border: 1px solid #cfc8bc;
-  border-radius: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   background: #fff;
   font-weight: 500;
-  color: #2b2b2b;
+  color: var(--ink);
 }
 .nav-login:hover,
 .nav-login:focus {

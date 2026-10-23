@@ -16,7 +16,7 @@
   padding: 2.5rem 2rem;
   border-radius: 1.25rem;
   background: #fff;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow);
 }
  
 .auth-title {
@@ -38,7 +38,7 @@
   width: 100%;
   padding: 0.4rem 0;
   border: 0;
-  border-bottom: 2px solid #3b3b3b;
+  border-bottom: 2px solid var(--line);
   border-radius: 0;
   background: transparent;
   outline: none;
@@ -55,7 +55,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #3b3b3b;
+  color: var(--ink);
 }
 .auth-eye:hover {
   color: var(--brand);
@@ -92,7 +92,7 @@
   align-items: center;
   gap: 0.75rem;
   margin: 1.25rem 0;
-  color: #8a8175;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .auth-divider::before,
@@ -100,5 +100,5 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #e2dccf;
+  background: var(--line);
 }

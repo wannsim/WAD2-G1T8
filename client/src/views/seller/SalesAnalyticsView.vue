@@ -232,11 +232,11 @@ onBeforeUnmount(() => controller?.abort())
 </template>
 
 <style scoped>
-.analytics-panel { background: #fff; border: 1px solid #e8e3db; border-radius: 1rem; box-shadow: 0 4px 16px rgb(0 0 0 / 3%); }
+.analytics-panel { background: #fff; border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 4px 16px rgb(0 0 0 / 3%); }
 .metric-value { color: var(--brand-dark); font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; overflow-wrap: anywhere; }
 .chart-scroll { overflow-x: auto; }
 .sales-chart { display: block; width: 100%; min-width: 640px; }
-.chart-label { font-size: 11px; fill: #625a52; }
+.chart-label { font-size: 11px; fill: var(--ink-soft); }
 .chart-data-toggle, .analytics-link { color: var(--brand-dark); }
 .chart-data-table { max-height: 22rem; }
 .product-name { min-width: 8rem; overflow-wrap: anywhere; }

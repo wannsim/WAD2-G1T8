@@ -337,7 +337,7 @@ onUnmounted(() => {
 .chat-box {
   height: 55vh;
   overflow-y: auto;
-  background: #faf8f4;
+  background: var(--surface-soft);
 }
 .bubble {
   max-width: 75%;
@@ -352,7 +352,7 @@ onUnmounted(() => {
 }
 .theirs {
   background: #fff;
-  border: 1px solid #e5dfd3;
+  border: 1px solid var(--line);
   border-bottom-left-radius: 0.25rem;
 }
 .time {
@@ -361,7 +361,7 @@ onUnmounted(() => {
   text-align: right;
 }
 .chat-active {
-  background: rgba(194, 65, 12, 0.1);
+  background: rgba(var(--brand-rgb), 0.1);
 }
 .search-box {
   position: relative;
@@ -371,7 +371,7 @@ onUnmounted(() => {
   top: 50%;
   left: 0.75rem;
   transform: translateY(-50%);
-  color: #8a8478;
+  color: var(--muted);
   pointer-events: none;
 }
 .search-box .form-control {
@@ -385,15 +385,15 @@ onUnmounted(() => {
 .hit {
   padding: 0 1px;
   border-radius: 3px;
-  background: #fde68a;
-  color: #2b2b2b;
+  background: #e6dcfa;
+  color: var(--ink);
 }
 /* the match the arrows are on */
 .current-match {
-  box-shadow: 0 0 0 3px #f59e0b;
+  box-shadow: 0 0 0 3px var(--lavender);
 }
 .current-match .hit {
-  background: #f59e0b;
+  background: var(--lavender);
 }
 .icon-btn {
   position: relative;
@@ -407,7 +407,7 @@ onUnmounted(() => {
   right: 0;
   padding: 2px 8px;
   border-radius: 4px;
-  background: #212529;
+  background: var(--navy);
   color: #fff;
   font-size: 0.75rem;
   white-space: nowrap;
@@ -418,8 +418,8 @@ onUnmounted(() => {
   display: inline-block;
   padding: 0.2rem 0.8rem;
   border-radius: 1rem;
-  background: #e9e3d8;
-  color: #4b4b4b;
+  background: var(--lavender-soft);
+  color: var(--ink-soft);
   font-size: 0.8rem;
   font-weight: 600;
 }

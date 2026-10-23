@@ -5,6 +5,7 @@ import { API_URL } from '@/utils/config'
 import { CATEGORIES } from '@/utils/constants'
 import { formatPrice } from '@/utils/format'
 import { cleanMrtName, mapEmbedUrl, googleMapsLink } from '@/utils/googleMaps'
+import ViewToggle from '@/components/ViewToggle.vue'
 
 // Owner: Member 3 + Cheyenne - /map
 // Left: list of shops (search + category). Right: Google Maps showing the selected shop's
@@ -40,7 +41,7 @@ const stationLabel = (shop) => (cleanMrtName(shop.nearestMrt) ? `${cleanMrtName(
 const categoryLabel = (shop) => (shop.categories?.length ? shop.categories.join(', ') : 'No category yet')
 
 // same colour for the same shop every time
-const AVATAR_COLOURS = ['#7c3aed', '#2563eb', '#db2777', '#0d9488', '#65a30d', '#b45309', '#c2410c', '#4f46e5']
+const AVATAR_COLOURS = ['#3ba7b6', '#8a6cc0', '#1f2a44', '#e0607e', '#5fb8a5', '#b39ddb', '#2c8a98', '#e0a526'] // palette
 function avatarColour(name) {
   let hash = 0
   for (const ch of String(name)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
@@ -73,7 +74,7 @@ onMounted(async () => {
         <h2 class="page-title mb-0">Map</h2>
         <p class="text-muted small mb-0">Pick a shop to see its nearest MRT station on the map.</p>
       </div>
-      <RouterLink to="/browse" class="btn btn-outline-secondary btn-sm">Switch to list</RouterLink>
+      <ViewToggle />
     </div>
 
     <!-- search + category -->
@@ -180,7 +181,7 @@ onMounted(async () => {
   top: 50%;
   left: 0.85rem;
   transform: translateY(-50%);
-  color: #8a8478;
+  color: var(--muted);
   pointer-events: none;
 }
 .search-box .form-control {
@@ -199,11 +200,11 @@ onMounted(async () => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 1rem;
-  border: 1px solid #ece6dc;
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
   font-weight: 500;
-  color: #2b2b2b;
+  color: var(--ink);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .filter-btn:hover {
@@ -224,7 +225,7 @@ onMounted(async () => {
 .filter-tag {
   padding: 0.05rem 0.5rem;
   border-radius: 999px;
-  background: rgba(194, 65, 12, 0.12);
+  background: rgba(var(--brand-rgb), 0.12);
   font-size: 0.75rem;
   color: var(--brand-dark);
 }
@@ -238,7 +239,7 @@ onMounted(async () => {
   padding: 0.25rem;
   overflow: hidden;
   white-space: nowrap;
-  border: 1px solid #ece6dc;
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
 }
@@ -302,10 +303,10 @@ onMounted(async () => {
   border-radius: 999px;
   background: transparent;
   font-size: 0.875rem;
-  color: #4b4b4b;
+  color: var(--ink-soft);
 }
 .chip:hover {
-  background: #f3f0ea;
+  background: var(--surface-hover);
 }
 .chip.active {
   background: var(--brand);
@@ -320,7 +321,7 @@ onMounted(async () => {
   height: calc(100vh - 260px);
   min-height: 520px;
   padding: 0.75rem;
-  border: 1px solid #ece6dc;
+  border: 1px solid var(--line);
   border-radius: 1.25rem;
   background: #fff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -338,15 +339,15 @@ onMounted(async () => {
   gap: 0.75rem;
   width: 100%;
   padding: 0.7rem 0.8rem;
-  border: 1px solid #f0ebe3;
+  border: 1px solid var(--line);
   border-radius: 0.9rem;
-  background: #fcfaf7;
+  background: var(--surface-soft);
   font-size: 0.9rem;
-  color: #2b2b2b;
+  color: var(--ink);
   transition: background 0.15s ease;
 }
 .shop-item:hover {
-  background: #f6f1ea;
+  background: var(--surface-hover);
 }
 .shop-item.selected {
   border-color: var(--brand);
@@ -371,7 +372,7 @@ onMounted(async () => {
 }
 .meta {
   font-size: 0.75rem;
-  color: #8a8478;
+  color: var(--muted);
 }
 .price {
   font-weight: 600;
@@ -379,7 +380,7 @@ onMounted(async () => {
 .from {
   font-size: 0.7rem;
   font-weight: 400;
-  color: #8a8478;
+  color: var(--muted);
 }
 .min-w-0 {
   min-width: 0;
@@ -389,7 +390,7 @@ onMounted(async () => {
   position: relative;
   overflow: hidden;
   border-radius: 1rem;
-  background: #eef0f2;
+  background: var(--surface-hover);
 }
 .map {
   display: block;
@@ -406,7 +407,7 @@ onMounted(async () => {
   justify-content: center;
   padding: 2rem;
   text-align: center;
-  color: #4b4b4b;
+  color: var(--ink-soft);
 }
 
 /* floating card at the bottom-left of the map (like the design) */
@@ -434,7 +435,7 @@ onMounted(async () => {
   gap: 0.35rem;
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: #f3f0ea;
+  background: var(--surface-hover);
   font-size: 0.75rem;
 }
 .dot {
@@ -450,7 +451,7 @@ onMounted(async () => {
 }
 .stat-label {
   font-size: 0.75rem;
-  color: #8a8478;
+  color: var(--muted);
 }
 
 /* phones: map on top, list underneath */

@@ -22,11 +22,11 @@ function rate(n) {
 
 <style scoped>
 .star-rating span {
-  color: #ccc;
+  color: var(--line);
   font-size: 1.2rem;
 }
 .star-rating span.filled {
-  color: #f59e0b;
+  color: var(--amber); /* gold stars, like the inspiration */
 }
 .editable span {
   cursor: pointer;
