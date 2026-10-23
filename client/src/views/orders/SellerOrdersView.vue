@@ -246,45 +246,39 @@ onMounted(() => {
       </p>
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
       <template v-else>
-        <div class="row g-2 mb-4" data-testid="seller-dashboard-stats">
-          <div class="col-6 col-lg-3">
-            <div class="card"><div class="card-body">
-              <p class="fs-3 fw-bold mb-1" data-testid="stat-needs-reply">{{ needsReply.length }}</p>
-              <p class="mb-0">Needs reply</p>
-            </div></div>
-          </div>
-          <div class="col-6 col-lg-3">
-            <div class="card"><div class="card-body">
-              <p class="fs-3 fw-bold mb-1" data-testid="stat-upcoming">{{ upcoming.length }}</p>
-              <p class="mb-0">Accepted</p>
-            </div></div>
-          </div>
-          <div class="col-6 col-lg-3">
-            <div class="card"><div class="card-body">
-              <p class="fs-3 fw-bold mb-1" data-testid="stat-overdue">{{ overdueCount }}</p>
-              <p class="mb-0">Overdue</p>
-            </div></div>
-          </div>
-          <div class="col-6 col-lg-3">
-            <div class="card"><div class="card-body">
-              <p class="fs-3 fw-bold mb-1" data-testid="stat-total-active">{{ totalActive }}</p>
-              <p class="mb-0">Total active</p>
-            </div></div>
+        <div class="card mb-3" data-testid="seller-dashboard-stats">
+          <div class="row g-0">
+            <div class="col-6 col-lg-3 p-3 border-end">
+              <p class="small text-body-secondary mb-1">Needs reply</p>
+              <p class="fs-4 fw-bold mb-0" data-testid="stat-needs-reply">{{ needsReply.length }}</p>
+            </div>
+            <div class="col-6 col-lg-3 p-3 order-stat-divider">
+              <p class="small text-body-secondary mb-1">Accepted</p>
+              <p class="fs-4 fw-bold mb-0" data-testid="stat-upcoming">{{ upcoming.length }}</p>
+            </div>
+            <div class="col-6 col-lg-3 p-3 border-end">
+              <p class="small text-body-secondary mb-1">Overdue</p>
+              <p class="fs-4 fw-bold mb-0" data-testid="stat-overdue">{{ overdueCount }}</p>
+            </div>
+            <div class="col-6 col-lg-3 p-3">
+              <p class="small text-body-secondary mb-1">Total active</p>
+              <p class="fs-4 fw-bold mb-0" data-testid="stat-total-active">{{ totalActive }}</p>
+            </div>
           </div>
         </div>
         <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
         <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
         <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
-        <div class="row g-3 mb-4">
-          <div class="col-12 col-lg-6">
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6 col-xl-4">
             <div class="card" data-testid="status-breakdown">
-              <div class="card-body">
-                <h3>Active orders</h3>
+              <div class="card-body p-3">
+                <h6>Active orders</h6>
                 <p v-if="totalActive === 0" class="mb-0">No active orders.</p>
                 <template v-else>
                   <div v-for="b in breakdown" :key="b.status" class="mb-2">
-                    <p class="mb-1">{{ b.label }} ({{ b.count }})</p>
-                    <div class="progress">
+                    <p class="d-flex justify-content-between small mb-1"><span>{{ b.label }}</span><span>({{ b.count }})</span></p>
+                    <div class="progress order-bar">
                       <div class="progress-bar" :class="ORDER_STATUS_BADGE[b.status]" :style="{ width: b.percent + '%' }"></div>
                     </div>
                   </div>
@@ -292,9 +286,9 @@ onMounted(() => {
               </div>
             </div>
           </div>
-          <div class="col-12 col-lg-6">
+          <div class="col-12 col-md-6 col-xl-4">
             <div class="card" data-testid="next-pickup">
-              <div class="card-body">
+              <div class="card-body p-3">
                 <p v-if="nextPickup" class="mb-0">Next pickup: {{ nextPickup.product ? nextPickup.product.name : 'Product removed' }} for {{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} at {{ formatDateTime(nextPickup.requestedTime) }}</p>
                 <p v-else class="mb-0">No upcoming pickups.</p>
               </div>
@@ -303,8 +297,8 @@ onMounted(() => {
         </div>
         <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
         <template v-else>
-          <div class="mb-4" data-testid="group-needs-reply">
-            <h3>Needs reply ({{ needsReply.length }})</h3>
+          <div class="mb-3" data-testid="group-needs-reply">
+            <h5 class="mb-2">Needs reply ({{ needsReply.length }})</h5>
             <p v-if="needsReply.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in needsReply" :key="o._id">
@@ -354,8 +348,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="mb-4" data-testid="group-waiting-buyer">
-            <h3>Waiting on buyer ({{ waitingOnBuyer.length }})</h3>
+          <div class="mb-3" data-testid="group-waiting-buyer">
+            <h5 class="mb-2">Waiting on buyer ({{ waitingOnBuyer.length }})</h5>
             <p v-if="waitingOnBuyer.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in waitingOnBuyer" :key="o._id">
@@ -388,8 +382,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="mb-4" data-testid="group-upcoming">
-            <h3>Accepted ({{ upcoming.length }})</h3>
+          <div class="mb-3" data-testid="group-upcoming">
+            <h5 class="mb-2">Accepted ({{ upcoming.length }})</h5>
             <p v-if="upcoming.length === 0" data-testid="group-empty">Nothing here.</p>
             <div v-else class="list-grid">
               <div v-for="o in upcoming" :key="o._id">
@@ -435,8 +429,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="mb-4" data-testid="group-done">
-            <h3>Done ({{ done.length }})</h3>
+          <div class="mb-3" data-testid="group-done">
+            <h5 class="mb-2">Done ({{ done.length }})</h5>
             <div class="d-flex flex-wrap gap-2 mb-3">
               <button class="btn btn-sm btn-outline-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + done.length + ')' }}</button>
             </div>
@@ -488,5 +482,16 @@ onMounted(() => {
 
 .order-text {
   min-width: 0;
+}
+
+.order-bar {
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+@media (min-width: 992px) {
+  .order-stat-divider {
+    border-right: 1px solid var(--bs-border-color);
+  }
 }
 </style>
