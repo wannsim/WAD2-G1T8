@@ -76,12 +76,12 @@ const completedOrders = computed(() => {
   return groupedOrders
 })
 
-// Groups declined and cancelled orders for the Past tab.
+// Groups declined and cancelled orders for the "Declined & cancelled" tab.
 const pastOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
     const order = orders.value[i]
-    if (order.status === 'declined' || order.status === 'cancelled') { // Past includes declined and cancelled.
+    if (order.status === 'declined' || order.status === 'cancelled') { // This tab holds declined and cancelled orders.
       groupedOrders.push(order)
     }
   }
@@ -239,7 +239,7 @@ onMounted(() => {
             <button class="nav-link" :class="{ active: activeTab === 'completed' }" @click="activeTab = 'completed'" data-testid="tab-completed">Completed ({{ completedOrders.length }})</button>
           </li>
           <li class="nav-item">
-            <button class="nav-link" :class="{ active: activeTab === 'past' }" @click="activeTab = 'past'" data-testid="tab-past">Past ({{ pastOrders.length }})</button>
+            <button class="nav-link" :class="{ active: activeTab === 'past' }" @click="activeTab = 'past'" data-testid="tab-past">Declined &amp; cancelled ({{ pastOrders.length }})</button>
           </li>
         </ul>
 
