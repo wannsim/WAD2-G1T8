@@ -316,18 +316,12 @@ onMounted(() => {
                 <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ buyerHelp(o) }}</p>
 
                 <div v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-2" data-testid="order-delivery-details">
-                  <p class="small text-body-secondary mb-1">Deliver to</p>
-                  <p class="mb-1 text-break">{{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}</p>
-                  <p class="mb-1">Singapore {{ o.deliveryPostalCode }}</p>
+                  <p class="mb-1 text-break"><span class="text-body-secondary">Deliver to:</span> {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                 </div>
 
                 <!-- The server enforces privacy; this check only decides what to display. -->
                 <div v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="mb-2" data-testid="order-pickup-details">
-                  <p class="small text-body-secondary mb-1">Pickup at</p>
-                  <p v-if="o.pickupAddress" class="mb-1" data-testid="order-pickup-address">{{ o.pickupAddress }}</p>
-                  <p v-if="o.pickupPostalCode" class="mb-1">Singapore {{ o.pickupPostalCode }}</p>
-                  <p v-if="o.shop && o.shop.nearestMrt" class="mb-1">Nearest MRT: {{ o.shop.nearestMrt }}</p>
-                  <p v-if="!o.pickupAddress && !o.pickupPostalCode" class="mb-1">The seller has not added an address yet.</p>
+                  <p class="mb-1 text-break"><span class="text-body-secondary">Pickup at:</span> <span v-if="o.pickupAddress" data-testid="order-pickup-address">{{ o.pickupAddress }}</span><span v-if="o.pickupPostalCode">{{ o.pickupAddress ? ', ' : '' }}Singapore {{ o.pickupPostalCode }}</span><span v-if="!o.pickupAddress && !o.pickupPostalCode">the seller has not added an address yet.</span><span v-if="o.shop && o.shop.nearestMrt"> &middot; Nearest MRT: {{ o.shop.nearestMrt }}</span></p>
                 </div>
 
                 <div v-if="o.status === 'rescheduled'" class="alert alert-info py-2 mb-2" data-testid="order-proposal">
