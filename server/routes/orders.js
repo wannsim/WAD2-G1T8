@@ -168,7 +168,7 @@ router.post('/', async (req, res) => {
     const slot = findSlot(p, requestedTime)
     const used = await countSlotOrders(product, requestedTime)
     let capacity = slot.capacity
-    if (capacity === undefined) capacity = 10 // Same default as Product.js when capacity is missing.
+    if (capacity === undefined || capacity === null) capacity = 10 // Same default as Product.js when capacity is missing or empty.
     if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // Count orders, not quantity.
 
     let customisationNote = customisation
