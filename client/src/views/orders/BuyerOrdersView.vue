@@ -338,6 +338,7 @@ onMounted(() => {
                     </template>
                     <button v-if="o.shop" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
                   </div>
+                  <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
                   <div class="d-flex justify-content-end mt-2">
                     <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
                   </div>

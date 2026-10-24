@@ -465,6 +465,7 @@ onMounted(() => {
                           </div>
                         </div>
                       </template>
+                      <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
                       <div class="d-flex justify-content-end mt-2">
                         <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
                       </div>
@@ -546,6 +547,7 @@ onMounted(() => {
                         <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
                         <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                       </div>
+                      <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
                       <div class="d-flex justify-content-end mt-2">
                         <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
                       </div>
