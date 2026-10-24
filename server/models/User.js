@@ -10,6 +10,10 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['buyer', 'seller'], default: 'buyer' },
     preferences: { type: [String], default: [] }, // buyer's favourite categories (used by FYP)
     preferredMrt: { type: String, default: '', trim: true },
+    // buyer's default delivery address - optional, fills in the order form when they pick Delivery
+    deliveryAddress: { type: String, default: '', trim: true },
+    deliveryUnit: { type: String, default: '', trim: true },
+    deliveryPostalCode: { type: String, default: '', trim: true },
   },
   { timestamps: true }
 )

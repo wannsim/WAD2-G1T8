@@ -13,6 +13,9 @@ const name = ref('')
 const email = ref('')
 const preferences = ref([])
 const preferredMrt = ref('')
+const deliveryAddress = ref('')
+const deliveryUnit = ref('')
+const deliveryPostalCode = ref('')
 const purchases = ref([])
 const followedShops = ref([])
 const loadingActivity = ref(true)
@@ -29,6 +32,9 @@ onMounted(async () => {
     email.value = response.data.email
     preferences.value = response.data.preferences
     preferredMrt.value = response.data.preferredMrt || ''
+    deliveryAddress.value = response.data.deliveryAddress || ''
+    deliveryUnit.value = response.data.deliveryUnit || ''
+    deliveryPostalCode.value = response.data.deliveryPostalCode || ''
     const [ordersResponse, followedResponse] = await Promise.all([
       axios.get(`${API_URL}/orders/buyer/${currentUser.value._id}`),
       axios.get(`${API_URL}/shops/following/${currentUser.value._id}`),
@@ -43,16 +49,23 @@ onMounted(async () => {
 })
  
 async function save() {
+  if (deliveryPostalCode.value && !/^\d{6}$/.test(deliveryPostalCode.value)) {
+    message.value = 'Postal code must be 6 digits.'
+    return
+  }
   try {
     const response = await axios.put(`${API_URL}/users/${currentUser.value._id}`, {
       name: name.value,
       preferences: preferences.value,
       preferredMrt: preferredMrt.value,
+      deliveryAddress: deliveryAddress.value,
+      deliveryUnit: deliveryUnit.value,
+      deliveryPostalCode: deliveryPostalCode.value,
     })
     saveUser(response.data) // keep the saved login + NavBar in sync
     message.value = 'Profile saved!'
   } catch (error) {
-    message.value = error.message
+    message.value = error.response?.data?.message || error.message
   }
 }
 </script>
@@ -78,6 +91,25 @@ async function save() {
           <input id="preferred-mrt" v-model.trim="preferredMrt" class="form-control" placeholder="e.g. Bishan" />
           <!-- <div class="form-text">The map opens at this station when you switch from Browse.</div> -->
         </div>
+
+        <fieldset class="mb-3">
+          <legend class="form-label fs-6 mb-1">Delivery address <span class="text-muted small">(optional)</span></legend>
+          <p class="form-text mt-0 mb-2">Filled in for you when you choose delivery. Sellers only see it on orders you send them.</p>
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="visually-hidden" for="delivery-address">Street address</label>
+              <input id="delivery-address" v-model.trim="deliveryAddress" class="form-control" maxlength="200" placeholder="Block and street, e.g. 123 Bishan Street 12" autocomplete="street-address" />
+            </div>
+            <div class="col-6">
+              <label class="visually-hidden" for="delivery-unit">Unit number</label>
+              <input id="delivery-unit" v-model.trim="deliveryUnit" class="form-control" maxlength="30" placeholder="Unit, e.g. #05-123" />
+            </div>
+            <div class="col-6">
+              <label class="visually-hidden" for="delivery-postal">Postal code</label>
+              <input id="delivery-postal" v-model.trim="deliveryPostalCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="Postal code" autocomplete="postal-code" />
+            </div>
+          </div>
+        </fieldset>
 
         <div class="mb-3">
           <label class="form-label">What are you interested in?</label>

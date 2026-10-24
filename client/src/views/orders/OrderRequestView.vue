@@ -14,6 +14,15 @@ const quantity = ref(1)
 const customisation = ref('')
 const fulfilment = ref('pickup')
 const requestedTime = ref('')
+const deliveryAddress = ref('')
+const deliveryUnit = ref('')
+const deliveryPostalCode = ref('')
+const saveAddress = ref(false)
+const savedAddress = ref(null) // the buyer's default address from their profile
+const addressChanged = computed(() => !savedAddress.value
+  || deliveryAddress.value !== savedAddress.value.deliveryAddress
+  || deliveryUnit.value !== savedAddress.value.deliveryUnit
+  || deliveryPostalCode.value !== savedAddress.value.deliveryPostalCode)
 const error = ref('')
 const loading = ref(true)
 const loadError = ref('')
@@ -53,6 +62,25 @@ async function loadProduct() {
   }
 }
 
+// Fills the delivery fields with the buyer's saved address, if they have one.
+async function loadSavedAddress() {
+  try {
+    const response = await axios.get(`${API_URL}/users/${currentUser.value._id}`)
+    const user = response.data
+    savedAddress.value = {
+      deliveryAddress: user.deliveryAddress || '',
+      deliveryUnit: user.deliveryUnit || '',
+      deliveryPostalCode: user.deliveryPostalCode || '',
+    }
+    deliveryAddress.value = savedAddress.value.deliveryAddress
+    deliveryUnit.value = savedAddress.value.deliveryUnit
+    deliveryPostalCode.value = savedAddress.value.deliveryPostalCode
+    saveAddress.value = !savedAddress.value.deliveryAddress // no address yet: offer to keep this one
+  } catch (err) {
+    console.log(err.message) // the buyer can still type the address
+  }
+}
+
 // Checks the login before loading the product.
 onMounted(() => {
   if (!currentUser.value) {
@@ -60,6 +88,7 @@ onMounted(() => {
     return
   }
   loadProduct()
+  loadSavedAddress()
 })
 
 // Uses the server's error message, or a general message if none is available.
@@ -93,6 +122,10 @@ function validateForm() {
   if (!Number.isInteger(quantity.value) || quantity.value < 1) return 'Quantity must be a whole number, 1 or more.' // Quantity must be a positive whole number.
   if (!requestedTime.value) return 'Please choose a pickup time.' // An order needs a time.
   if (fulfilment.value !== 'pickup' && fulfilment.value !== 'delivery') return 'Choose pickup or delivery.' // Use one of the two fulfilment options.
+  if (fulfilment.value === 'delivery') {
+    if (!deliveryAddress.value) return 'Please enter the delivery address.' // Delivery needs somewhere to go.
+    if (!/^\d{6}$/.test(deliveryPostalCode.value)) return 'Postal code must be 6 digits.' // Singapore postal codes are 6 digits.
+  }
   return ''
 }
 
@@ -114,6 +147,10 @@ async function submitOrder() {
       customisation: customisation.value,
       fulfilment: fulfilment.value,
       requestedTime: requestedTime.value,
+      deliveryAddress: deliveryAddress.value,
+      deliveryUnit: deliveryUnit.value,
+      deliveryPostalCode: deliveryPostalCode.value,
+      saveAddress: fulfilment.value === 'delivery' && addressChanged.value && saveAddress.value,
     })
     sent.value = true
     submitting.value = false
@@ -192,6 +229,31 @@ async function submitOrder() {
           </div>
         </div>
 
+        <fieldset v-if="fulfilment === 'delivery'" class="mb-3 delivery-box" data-testid="order-delivery-address">
+          <legend class="form-label fs-6 mb-1">Deliver to</legend>
+          <p v-if="savedAddress && savedAddress.deliveryAddress && !addressChanged" class="form-text mt-0 mb-2">
+            From your profile. Change it here for this order only.
+          </p>
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="visually-hidden" for="order-address">Street address</label>
+              <input id="order-address" v-model.trim="deliveryAddress" class="form-control" maxlength="200" placeholder="Block and street, e.g. 123 Bishan Street 12" autocomplete="street-address" data-testid="order-address" />
+            </div>
+            <div class="col-6">
+              <label class="visually-hidden" for="order-unit">Unit number</label>
+              <input id="order-unit" v-model.trim="deliveryUnit" class="form-control" maxlength="30" placeholder="Unit, e.g. #05-123" data-testid="order-unit" />
+            </div>
+            <div class="col-6">
+              <label class="visually-hidden" for="order-postal">Postal code</label>
+              <input id="order-postal" v-model.trim="deliveryPostalCode" class="form-control" inputmode="numeric" maxlength="6" placeholder="Postal code" autocomplete="postal-code" data-testid="order-postal" />
+            </div>
+          </div>
+          <div v-if="addressChanged" class="form-check mt-2">
+            <input id="save-address" v-model="saveAddress" class="form-check-input" type="checkbox" data-testid="order-save-address" />
+            <label class="form-check-label small" for="save-address">Save as my default address</label>
+          </div>
+        </fieldset>
+
         <p class="fw-bold" data-testid="order-total">Total: {{ formatPrice(total) }}</p>
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-brand" :disabled="submitting" @click="submitOrder" data-testid="order-submit">
@@ -205,3 +267,12 @@ async function submitOrder() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.delivery-box {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-hover);
+}
+</style>
