@@ -159,12 +159,13 @@ const breakdown = computed(() => {
   return groups
 })
 
-// Returns the first accepted order whose requested time has not passed.
-const nextPickup = computed(() => {
-  for (let i = 0; i < upcoming.value.length; i++) {
-    if (!isOverdue(upcoming.value[i])) return upcoming.value[i] // The server already sorts soonest first.
+// Returns up to five accepted orders whose pickup time has not passed, soonest first.
+const nextPickups = computed(() => {
+  const list = []
+  for (let i = 0; i < upcoming.value.length && list.length < 5; i++) { // Stop once five are found.
+    if (!isOverdue(upcoming.value[i])) list.push(upcoming.value[i]) // The server already sorts soonest first.
   }
-  return null
+  return list
 })
 
 // Returns the first product photo or the placeholder when it is unavailable.
@@ -407,11 +408,10 @@ onMounted(() => {
           <div class="col-12 col-md-6 col-xl-4">
             <div class="card" data-testid="next-pickup">
               <div class="card-body p-3">
-                <h6>Next pickup</h6>
-                <template v-if="nextPickup">
-                  <p class="mb-1 fw-bold text-break">{{ nextPickup.product ? nextPickup.product.name : 'Product removed' }}</p>
-                  <p class="mb-0 small text-body-secondary text-break">{{ nextPickup.buyer ? nextPickup.buyer.name : 'Buyer removed' }} &middot; {{ formatDateTime(nextPickup.requestedTime) }}</p>
-                </template>
+                <h6>Next pickups</h6>
+                <ul v-if="nextPickups.length > 0" class="list-unstyled mb-0">
+                  <li v-for="p in nextPickups" :key="p._id" class="mb-1 text-break" data-testid="next-pickup-item"><span class="fw-bold">{{ p.product ? p.product.name : 'Product removed' }}</span> <span class="small">&middot; {{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ formatDateTime(p.requestedTime) }}</span></li>
+                </ul>
                 <p v-else class="mb-0">No upcoming pickups.</p>
               </div>
             </div>
