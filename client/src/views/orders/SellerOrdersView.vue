@@ -310,9 +310,14 @@ async function proposeTime(order) {
   await updateStatus(order, 'rescheduled')
 }
 
+// Sends logged-out users to login and buyers to their own orders before loading.
 onMounted(() => {
-  if (!currentUser.value || currentUser.value.role !== 'seller') {
+  if (!currentUser.value) {
     router.push('/login')
+    return
+  }
+  if (currentUser.value.role !== 'seller') { // Buyers see their own orders page instead.
+    router.push('/orders')
     return
   }
   loadOrders()
