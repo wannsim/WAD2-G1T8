@@ -205,6 +205,21 @@ function isOverdue(order) {
   return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // Only accepted orders can be overdue.
 }
 
+// Checks whether the time this order would be accepted for has already passed.
+function timePassed(order) {
+  let time = order.requestedTime
+  if (order.status === 'rescheduled') time = order.proposedTime // A new time waits for the buyer.
+  return new Date(time).getTime() < new Date().getTime()
+}
+
+// Picks the one-line status explanation, including times that have passed.
+function sellerHelp(order) {
+  if (isOverdue(order)) return 'The pickup time has passed. Mark it completed or message the buyer.'
+  if (order.status === 'pending' && timePassed(order)) return 'The pickup time has passed. Propose a new time or decline.'
+  if (order.status === 'rescheduled' && timePassed(order)) return 'Your new time has passed. Message the buyer.'
+  return STATUS_HELP_SELLER[order.status]
+}
+
 // Loads the seller's shop and then its orders in the order returned by the server.
 async function loadOrders() {
   try {
@@ -441,7 +456,7 @@ onMounted(() => {
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                     <div class="mt-auto pt-2">
                       <div v-if="confirmId === o._id && confirmStatus === 'declined'">
                         <p class="mb-1">Decline this order?</p>
@@ -452,7 +467,7 @@ onMounted(() => {
                       </div>
                       <template v-else>
                         <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
+                          <button class="btn btn-sm btn-success" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
                           <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
                           <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
                           <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
@@ -495,7 +510,7 @@ onMounted(() => {
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                     <p class="mb-1">Proposed time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></p>
                     <div class="mt-auto pt-2">
                     <div v-if="o.buyer" class="d-flex flex-wrap gap-2">
@@ -533,7 +548,7 @@ onMounted(() => {
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                     <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                     <div class="mt-auto pt-2">
                       <div v-if="confirmId === o._id && (confirmStatus === 'completed' || confirmStatus === 'cancelled')">
                         <p class="mb-1">{{ confirmStatus === 'completed' ? 'Mark this order as completed?' : 'Cancel this order?' }}</p>
@@ -599,7 +614,7 @@ onMounted(() => {
                       <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                       <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                       <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                      <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
+                      <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                       <div class="mt-auto pt-2">
                       <div v-if="o.buyer" class="d-flex flex-wrap gap-2">
                         <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>

@@ -131,6 +131,20 @@ function isOverdue(order) {
   return order.status === 'accepted' && new Date(order.requestedTime).getTime() < new Date().getTime() // Only accepted orders with a past time are overdue.
 }
 
+// Checks whether the time this order would be accepted for has already passed.
+function timePassed(order) {
+  let time = order.requestedTime
+  if (order.status === 'rescheduled') time = order.proposedTime // A new time waits for the buyer.
+  return new Date(time).getTime() < new Date().getTime()
+}
+
+// Picks the one-line status explanation, including times that have passed.
+function buyerHelp(order) {
+  if (isOverdue(order)) return 'The pickup time has passed. Message the seller if you still need it.'
+  if (order.status === 'rescheduled' && timePassed(order)) return 'This new time has passed. Message the seller for another time.'
+  return STATUS_HELP[order.status]
+}
+
 // Uses the server's error message, or a general message if none is available.
 function getErrorMessage(err) {
   if (err.response && err.response.data && err.response.data.message) {
@@ -299,7 +313,7 @@ onMounted(() => {
                 <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                 <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                 <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Message the seller if you still need it.' : STATUS_HELP[o.status] }}</p>
+                <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ buyerHelp(o) }}</p>
 
                 <div v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-2" data-testid="order-delivery-details">
                   <p class="small text-body-secondary mb-1">Deliver to</p>
@@ -330,7 +344,7 @@ onMounted(() => {
                     </div>
                   </template>
                   <div v-else class="d-flex flex-wrap gap-2">
-                    <button v-if="o.status === 'rescheduled'" class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
+                    <button v-if="o.status === 'rescheduled'" class="btn btn-sm btn-success" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
                     <button v-if="canCancel(o)" class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
                     <template v-if="o.status === 'completed'">
                       <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-success" data-testid="order-review-link">Leave a review</RouterLink>
