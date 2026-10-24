@@ -254,6 +254,7 @@ function toggleProposal(order) {
     proposeOpenId.value = ''
   } else {
     proposeOpenId.value = order._id
+    proposals.value[order._id] = '' // A reopened box starts empty.
     clearConfirm()
   }
 }
