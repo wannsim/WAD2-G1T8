@@ -539,7 +539,7 @@ onMounted(() => {
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                       <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                       <div class="d-flex flex-wrap gap-2 align-self-start">
-                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
+                        <span v-if="!isOverdue(o)" class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
                         <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
                       </div>
                     </div>
