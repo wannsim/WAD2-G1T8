@@ -436,7 +436,7 @@ onMounted(() => {
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <div class="mt-auto pt-2">
-                      <div v-if="confirmId === o._id">
+                      <div v-if="confirmId === o._id && confirmStatus === 'declined'">
                         <p class="mb-1">Decline this order?</p>
                         <div class="d-flex flex-wrap gap-2">
                           <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
@@ -525,7 +525,7 @@ onMounted(() => {
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <div class="mt-auto pt-2">
-                      <div v-if="confirmId === o._id">
+                      <div v-if="confirmId === o._id && (confirmStatus === 'completed' || confirmStatus === 'cancelled')">
                         <p class="mb-1">{{ confirmStatus === 'completed' ? 'Mark this order as completed?' : 'Cancel this order?' }}</p>
                         <div class="d-flex flex-wrap gap-2">
                           <button class="btn btn-sm" :class="confirmStatus === 'completed' ? 'btn-success' : 'btn-danger'" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">{{ confirmStatus === 'completed' ? 'Yes, completed' : 'Yes, cancel' }}</button>

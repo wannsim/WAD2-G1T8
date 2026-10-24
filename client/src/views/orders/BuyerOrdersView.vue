@@ -185,6 +185,11 @@ function askConfirm(order) {
   confirmId.value = order._id
 }
 
+// Checks whether the buyer may still cancel this order.
+function canCancel(order) {
+  return order.status === 'pending' || order.status === 'rescheduled' || order.status === 'accepted'
+}
+
 // Closes the cancellation confirmation without changing an order.
 function clearConfirm() {
   confirmId.value = ''
@@ -311,7 +316,7 @@ onMounted(() => {
 
                 <!-- action buttons and the price close each card -->
                 <div class="mt-auto pt-2">
-                  <template v-if="confirmId === o._id">
+                  <template v-if="confirmId === o._id && canCancel(o)">
                     <p class="mb-1">Cancel this order?</p>
                     <div class="d-flex flex-wrap gap-2">
                       <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="updateStatus(o, 'cancelled')" data-testid="order-confirm-yes">Yes, cancel</button>
@@ -320,7 +325,7 @@ onMounted(() => {
                   </template>
                   <div v-else class="d-flex flex-wrap gap-2">
                     <button v-if="o.status === 'rescheduled'" class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
-                    <button v-if="o.status === 'pending' || o.status === 'rescheduled' || o.status === 'accepted'" class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
+                    <button v-if="canCancel(o)" class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel</button>
                     <template v-if="o.status === 'completed'">
                       <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-sm btn-success" data-testid="order-review-link">Leave a review</RouterLink>
                       <span v-else class="badge bg-light text-dark border" data-testid="order-reviewed">Reviewed</span>
