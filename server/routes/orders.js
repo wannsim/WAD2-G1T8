@@ -4,6 +4,7 @@ import Product from '../models/Product.js'
 import Shop from '../models/Shop.js'
 import Interaction from '../models/Interaction.js'
 import Review from '../models/Review.js'
+import User from '../models/User.js'
 import { updateShopStats } from '../utils/trust.js'
 import { notify } from '../utils/notify.js'
 import { formatDateTime } from '../utils/format.js'
@@ -86,6 +87,11 @@ function checkNewOrder(body, product, shop) {
   if (body.fulfilment !== 'pickup' && body.fulfilment !== 'delivery') return 'Choose pickup or delivery.' // Keep both fulfilment options.
   if (body.fulfilment === 'pickup' && shop.pickup === false) return 'This shop does not offer that option.' // Pickup must be offered by the shop.
   if (body.fulfilment === 'delivery' && shop.delivery === false) return 'This shop does not offer that option.' // Delivery must be offered by the shop.
+  if (body.fulfilment === 'delivery') {
+    if (!String(body.deliveryAddress || '').trim()) return 'Please enter the delivery address.' // Delivery needs somewhere to go.
+    if (!/^\d{6}$/.test(String(body.deliveryPostalCode || '').trim())) return 'Postal code must be 6 digits.' // Singapore postal codes are 6 digits.
+    if (String(body.deliveryAddress).length > 200 || String(body.deliveryUnit || '').length > 30) return 'The address is too long.'
+  }
   if (body.customisation && body.customisation.length > 200) return 'Keep your note under 200 characters.' // Limit the buyer's customisation note.
   if (!body.requestedTime) return 'Please choose a pickup time.' // An order needs a time.
   const slot = findSlot(product, body.requestedTime)
@@ -117,6 +123,9 @@ function safeOrderForBuyer(order, reviewedIds) {
     quantity: order.quantity,
     customisation: order.customisation,
     fulfilment: order.fulfilment,
+    deliveryAddress: order.deliveryAddress || '',
+    deliveryUnit: order.deliveryUnit || '',
+    deliveryPostalCode: order.deliveryPostalCode || '',
     requestedTime: order.requestedTime,
     proposedTime: order.proposedTime,
     totalPrice: order.totalPrice,
@@ -145,7 +154,7 @@ function safeOrderForBuyer(order, reviewedIds) {
 // Creates an order after checking its fields and slot capacity. Repeat orders are allowed.
 router.post('/', async (req, res) => {
   try {
-    const { buyer, product, quantity, customisation, fulfilment, requestedTime } = req.body
+    const { buyer, product, quantity, customisation, fulfilment, requestedTime, saveAddress } = req.body
     if (!product) return res.status(400).json({ message: 'No product chosen.' }) // An order needs a product.
     const p = await Product.findById(product)
     if (!p) return res.status(404).json({ message: 'Product not found' })
@@ -165,6 +174,14 @@ router.post('/', async (req, res) => {
     let customisationNote = customisation
     if (p.customisable === false) customisationNote = '' // Non-customisable products get no note.
 
+    // pickup orders keep no address; delivery orders keep their own copy
+    const delivery = { deliveryAddress: '', deliveryUnit: '', deliveryPostalCode: '' }
+    if (fulfilment === 'delivery') {
+      delivery.deliveryAddress = String(req.body.deliveryAddress).trim()
+      delivery.deliveryUnit = String(req.body.deliveryUnit || '').trim()
+      delivery.deliveryPostalCode = String(req.body.deliveryPostalCode).trim()
+    }
+
     const order = await Order.create({
       buyer,
       product,
@@ -172,9 +189,11 @@ router.post('/', async (req, res) => {
       quantity,
       customisation: customisationNote,
       fulfilment,
+      ...delivery,
       requestedTime,
       totalPrice: p.price * quantity,
     })
+    if (fulfilment === 'delivery' && saveAddress) await User.updateOne({ _id: buyer }, delivery) // "Save as my default address"
     await Interaction.create({ user: buyer, product, shop: p.shop, type: 'order' }) // feeds the FYP
     await notify(req, shop.owner, {
       type: 'new-order',

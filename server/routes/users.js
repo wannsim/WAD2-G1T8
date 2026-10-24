@@ -9,8 +9,13 @@ const router = express.Router()
 
 // never send the password hash back to the client
 function safeUser(u) {
-  return { _id: u._id, name: u.name, email: u.email, role: u.role, preferences: u.preferences, preferredMrt: u.preferredMrt || '' }
+  return {
+    _id: u._id, name: u.name, email: u.email, role: u.role, preferences: u.preferences, preferredMrt: u.preferredMrt || '',
+    deliveryAddress: u.deliveryAddress || '', deliveryUnit: u.deliveryUnit || '', deliveryPostalCode: u.deliveryPostalCode || '',
+  }
 }
+
+const POSTAL_CODE = /^\d{6}$/ // Singapore postal codes are 6 digits
 
 router.post('/register', async (req, res) => {
   try {
@@ -78,12 +83,18 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { name, preferences, preferredMrt } = req.body
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { name, preferences, preferredMrt: String(preferredMrt || '').trim() },
-      { new: true, runValidators: true }
-    )
+    const { name, preferences, preferredMrt, deliveryAddress, deliveryUnit, deliveryPostalCode } = req.body
+    const changes = { name, preferences, preferredMrt: String(preferredMrt || '').trim() }
+    // the address is optional, and only changed when the page sends it
+    if (deliveryAddress !== undefined) changes.deliveryAddress = String(deliveryAddress || '').trim()
+    if (deliveryUnit !== undefined) changes.deliveryUnit = String(deliveryUnit || '').trim()
+    if (deliveryPostalCode !== undefined) {
+      changes.deliveryPostalCode = String(deliveryPostalCode || '').trim()
+      if (changes.deliveryPostalCode && !POSTAL_CODE.test(changes.deliveryPostalCode)) {
+        return res.status(400).json({ message: 'Postal code must be 6 digits.' })
+      }
+    }
+    const user = await User.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true })
     if (!user) return res.status(404).json({ message: 'User not found' })
     res.json(safeUser(user))
   } catch (err) {

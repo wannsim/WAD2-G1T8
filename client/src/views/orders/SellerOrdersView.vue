@@ -93,7 +93,7 @@ const search = ref('')
 function matchesSearch(order) {
   const q = search.value.trim().toLowerCase()
   if (!q) return true
-  return [order.product?.name, order.buyer?.name, order.customisation, order.status, order.fulfilment]
+  return [order.product?.name, order.buyer?.name, order.customisation, order.status, order.fulfilment, order.deliveryAddress, order.deliveryPostalCode]
     .some((text) => (text || '').toLowerCase().includes(q))
 }
 const shown = computed(() => ({
@@ -433,6 +433,7 @@ onMounted(() => {
                     <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
+                    <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <div class="mt-auto pt-2">
@@ -485,6 +486,7 @@ onMounted(() => {
                     <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
+                    <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <p class="mb-1">Proposed time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></p>
@@ -522,6 +524,7 @@ onMounted(() => {
                     <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                     <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                     <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
+                    <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                     <div class="mt-auto pt-2">
@@ -586,6 +589,7 @@ onMounted(() => {
                       <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
                       <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
                       <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
+                      <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                       <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                       <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Mark it completed or message the buyer.' : STATUS_HELP_SELLER[o.status] }}</p>
                       <div class="mt-auto pt-2">

@@ -301,6 +301,12 @@ onMounted(() => {
                 <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                 <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ isOverdue(o) ? 'The pickup time has passed. Message the seller if you still need it.' : STATUS_HELP[o.status] }}</p>
 
+                <div v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-2" data-testid="order-delivery-details">
+                  <p class="small text-body-secondary mb-1">Deliver to</p>
+                  <p class="mb-1 text-break">{{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}</p>
+                  <p class="mb-1">Singapore {{ o.deliveryPostalCode }}</p>
+                </div>
+
                 <!-- The server enforces privacy; this check only decides what to display. -->
                 <div v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="mb-2" data-testid="order-pickup-details">
                   <p class="small text-body-secondary mb-1">Pickup at</p>

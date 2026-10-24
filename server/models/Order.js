@@ -9,6 +9,10 @@ const orderSchema = new mongoose.Schema(
     quantity: { type: Number, min: 1, default: 1 },
     customisation: { type: String, default: '' },
     fulfilment: { type: String, enum: ['pickup', 'delivery'], default: 'pickup' },
+    // copy of where to deliver, saved at order time (changing the profile later does not move old orders)
+    deliveryAddress: { type: String, default: '' },
+    deliveryUnit: { type: String, default: '' },
+    deliveryPostalCode: { type: String, default: '' },
     requestedTime: Date,  // time the buyer asked for
     proposedTime: Date,   // seller's counter-proposal
     totalPrice: Number,   // price x quantity, saved at order time
