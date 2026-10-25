@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { formatPrice } from '@/utils/format'
 import FavouriteButton from './FavouriteButton.vue'
 
 // Shared card used by Browse, FYP, Favourites, Shop pages.
-//   <ProductCard :product="p" />
+//   <ProductCard :product="p" />      <- click anywhere on the card to open the product
 //   <ProductCard :product="p" :reason="'Matches your interests'">   <- optional "Why recommended?"
 //   <ProductCard :product="p" favourite />   <- ♥ save button on the photo
 //   <ProductCard :product="p" @open="..." />   <- fires when the buyer clicks through to the product page
@@ -16,7 +17,14 @@ const props = defineProps({
   favourite: Boolean,
 })
 // 'open' = the buyer clicked through to the product page (FYP logs this as a "click")
-defineEmits(['open'])
+const emit = defineEmits(['open'])
+const router = useRouter()
+
+// the "Why recommended?" hint sits above the card link (so its tooltip works), so it opens the product itself
+function openProduct() {
+  emit('open')
+  router.push(`/products/${props.product._id}`)
+}
 
 // product.shop is an object when the server populated it, otherwise just an id
 const shopName = computed(() => props.product.shop?.name || '')
@@ -73,7 +81,8 @@ function useFallbackImage(event) {
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
       </div>
       <div class="card-body d-flex flex-column">
-        <RouterLink :to="`/products/${product._id}`" class="card-title fw-bold clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
+        <!-- card-link stretches over the whole card: clicking anywhere opens the product -->
+        <RouterLink :to="`/products/${product._id}`" class="card-title card-link fw-bold clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
         <p v-if="shopName" class="text-muted small mb-1 clamp-1">
           {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
         </p>
@@ -84,7 +93,7 @@ function useFallbackImage(event) {
 
         <!-- grey hint; the reason shows in a tooltip on hover (or keyboard focus) -->
         <div v-if="reason" class="reason mb-2">
-          <span class="reason-hint" tabindex="0" :aria-label="`Why recommended: ${reason}`">
+          <span class="reason-hint" tabindex="0" :aria-label="`Why recommended: ${reason}`" @click="openProduct">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
               <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
@@ -94,14 +103,9 @@ function useFallbackImage(event) {
           <span class="reason-tip" role="tooltip">{{ reason }}</span>
         </div>
 
-        <div class="mt-auto">
-          <RouterLink :to="`/products/${product._id}`" class="btn btn-brand btn-sm w-100 mb-2" @click="$emit('open')">
-            View full details
-          </RouterLink>
-          <!-- extra buttons from the page using the card (e.g. ♥ save, Remove, Edit) -->
-          <div class="d-flex justify-content-between align-items-center gap-2">
-            <slot></slot>
-          </div>
+        <!-- extra buttons from the page using the card (e.g. Remove, Edit) - these stay clickable on their own -->
+        <div v-if="$slots.default" class="mt-auto card-actions d-flex justify-content-between align-items-center gap-2">
+          <slot></slot>
         </div>
       </div>
     </div>
@@ -114,10 +118,44 @@ function useFallbackImage(event) {
   position: relative;
   overflow: hidden;
   min-width: 0;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+/* the whole card reacts like a button */
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(var(--navy-rgb), 0.14) !important;
+}
+.product-card:has(.card-link:focus-visible) {
+  outline: 3px solid rgba(var(--ocean-rgb), 0.45);
+  outline-offset: 2px;
+}
+/* the product name link covers the whole card (like Bootstrap's .stretched-link) */
+.card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.card-link:focus-visible {
+  outline: none;
+}
+/* things with their own job sit above the card link */
+.carousel-arrow,
+.carousel-dots {
+  z-index: 2; /* already positioned (absolute) */
+}
+.reason-hint,
+.card-actions {
+  position: relative;
+  z-index: 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-card, .product-card:hover { transition: none; transform: none; }
 }
 
-/* body stretches to fill the card, so "View full details" (mt-auto) sits at the bottom
-   and lines up across a row */
+/* body stretches to fill the card, so extra buttons (mt-auto) sit at the bottom
+   and line up across a row */
 .card-summary {
   height: 100%;
   display: flex;
@@ -194,7 +232,7 @@ function useFallbackImage(event) {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 1;
+  z-index: 2; /* above the card link */
 }
 
 .reason {

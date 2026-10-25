@@ -6,9 +6,11 @@ import { currentUser } from '@/utils/auth'
 
 // Follow / Unfollow button for a shop. Used on the product page and the shop page.
 //   <FollowButton :shop="shop" />    shop needs _id, owner, followers
+//   <FollowButton :shop="shop" small />   compact version for small cards
 const props = defineProps({
   shop: Object,
   followerCountTF: Boolean,
+  small: Boolean,
 })
 
 const following = ref(false)
@@ -50,16 +52,25 @@ async function toggleFollow() {
       <button
         v-if="currentUser"
         type="button"
-        class="btn btn-sm"
-        :class="following ? 'btn-secondary' : 'btn-outline-secondary'"
+        class="btn follow-btn"
+        :class="[following ? 'btn-secondary' : 'btn-outline-secondary', small ? 'btn-sm' : 'big']"
         :disabled="busy"
         @click="toggleFollow"
       >
         {{ following ? '✓ Following' : '+ Follow' }}
       </button>
-      <RouterLink v-else to="/login" class="btn btn-sm btn-outline-secondary">+ Follow</RouterLink>
+      <RouterLink v-else to="/login" class="btn follow-btn btn-outline-secondary" :class="small ? 'btn-sm' : 'big'">+ Follow</RouterLink>
     </template>
     <span v-if="followerCountTF" class="small text-muted">{{ followerCount }} {{ followerCount === 1 ? 'follower' : 'followers' }}</span>
     <span v-if="error" class="small text-danger">{{ error }}</span>
   </span>
 </template>
+
+<style scoped>
+.follow-btn.big {
+  min-width: 140px;
+  padding: 0.55rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+</style>

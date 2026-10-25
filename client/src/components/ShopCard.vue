@@ -24,7 +24,7 @@ const reviewCount = computed(() => props.shop.stats.reviewCount)
                 <RouterLink :to="`/shops/${shop._id}`" class="card-title fw-bold">
                     <h5 class="mb-1 mt-1">{{ shopName }}</h5>
                 </RouterLink>
-                <FollowButton class="btn-sm" :shop="shop" :followerCountTF="false" />
+                <FollowButton small :shop="shop" :followerCountTF="false" />
             </div>
             <div class="small">
                 <!-- star rating -->
