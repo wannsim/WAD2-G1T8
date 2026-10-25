@@ -5,6 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { saveUser } from '@/utils/auth'
 import '@/assets/auth.css'
+import MovingBackdrop from '@/components/MovingBackdrop.vue'
  
 // Owner: Wan Sim
 const router = useRouter()
@@ -76,8 +77,9 @@ onMounted(() => {
 </script>
  
 <template>
-  <div class="auth-stage">
-    <div class="auth-card">
+  <div class="auth-stage immersive">
+    <MovingBackdrop />
+    <div class="auth-card glass">
       <h2 class="auth-title text-center">Welcome back</h2>
       <p class="text-center text-muted mb-4">Please enter your details</p>
  

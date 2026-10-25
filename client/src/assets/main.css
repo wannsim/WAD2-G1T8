@@ -32,7 +32,7 @@
   --shadow: 0 6px 20px rgba(24, 32, 74, 0.08);
 
   /* ---- Bootstrap uses our palette everywhere (alerts, badges, text-*, bg-*, links...) ---- */
-  --bs-body-font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bs-body-font-family: Georgia, 'Times New Roman', Times, serif; /* the whole site uses Georgia */
   --bs-body-color: var(--ink);
   --bs-body-color-rgb: var(--navy-rgb);
   --bs-secondary-color: var(--muted);
@@ -97,6 +97,10 @@ body::before {
 }
 h1, h2, h3, h4, h5, h6 {
   color: var(--navy);
+  font-family: var(--bs-body-font-family);
+}
+button, input, select, textarea {
+  font-family: inherit; /* form controls use Georgia too */
 }
 
 /* ---- buttons: pill shaped, palette colours ---- */
