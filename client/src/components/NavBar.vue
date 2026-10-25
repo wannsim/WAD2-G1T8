@@ -56,13 +56,13 @@ onUnmounted(() => {
         <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
           <defs>
             <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#3ba7b6" />
-              <stop offset="1" stop-color="#a98bd6" />
+              <stop offset="0" stop-color="#2f63e0" />
+              <stop offset="1" stop-color="#36b3cc" />
             </linearGradient>
           </defs>
           <rect width="34" height="34" rx="10" fill="url(#logo-gradient)" />
           <path d="M8 16 17 8l9 8v10H8z" fill="#fff" />
-          <rect x="14" y="19" width="6" height="7" fill="#1f2a44" />
+          <rect x="14" y="19" width="6" height="7" fill="#18204a" />
         </svg>
         <span>Homly Hauls</span>
       </RouterLink>

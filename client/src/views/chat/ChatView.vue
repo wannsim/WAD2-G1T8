@@ -385,15 +385,15 @@ onUnmounted(() => {
 .hit {
   padding: 0 1px;
   border-radius: 3px;
-  background: #e6dcfa;
+  background: var(--ocean-soft);
   color: var(--ink);
 }
 /* the match the arrows are on */
 .current-match {
-  box-shadow: 0 0 0 3px var(--lavender);
+  box-shadow: 0 0 0 3px var(--aqua);
 }
 .current-match .hit {
-  background: var(--lavender);
+  background: var(--aqua);
 }
 .icon-btn {
   position: relative;
@@ -418,7 +418,7 @@ onUnmounted(() => {
   display: inline-block;
   padding: 0.2rem 0.8rem;
   border-radius: 1rem;
-  background: var(--lavender-soft);
+  background: var(--aqua-soft);
   color: var(--ink-soft);
   font-size: 0.8rem;
   font-weight: 600;

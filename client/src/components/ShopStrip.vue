@@ -82,8 +82,8 @@ const items = computed(() => [
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--teal), var(--lavender));
-  box-shadow: 0 4px 12px rgba(var(--lavender-rgb), 0.35);
+  background: linear-gradient(135deg, var(--ocean), var(--aqua));
+  box-shadow: 0 4px 12px rgba(var(--aqua-rgb), 0.35);
   font-size: 1.6rem;
   font-weight: 700;
   color: #fff;
@@ -113,7 +113,7 @@ const items = computed(() => [
 .stat dd {
   margin: 0;
   font-weight: 600;
-  color: var(--teal-dark);
+  color: var(--ocean-dark);
   text-align: right;
   white-space: nowrap;
 }

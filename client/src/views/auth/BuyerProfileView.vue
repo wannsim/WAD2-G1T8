@@ -172,14 +172,14 @@ async function save() {
   flex: 0 0 210px;
   min-height: 110px;
   padding: 1rem;
-  border: 1px solid #ece6dc;
+  border: 1px solid var(--line);
   border-radius: 1rem;
   background: #fff;
   color: inherit;
   text-decoration: none;
   scroll-snap-align: start;
 }
-.purchase-card:hover, .followed-shop:hover { border-color: var(--brand); background: #fcfaf7; }
+.purchase-card:hover, .followed-shop:hover { border-color: var(--brand); background: var(--surface-soft); }
 .followed-list { display: grid; gap: 0.5rem; }
 .followed-shop {
   display: flex;
@@ -187,7 +187,7 @@ async function save() {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #ece6dc;
+  border: 1px solid var(--line);
   border-radius: 0.8rem;
   color: inherit;
   text-decoration: none;

@@ -104,12 +104,12 @@ const initial = (review) => (review.buyer?.name || 'B').charAt(0).toUpperCase()
 <style scoped>
 .overview {
   padding: 1.25rem 1.5rem;
-  border: 1px solid #e3d9f6;
+  border: 1px solid var(--line);
   border-radius: 1rem;
-  background: var(--lavender-soft);
+  background: var(--aqua-soft);
 }
 .avg {
-  color: var(--lavender-dark);
+  color: var(--aqua-dark);
 }
 .avg-number {
   font-size: 2rem;
@@ -125,13 +125,13 @@ const initial = (review) => (review.buyer?.name || 'B').charAt(0).toUpperCase()
   color: var(--ink-soft);
 }
 .filter-chip:hover {
-  border-color: var(--lavender);
+  border-color: var(--aqua);
 }
 .filter-chip.active {
-  border-color: var(--lavender-dark);
+  border-color: var(--aqua-dark);
   background: #fff;
-  color: var(--lavender-dark);
-  box-shadow: inset 0 0 0 1px var(--lavender-dark);
+  color: var(--aqua-dark);
+  box-shadow: inset 0 0 0 1px var(--aqua-dark);
   font-weight: 600;
 }
 .review {

@@ -171,7 +171,7 @@ onBeforeUnmount(() => controller?.abort())
             <title id="sales-chart-title">Completed-order sales revenue</title>
             <desc id="sales-chart-desc">{{ analytics.grouping === 'daily' ? 'Daily' : 'Monthly' }} revenue from {{ displayDate(range.startDate) }} to {{ displayDate(range.endDate) }}. Total {{ formatSalesMoney(analytics.revenueCents) }}. Exact values are in the sales data table below.</desc>
             <g v-for="step in [0, 1, 2, 3, 4]" :key="step">
-              <line x1="90" x2="750" :y1="205 - step * 43.75" :y2="205 - step * 43.75" stroke="#e8e3db" />
+              <line x1="90" x2="750" :y1="205 - step * 43.75" :y2="205 - step * 43.75" stroke="#dfe6f3" />
               <text x="78" :y="209 - step * 43.75" text-anchor="end" class="chart-label">{{ formatSalesMoney(Math.round(chartMax * step / 4)) }}</text>
             </g>
             <polyline :points="chartLine" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linejoin="round" />

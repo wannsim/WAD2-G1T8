@@ -1,34 +1,35 @@
 /* Global styles shared by everyone. Keep it short.
    Component-specific CSS goes in that component's <style scoped>. */
 :root {
-  /* ---- colour palette (from the MyMatch inspiration) - use these, not raw hex codes ---- */
-  --navy: #1f2a44;          /* headings, active tabs / toggles */
-  --navy-rgb: 31, 42, 68;
-  --teal: #3ba7b6;          /* main buttons, success */
-  --teal-dark: #2c8a98;
-  --teal-rgb: 59, 167, 182;
-  --lavender: #a98bd6;      /* accents, selected chips, info */
-  --lavender-dark: #8a6cc0;
-  --lavender-soft: #efe9fb;
-  --lavender-rgb: 169, 139, 214;
+  /* ---- colour palette: "Ocean" (deep navy -> ocean blue -> aqua) - use these, not raw hex codes ---- */
+  --navy: #18204a;          /* headings, active tabs / toggles (deep ocean) */
+  --navy-rgb: 24, 32, 74;
+  --ocean: #2f63e0;         /* main buttons, links */
+  --ocean-dark: #234bb8;
+  --ocean-soft: #e6eefc;
+  --ocean-rgb: 47, 99, 224;
+  --aqua: #36b3cc;          /* accents, selected chips, success, info */
+  --aqua-dark: #23899f;
+  --aqua-soft: #e2f5f9;
+  --aqua-rgb: 54, 179, 204;
   --rose: #e0607e;          /* errors, remove / decline */
   --rose-rgb: 224, 96, 126;
   --amber: #f0b54a;         /* warnings, pending */
   --amber-rgb: 240, 181, 74;
 
-  --brand: var(--teal);     /* kept so older components keep working */
-  --brand-dark: var(--teal-dark);
-  --brand-rgb: var(--teal-rgb);
+  --brand: var(--ocean);    /* kept so older components keep working */
+  --brand-dark: var(--ocean-dark);
+  --brand-rgb: var(--ocean-rgb);
 
-  --ink: #1f2a44;           /* main text */
-  --ink-soft: #4a5068;
-  --muted: #7b7f95;         /* secondary text */
-  --line: #e7e4f0;          /* borders */
+  --ink: #18204a;           /* main text */
+  --ink-soft: #424d6e;
+  --muted: #6e7896;         /* secondary text */
+  --line: #dfe6f3;          /* borders */
   --surface: #ffffff;
-  --surface-soft: #faf9fd;  /* tinted boxes */
-  --surface-hover: #f2f0f9; /* hover on light buttons / rows */
-  --cream: #f7f5fb;         /* page background base */
-  --shadow: 0 6px 20px rgba(31, 42, 68, 0.07);
+  --surface-soft: #f7f9fe;  /* tinted boxes */
+  --surface-hover: #edf2fc; /* hover on light buttons / rows */
+  --cream: #f2f6fd;         /* page background base */
+  --shadow: 0 6px 20px rgba(24, 32, 74, 0.08);
 
   /* ---- Bootstrap uses our palette everywhere (alerts, badges, text-*, bg-*, links...) ---- */
   --bs-body-font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -36,29 +37,29 @@
   --bs-body-color-rgb: var(--navy-rgb);
   --bs-secondary-color: var(--muted);
   --bs-border-color: var(--line);
-  --bs-link-color: var(--teal-dark);
-  --bs-link-color-rgb: 44, 138, 152;
+  --bs-link-color: var(--ocean-dark);
+  --bs-link-color-rgb: 35, 75, 184;
   --bs-link-hover-color: var(--navy);
   --bs-link-hover-color-rgb: var(--navy-rgb);
   --bs-border-radius: 0.75rem;
   --bs-border-radius-sm: 0.6rem;
   --bs-border-radius-lg: 1rem;
 
-  --bs-primary: var(--teal);
-  --bs-primary-rgb: var(--teal-rgb);
-  --bs-primary-text-emphasis: #1e6b76;
-  --bs-primary-bg-subtle: #e3f4f6;
-  --bs-primary-border-subtle: #b9e1e7;
-  --bs-success: var(--teal);
-  --bs-success-rgb: var(--teal-rgb);
-  --bs-success-text-emphasis: #1e6b76;
-  --bs-success-bg-subtle: #e3f4f6;
-  --bs-success-border-subtle: #b9e1e7;
-  --bs-info: var(--lavender);
-  --bs-info-rgb: var(--lavender-rgb);
-  --bs-info-text-emphasis: #5b3f94;
-  --bs-info-bg-subtle: var(--lavender-soft);
-  --bs-info-border-subtle: #d9cdf2;
+  --bs-primary: var(--ocean);
+  --bs-primary-rgb: var(--ocean-rgb);
+  --bs-primary-text-emphasis: #1a3a8f;
+  --bs-primary-bg-subtle: var(--ocean-soft);
+  --bs-primary-border-subtle: #bcd0f6;
+  --bs-success: var(--ocean);
+  --bs-success-rgb: var(--ocean-rgb);
+  --bs-success-text-emphasis: #16677a;
+  --bs-success-bg-subtle: var(--aqua-soft);
+  --bs-success-border-subtle: #b3e3ec;
+  --bs-info: var(--aqua);
+  --bs-info-rgb: var(--aqua-rgb);
+  --bs-info-text-emphasis: #16677a;
+  --bs-info-bg-subtle: var(--aqua-soft);
+  --bs-info-border-subtle: #b3e3ec;
   --bs-warning: var(--amber);
   --bs-warning-rgb: var(--amber-rgb);
   --bs-warning-text-emphasis: #7a5410;
@@ -69,17 +70,17 @@
   --bs-danger-text-emphasis: #9b2f4a;
   --bs-danger-bg-subtle: #fce8ed;
   --bs-danger-border-subtle: #f4c2cf;
-  --bs-secondary: #8b90a7;
-  --bs-secondary-rgb: 139, 144, 167;
+  --bs-secondary: #8592b0;
+  --bs-secondary-rgb: 133, 146, 176;
   --bs-secondary-text-emphasis: var(--ink-soft);
   --bs-secondary-bg-subtle: var(--surface-hover);
   --bs-secondary-border-subtle: var(--line);
   --bs-dark: var(--navy);
   --bs-dark-rgb: var(--navy-rgb);
-  --bs-light-rgb: 250, 249, 253;
+  --bs-light-rgb: 247, 249, 254;
 }
 
-/* soft pastel background like the inspiration (pink -> lavender -> mint).
+/* soft ocean background (pale blue -> pale aqua).
    Drawn on a fixed layer behind the page, so it covers long pages and works on phones too
    (background-attachment: fixed is ignored by iPhone Safari). */
 body {
@@ -91,7 +92,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(135deg, #fdf3f4 0%, #f3effb 45%, #e8f5f6 100%);
+  background: linear-gradient(160deg, #e9f0ff 0%, #eef3fd 45%, #e1f4f8 100%);
   pointer-events: none;
 }
 h1, h2, h3, h4, h5, h6 {
@@ -110,33 +111,33 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary,
 .btn-success {
   --bs-btn-color: #fff;
-  --bs-btn-bg: var(--teal);
-  --bs-btn-border-color: var(--teal);
+  --bs-btn-bg: var(--ocean);
+  --bs-btn-border-color: var(--ocean);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: var(--teal-dark);
-  --bs-btn-hover-border-color: var(--teal-dark);
+  --bs-btn-hover-bg: var(--ocean-dark);
+  --bs-btn-hover-border-color: var(--ocean-dark);
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: var(--teal-dark);
-  --bs-btn-active-border-color: var(--teal-dark);
+  --bs-btn-active-bg: var(--ocean-dark);
+  --bs-btn-active-border-color: var(--ocean-dark);
   --bs-btn-disabled-color: #fff;
-  --bs-btn-disabled-bg: var(--teal);
-  --bs-btn-disabled-border-color: var(--teal);
-  --bs-btn-focus-shadow-rgb: var(--teal-rgb);
-  box-shadow: 0 4px 12px rgba(var(--teal-rgb), 0.25);
+  --bs-btn-disabled-bg: var(--ocean);
+  --bs-btn-disabled-border-color: var(--ocean);
+  --bs-btn-focus-shadow-rgb: var(--ocean-rgb);
+  box-shadow: 0 4px 12px rgba(var(--ocean-rgb), 0.25);
 }
 .btn-outline-primary,
 .btn-outline-success {
-  --bs-btn-color: var(--teal-dark);
-  --bs-btn-border-color: var(--teal);
+  --bs-btn-color: var(--ocean-dark);
+  --bs-btn-border-color: var(--ocean);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: var(--teal);
-  --bs-btn-hover-border-color: var(--teal);
+  --bs-btn-hover-bg: var(--ocean);
+  --bs-btn-hover-border-color: var(--ocean);
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: var(--teal-dark);
-  --bs-btn-active-border-color: var(--teal-dark);
-  --bs-btn-disabled-color: var(--teal);
-  --bs-btn-disabled-border-color: var(--teal);
-  --bs-btn-focus-shadow-rgb: var(--teal-rgb);
+  --bs-btn-active-bg: var(--ocean-dark);
+  --bs-btn-active-border-color: var(--ocean-dark);
+  --bs-btn-disabled-color: var(--ocean);
+  --bs-btn-disabled-border-color: var(--ocean);
+  --bs-btn-focus-shadow-rgb: var(--ocean-rgb);
 }
 .btn-secondary,
 .btn-dark {
@@ -144,11 +145,11 @@ h1, h2, h3, h4, h5, h6 {
   --bs-btn-bg: var(--navy);
   --bs-btn-border-color: var(--navy);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: #2c3a5c;
-  --bs-btn-hover-border-color: #2c3a5c;
+  --bs-btn-hover-bg: #263270;
+  --bs-btn-hover-border-color: #263270;
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: #2c3a5c;
-  --bs-btn-active-border-color: #2c3a5c;
+  --bs-btn-active-bg: #263270;
+  --bs-btn-active-border-color: #263270;
   --bs-btn-disabled-bg: var(--navy);
   --bs-btn-disabled-border-color: var(--navy);
   --bs-btn-focus-shadow-rgb: var(--navy-rgb);
@@ -160,7 +161,7 @@ h1, h2, h3, h4, h5, h6 {
   --bs-btn-border-color: var(--line);
   --bs-btn-hover-color: var(--navy);
   --bs-btn-hover-bg: var(--surface-hover);
-  --bs-btn-hover-border-color: #d6d1e6;
+  --bs-btn-hover-border-color: #c9d5ec;
   --bs-btn-active-color: #fff;
   --bs-btn-active-bg: var(--navy);
   --bs-btn-active-border-color: var(--navy);
@@ -219,11 +220,11 @@ h1, h2, h3, h4, h5, h6 {
   --bs-btn-disabled-border-color: #f3cf8a;
 }
 .btn-link {
-  --bs-btn-color: var(--teal-dark);
+  --bs-btn-color: var(--ocean-dark);
   --bs-btn-hover-color: var(--navy);
 }
 
-/* ---- forms: lavender focus ring, teal ticks ---- */
+/* ---- forms: ocean focus ring and ticks ---- */
 .form-control,
 .form-select {
   border-color: var(--line);
@@ -231,16 +232,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 .form-control:focus,
 .form-select:focus {
-  border-color: var(--lavender);
-  box-shadow: 0 0 0 0.2rem rgba(var(--lavender-rgb), 0.25);
+  border-color: var(--ocean);
+  box-shadow: 0 0 0 0.2rem rgba(var(--ocean-rgb), 0.2);
 }
 .form-check-input:checked {
-  background-color: var(--teal);
-  border-color: var(--teal);
+  background-color: var(--ocean);
+  border-color: var(--ocean);
 }
 .form-check-input:focus {
-  border-color: var(--lavender);
-  box-shadow: 0 0 0 0.2rem rgba(var(--lavender-rgb), 0.25);
+  border-color: var(--ocean);
+  box-shadow: 0 0 0 0.2rem rgba(var(--ocean-rgb), 0.2);
 }
 .input-group-text {
   border-color: var(--line);
@@ -249,7 +250,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 .progress {
   --bs-progress-bg: var(--surface-hover);
-  --bs-progress-bar-bg: var(--teal);
+  --bs-progress-bar-bg: var(--ocean);
   border-radius: 999px;
 }
 .alert {
@@ -274,7 +275,7 @@ a.card-title {
   text-decoration: none;
 }
 a.card-title:hover {
-  color: var(--teal-dark);
+  color: var(--ocean-dark);
 }
 
 /* product photos on cards: same shape everywhere, scales with the card width */
