@@ -174,8 +174,8 @@ Log in (password: password123) and open "For you" / "Trending". You should see:
     #3 Kueh Lapis         "${kuehPeople} people looked at this this week"
     NOT in the top 3: Pineapple Tarts (popular 2-3 weeks ago, not this week - far down the list)
                       Masala Dosa (one buyer clicked it 150 times - capped, so it stays below the top 3)
-    Some cards say '"Tea" is trending online (+x% this week)' - that part comes from Wikimedia
-    and changes day to day.
+    With YOUTUBE_API_KEY set, some cards may say '"Tea" is trending on YouTube (+x% this week)' -
+    that part comes from YouTube and changes day to day.
 
   FOR YOU tab
     sam.search@mock.test     Matcha Cupcakes near the top: "You searched for "matcha cupcakes""

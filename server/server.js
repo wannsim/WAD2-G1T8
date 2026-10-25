@@ -62,7 +62,7 @@ mongoose
   .then(() => {
     console.log('MongoDB connected')
     startRealtime(io) // live chat / notifications, even when each teammate runs their own server
-    startTrendRefresh() // online trends for the Trending tab (free Wikimedia API, no key)
+    startTrendRefresh() // online trends for the Trending tab (YouTube Data API, YOUTUBE_API_KEY in config.env)
     // NOTE: httpServer.listen (not app.listen) so Socket.IO works
     httpServer.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
   })

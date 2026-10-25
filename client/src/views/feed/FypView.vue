@@ -119,7 +119,7 @@ watch(tab, loadFeed)
     <p v-if="tab === 'following' && !currentUser" class="text-muted">Log in and follow shops to see them here.</p>
     <p v-if="tab === 'trending'" class="small text-muted trending-note">
       <span aria-hidden="true">🔥</span> Most popular on Homly Hauls this week (orders, saves and views), boosted by
-      what people are searching for online right now.
+      what people are watching on YouTube right now.
     </p>
 
     <p v-if="loading && items.length === 0" class="text-muted">Loading...</p>

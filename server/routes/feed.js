@@ -187,8 +187,9 @@ function topReason(reasons) {
 // A. ON OUR SITE (last 7 days): orders > saves > clicks > views, newer actions count more
 //    (half-life 3 days). One buyer can add at most 8 points to a product, so nobody can push
 //    their own favourite to the top by clicking it 100 times.
-// B. ONLINE: is this product's keyword (tag / name) getting more Wikipedia page views this week
-//    than last week? (utils/trends.js, free Wikimedia API). Only rising keywords add points.
+// B. ONLINE: are YouTube videos about this product's keyword (tag / name) uploaded this week getting
+//    more views than last week's? (utils/trends.js, YouTube Data API). Only rising keywords add points.
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 const TREND_WEIGHT = { view: 1, click: 2, save: 4, order: 6 }
 const MAX_POINTS_PER_BUYER = 8
 
@@ -226,18 +227,18 @@ async function loadTrending(products) {
       const s = trendMap.get(term)
       if (s && s.growth > 0.05 && (!online || s.growth > online.growth)) online = s
     })
-    // +5% -> 0.25 pts, +50% -> 2.5 pts, capped at +100% -> 5 pts. Big articles (lots of readers) count a bit more.
-    const onlinePoints = online ? Math.min(online.growth, 1) * 5 * (online.recentViews >= 1000 ? 1.2 : 1) : 0
+    // +5% -> 0.25 pts, +50% -> 2.5 pts, capped at +100% -> 5 pts. Keywords with lots of views count a bit more.
+    const onlinePoints = online ? Math.min(online.growth, 1) * 5 * (online.recentViews >= 50000 ? 1.2 : 1) : 0
 
     const c = counts.get(pid)
     let reason = ''
     if (c && c.order >= 2) reason = `Ordered ${c.order} times this week`
     else if (c && c.save >= 2) reason = `Saved by ${c.save} buyers this week`
     else if (c && c.buyers.size >= 2) reason = `${c.buyers.size} people looked at this this week`
-    if (onlinePoints > onSite && online) reason = `"${online.article}" is trending online (+${Math.round(online.growth * 100)}% this week)`
+    if (onlinePoints > onSite && online) reason = `"${capitalize(online.term)}" is trending on YouTube (+${Math.round(online.growth * 100)}% this week)`
     if (!reason && c) reason = 'Getting attention this week'
 
-    result.set(pid, { score: onSite + onlinePoints, reason, onSite, online: online ? { article: online.article, growth: online.growth } : null })
+    result.set(pid, { score: onSite + onlinePoints, reason, onSite, online: online ? { term: online.term, growth: online.growth, topVideoId: online.topVideoId, topVideoTitle: online.topVideoTitle } : null })
   })
   return result
 }
