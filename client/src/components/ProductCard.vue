@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, capitalize } from '@/utils/format'
 import FavouriteButton from './FavouriteButton.vue'
 
 // Shared card used by Browse, FYP, Favourites, Shop pages.
@@ -81,15 +81,17 @@ function useFallbackImage(event) {
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
       </div>
       <div class="card-body d-flex flex-column">
+        <span class="card-label clamp-1">{{ product.category ? capitalize(product.category) : 'Homemade' }}</span>
         <!-- card-link stretches over the whole card: clicking anywhere opens the product -->
-        <RouterLink :to="`/products/${product._id}`" class="card-title card-link fw-bold clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
-        <p v-if="shopName" class="text-muted small mb-1 clamp-1">
+        <RouterLink :to="`/products/${product._id}`" class="card-title card-link clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
+        <p v-if="shopName" class="text-muted small mb-2 clamp-1">
           {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
         </p>
-        <p class="fw-bold mb-2">
-          {{ formatPrice(product.price) }}
-          <span class="text-muted small fw-normal">/ {{ product.unit }}</span>
-        </p>
+        <!-- price as a blue pill, like the inspiration -->
+        <div class="price-row mb-2">
+          <span class="unit clamp-1">/ {{ product.unit }}</span>
+          <span class="price-pill">{{ formatPrice(product.price) }}</span>
+        </div>
 
         <!-- grey hint; the reason shows in a tooltip on hover (or keyboard focus) -->
         <div v-if="reason" class="reason mb-2">
@@ -118,6 +120,7 @@ function useFallbackImage(event) {
   position: relative;
   overflow: hidden;
   min-width: 0;
+  padding: 0.55rem; /* photo sits inside the grey tile, with its own rounded corners */
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
@@ -152,6 +155,48 @@ function useFallbackImage(event) {
 }
 @media (prefers-reduced-motion: reduce) {
   .product-card, .product-card:hover { transition: none; transform: none; }
+}
+
+.carousel-box {
+  border-radius: 1.15rem;
+}
+.carousel-box :deep(.card-img-top),
+.carousel-box .product-img {
+  border-radius: 0; /* the box above rounds the corners */
+}
+.card-summary .card-body {
+  padding: 0.85rem 0.6rem 0.35rem;
+}
+.card-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.card-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+.price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.price-row .unit {
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.price-pill {
+  flex-shrink: 0;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  background: var(--ocean);
+  box-shadow: 0 6px 14px rgba(var(--ocean-rgb), 0.3);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
 }
 
 /* body stretches to fill the card, so extra buttons (mt-auto) sit at the bottom

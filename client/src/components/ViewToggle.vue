@@ -22,33 +22,32 @@
 </template>
 
 <style scoped>
+/* segmented toggle, like "Dashboard | Website" in the BuyMore inspiration */
 .view-toggle {
   display: inline-flex;
   gap: 0.2rem;
-  padding: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: var(--shadow);
+  padding: 0.3rem;
+  border-radius: 1.2rem;
+  background: var(--tile);
 }
 .toggle-option {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.875rem;
+  padding: 0.5rem 1.2rem;
+  border-radius: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--muted);
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 .toggle-option:hover {
   color: var(--navy);
 }
 .toggle-option.active {
-  background: var(--navy);
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(var(--navy-rgb), 0.25);
+  background: var(--surface);
+  color: var(--navy);
+  box-shadow: 0 4px 12px rgba(var(--navy-rgb), 0.1);
 }
 </style>
