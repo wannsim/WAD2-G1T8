@@ -49,7 +49,35 @@ async function loadFollowed() {
   }
 }
 
-const weekOrders = computed(() => recentOrders.value.filter((o) => Date.now() - new Date(o.createdAt) < 7 * 86400000).length)
+// shortcuts in the user menu: buyers and sellers get different ones
+const shortcuts = computed(() => (isSeller.value
+  ? [{ to: '/seller/products', label: 'Add a product' }, { to: '/profile', label: 'Edit my profile' }]
+  : [{ to: '/profile', label: 'Edit my interests' }, { to: '/map', label: 'Find shops near me' }]))
+
+// the number on the left: something the user can act on, in plain words
+//   buyers:  orders still going (waiting / accepted / new time proposed)
+//   sellers: orders waiting for the seller's answer
+const ACTIVE = ['pending', 'accepted', 'rescheduled']
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+const orderStat = computed(() => {
+  const orders = recentOrders.value
+  if (isSeller.value) {
+    const waiting = orders.filter((o) => o.status === 'pending').length
+    return waiting
+      ? { number: waiting, title: `${waiting === 1 ? 'Order needs' : 'Orders need'} your reply`, hint: 'Open shop orders ›', to: '/seller/orders', alert: true }
+      : { number: 0, title: 'All caught up', hint: 'No orders waiting for a reply', to: '/seller/orders' }
+  }
+  const active = orders.filter((o) => ACTIVE.includes(o.status))
+  const toAnswer = active.filter((o) => o.status === 'rescheduled').length
+  if (!active.length) return { number: 0, title: 'No active orders', hint: 'Browse to find something ›', to: '/browse' }
+  return {
+    number: active.length,
+    title: active.length === 1 ? 'Active order' : 'Active orders',
+    hint: toAnswer ? `${plural(toAnswer, 'new time')} to accept ›` : 'Track my orders ›',
+    to: '/orders',
+    alert: toAnswer > 0,
+  }
+})
 const initial = computed(() => (currentUser.value?.name || '?').charAt(0).toUpperCase())
 
 function refreshAll() {
@@ -89,11 +117,11 @@ onUnmounted(() => {
     <RouterLink to="/home" class="mobile-brand">Homly Hauls</RouterLink>
 
     <!-- big number + label -->
-    <RouterLink v-if="isLoggedIn" :to="isSeller ? '/seller/orders' : '/orders'" class="stat">
-      <span class="stat-number">{{ weekOrders }}</span>
+    <RouterLink v-if="isLoggedIn" :to="orderStat.to" class="stat" data-testid="order-stat">
+      <span class="stat-number" :class="{ alert: orderStat.alert }">{{ orderStat.number }}</span>
       <span class="stat-label">
-        <span>{{ isSeller ? 'Orders received' : 'Orders' }}</span>
-        <small>Last 7 days</small>
+        <span>{{ orderStat.title }}</span>
+        <small :class="{ 'text-alert': orderStat.alert }">{{ orderStat.hint }}</small>
       </span>
     </RouterLink>
     <p v-else class="stat-guest mb-0">Homemade food, crafts and services from your neighbours</p>
@@ -101,9 +129,16 @@ onUnmounted(() => {
     <div class="right">
       <template v-if="isLoggedIn">
         <!-- followed shops -->
-        <RouterLink v-if="followed.length" to="/home?tab=following" class="avatar-stack" :title="`${followed.length} shops you follow`">
-          <span v-for="shop in followed.slice(0, 3)" :key="shop._id" class="mini-avatar">{{ shop.name.charAt(0).toUpperCase() }}</span>
-          <span v-if="followed.length > 3" class="more">+{{ followed.length - 3 }}</span>
+        <RouterLink v-if="followed.length" to="/home?tab=following" class="avatar-stack" data-testid="following-stack"
+          :title="`Shops you follow: ${followed.map((s) => s.name).join(', ')}`">
+          <span class="stack">
+            <span v-for="shop in followed.slice(0, 3)" :key="shop._id" class="mini-avatar">{{ shop.name.charAt(0).toUpperCase() }}</span>
+            <span v-if="followed.length > 3" class="more">+{{ followed.length - 3 }}</span>
+          </span>
+          <span class="stack-label">
+            <span>Following</span>
+            <small>{{ plural(followed.length, 'shop') }}</small>
+          </span>
         </RouterLink>
         <NotificationBell class="top-bell" />
         <RouterLink to="/chats" class="pill-btn" title="Chats">
@@ -122,13 +157,16 @@ onUnmounted(() => {
           <ul class="dropdown-menu dropdown-menu-end">
             <li><RouterLink class="dropdown-item" to="/profile">Profile</RouterLink></li>
             <li><RouterLink class="dropdown-item" to="/notifications">Notifications</RouterLink></li>
+            <!-- shortcuts (were "Quick actions" in the sidebar) -->
+            <li><hr class="dropdown-divider" /></li>
+            <li v-for="a in shortcuts" :key="a.label"><RouterLink class="dropdown-item" :to="a.to">{{ a.label }}</RouterLink></li>
             <li><hr class="dropdown-divider" /></li>
             <li><button class="dropdown-item" type="button" @click="logout">Log out</button></li>
           </ul>
         </div>
       </template>
       <template v-else>
-        <RouterLink to="/register" class="pill-btn d-none d-sm-inline-flex">Sign up</RouterLink>
+        <RouterLink to="/register" class="pill-btn d-none d-sm-inline-flex">Create an account</RouterLink>
         <RouterLink to="/login" class="btn btn-brand">Log in</RouterLink>
       </template>
     </div>
@@ -166,6 +204,17 @@ onUnmounted(() => {
 }
 .stat-label small {
   color: var(--muted);
+}
+.stat:hover .stat-label small {
+  color: var(--ocean-dark);
+}
+/* something needs the user's answer: amber number + hint */
+.stat-number.alert {
+  color: #c27c0e;
+}
+.stat-label small.text-alert {
+  color: #b7801a;
+  font-weight: 500;
 }
 .stat-guest {
   font-size: 0.9rem;
@@ -240,7 +289,8 @@ onUnmounted(() => {
 .avatar-stack {
   display: inline-flex;
   align-items: center;
-  padding: 0.3rem 0.6rem 0.3rem 0.3rem;
+  gap: 0.55rem;
+  padding: 0.3rem 0.8rem 0.3rem 0.3rem;
   border-radius: 999px;
   text-decoration: none;
 }
@@ -262,6 +312,20 @@ onUnmounted(() => {
 }
 .mini-avatar:first-child {
   margin-left: 0;
+}
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+.stack-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  color: var(--navy);
+}
+.stack-label small {
+  color: var(--muted);
 }
 .avatar-stack .more {
   margin-left: 0.35rem;
