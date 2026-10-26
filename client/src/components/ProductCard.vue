@@ -15,6 +15,7 @@ const props = defineProps({
   product: Object,
   reason: String,
   favourite: Boolean,
+  noSwipe: Boolean, // inside a sideways-scrolling row: swiping scrolls the row, not the photos
 })
 // 'open' = the buyer clicked through to the product page (FYP logs this as a "click")
 const emit = defineEmits(['open'])
@@ -41,6 +42,7 @@ function showImage(index) {
 // swipe left / right on phones
 let touchStartX = null
 function onTouchStart(event) {
+  if (props.noSwipe) return
   touchStartX = event.touches[0].clientX
 }
 function onTouchEnd(event) {

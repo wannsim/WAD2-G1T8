@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
@@ -10,8 +10,9 @@ import ViewToggle from '@/components/ViewToggle.vue'
 
 // Owner: Member 3 - browse, search, filter, favourite
 const router = useRouter()
+const route = useRoute()
 const q = ref('')
-const category = ref('')
+const category = ref(CATEGORIES.includes(route.query.category) ? route.query.category : '') // /browse?category=Meals (For you's "See all")
 const maxPrice = ref('')
 const products = ref([])
 const shops = ref([])

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -7,6 +7,7 @@ import { currentUser } from '@/utils/auth'
 import { savedIds } from '@/utils/favourites'
 import { formatPrice } from '@/utils/format'
 import FavouriteButton from '@/components/FavouriteButton.vue'
+import { CATEGORIES } from '@/utils/constants'
 
 // Owner: Jessie - the home page with For You / Trending / Following tabs
 // Layout (Cheyenne): BuyMore-style "bento" of pastel tiles on top of For you, then the rest of the feed.
@@ -132,6 +133,43 @@ watch(savedIds, () => {
     .then((r) => (favourites.value = r.data.map((f) => f.product).filter(Boolean))).catch(() => {})
 }, { deep: true })
 
+// ---------- "More for you" as one swipeable row per category (like Shopee's Best sellers / New rows) ----------
+const CATEGORY_EMOJI = { 'Baked goods': '🥐', Meals: '🍛', 'Snacks & desserts': '🍡', Drinks: '🧋', 'Handmade crafts': '🧶', Others: '✨' }
+// rows keep the feed's order inside, and the row with the best-ranked product comes first
+const categoryRows = computed(() => {
+  const rows = new Map()
+  gridItems.value.forEach((item, i) => {
+    const name = CATEGORIES.includes(item.product.category) ? item.product.category : 'Others'
+    if (!rows.has(name)) rows.set(name, { name, emoji: CATEGORY_EMOJI[name], items: [] })
+    rows.get(name).items.push({ ...item, rank: rankOf(i + gridOffset.value) })
+  })
+  return [...rows.values()]
+})
+const useRows = computed(() => showBento.value && categoryRows.value.length > 0)
+
+// ‹ › buttons: scroll the row by most of its width
+const rowRefs = {}
+const rowEnds = ref({}) // row name -> { start, end } so the arrows can grey out at either end
+function updateEnds(name) {
+  const el = rowRefs[name]
+  if (!el) return
+  const start = el.scrollLeft <= 2
+  const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2
+  const old = rowEnds.value[name]
+  if (old && old.start === start && old.end === end) return // nothing changed: don't re-render (that would loop)
+  rowEnds.value = { ...rowEnds.value, [name]: { start, end } }
+}
+// Vue calls this on every render; only a NEW row element needs its arrows worked out
+function setRowRef(name, el) {
+  if (!el || rowRefs[name] === el) return
+  rowRefs[name] = el
+  requestAnimationFrame(() => updateEnds(name))
+}
+function scrollRow(name, direction) {
+  const el = rowRefs[name]
+  if (el) el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' })
+}
+
 function useFallbackImage(event) {
   if (!event.target.src.endsWith('/placeholder.svg')) event.target.src = '/placeholder.svg'
 }
@@ -141,6 +179,10 @@ onMounted(() => {
   loadBento()
 })
 watch(tab, loadFeed)
+watch(categoryRows, () => requestAnimationFrame(() => Object.keys(rowRefs).forEach(updateEnds)))
+const onResize = () => Object.keys(rowRefs).forEach(updateEnds)
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
 </script>
 
 <template>
@@ -256,12 +298,32 @@ watch(tab, loadFeed)
       </button>
     </section>
 
-    <h3 v-if="showBento && gridItems.length" class="section-title">More for you</h3>
+    <!-- For you: one row per category, swipe (or use ‹ ›) to see more -->
+    <template v-if="useRows">
+      <h3 class="section-title">More for you</h3>
+      <section v-for="row in categoryRows" :key="row.name" class="cat-row" :class="{ refreshing: loading }" :aria-label="row.name">
+        <div class="cat-head">
+          <h4 class="ribbon">{{ row.name }} <span aria-hidden="true">{{ row.emoji }}</span></h4>
+          <span class="small text-muted d-none d-sm-inline">{{ row.items.length }} {{ row.items.length === 1 ? 'pick' : 'picks' }}</span>
+          <div class="cat-actions">
+            <RouterLink :to="{ path: '/browse', query: { category: row.name } }" class="see-all-link">See all</RouterLink>
+            <button type="button" class="row-arrow" :disabled="rowEnds[row.name]?.start !== false" :aria-label="`Scroll ${row.name} left`" @click="scrollRow(row.name, -1)">&lsaquo;</button>
+            <button type="button" class="row-arrow" :disabled="rowEnds[row.name]?.end !== false" :aria-label="`Scroll ${row.name} right`" @click="scrollRow(row.name, 1)">&rsaquo;</button>
+          </div>
+        </div>
+        <div :ref="(el) => setRowRef(row.name, el)" class="cat-strip" @scroll.passive="updateEnds(row.name)">
+          <div v-for="item in row.items" :key="item.product._id" class="feed-cell strip-cell" :class="item.rank ? `rank rank-${item.rank}` : ''">
+            <span v-if="item.rank" class="rank-badge" :aria-label="`Ranked number ${item.rank} for you`">{{ item.rank }}</span>
+            <ProductCard :product="item.product" :reason="item.reason" favourite no-swipe @open="logClick(item)" />
+          </div>
+        </div>
+      </section>
+    </template>
 
     <p v-if="loading && items.length === 0" class="text-muted">Loading...</p>
     <p v-else-if="!loading && items.length === 0" class="text-muted">Nothing here yet.</p>
 
-    <div class="card-grid" :class="{ refreshing: loading && items.length > 0 }">
+    <div v-if="!useRows" class="card-grid" :class="{ refreshing: loading && items.length > 0 }">
       <div v-for="(item, index) in gridItems" :key="item.product._id" class="feed-cell" :class="rankOf(index + gridOffset) ? `rank rank-${rankOf(index + gridOffset)}` : ''">
         <span v-if="rankOf(index + gridOffset)" class="rank-badge" :aria-label="tab === 'trending' ? `Number ${rankOf(index + gridOffset)} trending` : `Ranked number ${rankOf(index + gridOffset)} for you`">{{ rankOf(index + gridOffset) }}</span>
         <ProductCard :product="item.product" :reason="item.reason" favourite @open="logClick(item)" />
@@ -674,6 +736,92 @@ a.tile:hover,
   color: #fff;
 }
 
+/* ---------- category rows ---------- */
+.cat-row {
+  margin-bottom: 1.5rem;
+  padding: 0 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1.6rem;
+  overflow: hidden;
+}
+.cat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem 0;
+}
+/* ribbon label with a slanted end, like Shopee's "BEST SELLERS" */
+.ribbon {
+  margin: 0;
+  padding: 0.5rem 1.6rem 0.5rem 1.1rem;
+  background: var(--ocean);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+}
+.cat-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+.see-all-link {
+  margin-right: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ocean-dark);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.see-all-link:hover {
+  text-decoration: underline;
+}
+.row-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tile);
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--navy);
+}
+.row-arrow:hover:not(:disabled) {
+  background: var(--tile-hover);
+}
+.row-arrow:disabled {
+  opacity: 0.35;
+}
+.cat-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(190px, 21%, 240px);
+  gap: 1rem;
+  padding: 12px 1rem 0.5rem; /* top room for the rank badge */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 1rem;
+  scrollbar-width: thin;
+}
+.strip-cell {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+.strip-cell :deep(.product-card) {
+  height: 100%;
+}
+.strip-cell .rank-badge {
+  top: -8px;
+  left: -6px;
+}
+
 /* ---------- ranks (top 3): coloured border + number badge ---------- */
 .feed-cell {
   position: relative;
@@ -729,6 +877,16 @@ a.tile:hover,
   }
 }
 @media (max-width: 575.98px) {
+  .cat-strip {
+    grid-auto-columns: 46%; /* two cards and a peek of the next one */
+    gap: 0.65rem;
+  }
+  .ribbon {
+    font-size: 0.8rem;
+  }
+  .row-arrow {
+    display: none; /* phones: just swipe */
+  }
   /* tabs: one row you can swipe sideways */
   .feed-tabs {
     flex-wrap: nowrap;
