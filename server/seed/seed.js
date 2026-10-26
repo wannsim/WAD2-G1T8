@@ -21,6 +21,11 @@ const inDays = (d, hour = 14) => {
   return t
 }
 
+// product photos from seed/images (same ones mockData.js uses); none if the file is missing
+const IMAGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'images')
+const photos = (...files) => files.map((f) => path.join(IMAGE_DIR, f)).filter((f) => fs.existsSync(f))
+  .map((f) => `data:image/jpeg;base64,${fs.readFileSync(f).toString('base64')}`)
+
 async function seed() {
   await mongoose.connect(process.env.DB)
   await Promise.all(
@@ -48,15 +53,19 @@ async function seed() {
   await Product.create([
     { shop: bobShop._id, name: 'Chocolate Chip Cookies', category: 'Baked goods', price: 12, unit: 'box of 12',
       description: 'Chewy cookies, baked to order.', tags: ['cookies', 'chocolate'], customisable: false,
+      images: photos('chocolate-chip-cookies-0.jpg', 'chocolate-chip-cookies-1.jpg'),
       orderSlots: [{ start: inDays(2), capacity: 3 }, { start: inDays(3), capacity: 3 }] },
     { shop: bobShop._id, name: 'Custom Birthday Cake', category: 'Baked goods', price: 55, unit: '6-inch cake',
       description: 'Tell me your flavour and message.', tags: ['cake', 'birthday'], customisable: true,
+      images: photos('custom-birthday-cake-0.jpg'),
       orderSlots: [{ start: inDays(5, 11), capacity: 1 }] },
     { shop: caraShop._id, name: 'Soy Candle', category: 'Handmade crafts', price: 18, unit: 'piece',
       description: 'Hand-poured, lavender scent.', tags: ['candle', 'gift'], customisable: true,
+      images: photos('lavender-soy-candle-0.jpg'),
       orderSlots: [{ start: inDays(4), capacity: 5 }] },
     { shop: caraShop._id, name: 'Beaded Keychain', category: 'Handmade crafts', price: 6, unit: 'piece',
       description: 'Pick your colours.', tags: ['keychain'], customisable: true,
+      images: photos('beaded-keychain-0.jpg'),
       orderSlots: [{ start: inDays(4), capacity: 10 }] },
   ])
 

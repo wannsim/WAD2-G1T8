@@ -8,6 +8,7 @@ import FavouriteButton from './FavouriteButton.vue'
 //   <ProductCard :product="p" />      <- click anywhere on the card to open the product
 //   <ProductCard :product="p" :reason="'Matches your interests'">   <- optional "Why recommended?"
 //   <ProductCard :product="p" favourite />   <- ♥ save button on the photo
+//   <ProductCard :product="p" :pinned="..." pinnable @toggle-pin="..." />   <- pin in the top right (a button for the shop owner)
 //   <ProductCard :product="p" @open="..." />   <- fires when the buyer clicks through to the product page
 //       <button>extra buttons go in the slot</button>
 //   </ProductCard>
@@ -15,10 +16,17 @@ const props = defineProps({
   product: Object,
   reason: String,
   favourite: Boolean,
+  pinned: Boolean, // pin icon in the top right corner of the card (shop page)
+  pinnable: Boolean, // shop owner: that pin is a button -> emits 'toggle-pin'
+  pinBusy: Boolean,
   noSwipe: Boolean, // inside a sideways-scrolling row: swiping scrolls the row, not the photos
 })
 // 'open' = the buyer clicked through to the product page (FYP logs this as a "click")
-const emit = defineEmits(['open'])
+const emit = defineEmits(['open', 'toggle-pin'])
+
+// bootstrap-icons pin-angle-fill / pin-angle
+const PIN_FILLED = 'M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146'
+const PIN_OUTLINE = PIN_FILLED + 'm.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z'
 const router = useRouter()
 
 // the "Why recommended?" hint sits above the card link (so its tooltip works), so it opens the product itself
@@ -81,6 +89,15 @@ function useFallbackImage(event) {
         </template>
 
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
+        <!-- shop owner: a Pin / Unpin button. Everyone else: just the pin icon on pinned products -->
+        <button v-if="pinnable" type="button" class="feature-mark feature-toggle" :class="{ pinned, 'beside-fav': favourite }"
+          :disabled="pinBusy" :data-label="pinned ? 'Unpin' : 'Pin'" :aria-label="pinned ? `Unpin ${product.name}` : `Pin ${product.name}`"
+          :aria-pressed="pinned" @click="$emit('toggle-pin')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="pinned ? PIN_FILLED : PIN_OUTLINE" /></svg>
+        </button>
+        <span v-else-if="pinned" class="feature-mark pinned" :class="{ 'beside-fav': favourite }" title="Pinned by the seller" aria-label="Pinned">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="PIN_FILLED" /></svg>
+        </span>
       </div>
       <div class="card-body d-flex flex-column">
         <span class="card-label clamp-1">{{ product.category ? capitalize(product.category) : 'Homemade' }}</span>
@@ -280,6 +297,52 @@ function useFallbackImage(event) {
   top: 8px;
   right: 8px;
   z-index: 2; /* above the card link */
+}
+
+/* pinned by the seller: pin in the top right corner (moves left if the ♥ is there) */
+.feature-mark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92); /* not pinned (owner only): white with an outline pin */
+  color: var(--ink-soft);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+.feature-mark.pinned {
+  background: var(--amber);
+  color: var(--navy);
+}
+.feature-mark.beside-fav {
+  right: 48px;
+}
+.feature-toggle:hover:not(:disabled) {
+  color: var(--navy);
+  transform: scale(1.08);
+}
+/* "Pin" / "Unpin" label under the button on hover */
+.feature-toggle:hover:not(:disabled)::after,
+.feature-toggle:focus-visible::after {
+  content: attr(data-label);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .reason {

@@ -9,6 +9,23 @@ import { currentUser, isSeller } from './auth'
 // phones / tablets: is the sidebar drawer open?
 export const navOpen = ref(false)
 
+// wide screens: is the sidebar collapsed to icons only? (remembered in this browser)
+const readCollapsed = () => {
+  try {
+    return localStorage.getItem('navCollapsed') === '1'
+  } catch {
+    return false
+  }
+}
+export const navCollapsed = ref(readCollapsed())
+watch(navCollapsed, (collapsed) => {
+  try {
+    localStorage.setItem('navCollapsed', collapsed ? '1' : '0')
+  } catch {
+    // storage blocked: just don't remember it
+  }
+})
+
 // the user's latest orders (buyers: what they ordered, sellers: what their shop received)
 // used by the sidebar ("Last orders") and the top bar ("N orders, last 7 days")
 export const recentOrders = ref([])

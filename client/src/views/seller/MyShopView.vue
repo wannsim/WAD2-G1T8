@@ -46,10 +46,24 @@
             <!-- photo is loaded from its own URL (lazy), not sent inside the JSON -->
             <img :src="item.imageUrl || '/placeholder.svg'" class="card-img-top product-img" :alt="item.name"
               loading="lazy" decoding="async" @error="$event.target.src = '/placeholder.svg'">
-            <input v-if="selecting" type="checkbox" class="form-check-input select-box" :checked="isSelected(item)"
-              :aria-label="`Select ${item.name}`" @click.stop="toggleSelected(item)">
-            <span v-if="isPinned(item)" class="badge bg-warning text-dark pinned-badge">Pinned</span>
+            <!-- select mode: a checkbox on every card, ticked when the card is selected -->
+            <label v-if="selecting" class="select-box" @click.stop>
+              <input type="checkbox" class="form-check-input" :checked="isSelected(item)"
+                :aria-label="`Select ${item.name}`" @change="toggleSelected(item)">
+            </label>
           </div>
+          <!-- pin / unpin: the button in the top right corner of every card (filled amber = pinned) -->
+          <button type="button" class="feature-toggle" :class="{ pinned: isPinned(item) }"
+              :disabled="pinning || selecting" :data-label="isPinned(item) ? 'Unpin' : 'Pin'"
+              :aria-label="isPinned(item) ? `Unpin ${item.name}` : `Pin ${item.name}`" :aria-pressed="isPinned(item)"
+              @click.stop="togglePin(item)">
+              <svg v-if="isPinned(item)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
+              </svg>
+          </button>
           <div class="card-body d-flex flex-column">
             <h6 class="card-title clamp-2">{{ item.name }}</h6>
             <div>
@@ -66,21 +80,11 @@
                     <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
                   </svg>
                 </button>
-                <button type="button" class="btn btn-sm icon-btn" :disabled="pinning"
-                  :class="isPinned(item) ? 'btn-warning' : 'btn-outline-warning'"
-                  :data-label="isPinned(item) ? 'Unpin' : 'Pin'" :aria-label="isPinned(item) ? 'Unpin' : 'Pin'"
-                  @click="togglePin(item)">
-                  <svg v-if="isPinned(item)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
-                  </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
-                  </svg>
-                </button>
               </div>
             </div>
-            <a v-if="!selecting" href="#product-reviews" class="btn btn-sm btn-outline-secondary mt-3"
-              :aria-label="`View reviews for ${item.name}`" @click="selectedReviewProduct = item._id">View reviews</a>
+            <!-- a button (not an href="#product-reviews" link): some ad blockers hide links like that -->
+            <button v-if="!selecting" type="button" class="btn btn-sm btn-outline-secondary mt-3"
+              :aria-label="`View reviews for ${item.name}`" @click="showReviewsFor(item)">View reviews</button>
           </div>
         </div>
       </div>
@@ -251,6 +255,12 @@ async function loadShop() {
 }
 
 // load on open, and again if the user logs in as someone else
+// "View reviews" on a card: filter the reviews to that product and scroll down to them
+function showReviewsFor(item) {
+  selectedReviewProduct.value = item._id
+  document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })
+}
+
 // /seller/shop?review=<productId>#product-reviews (from a "new review" notification):
 // filter the reviews to that product and scroll down to them
 async function showRequestedReviews() {
@@ -295,19 +305,80 @@ onBeforeUnmount(() => shopController?.abort())
   pointer-events: none;
   z-index: 10;
 }
-.pinned-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+/* pin button in the top right corner of the card: white outline pin = not pinned, amber filled pin = pinned
+   (pinned looks the same as on the public shop page).
+   NOTE: don't call this class "pin-..." - ad blockers hide those (they look like Pinterest "Pin it" buttons) */
+.feature-toggle {
+  position: absolute; /* .card is position: relative */
+  top: 10px;
+  right: 10px;
+  z-index: 5; /* above the photo and everything else on the card */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-soft);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
+.feature-toggle:hover:not(:disabled) {
+  color: var(--navy);
+  transform: scale(1.08);
+}
+.feature-toggle.pinned {
+  background: var(--amber);
+  color: var(--navy);
+}
+.feature-toggle:disabled {
+  opacity: 1;
+  cursor: default;
+}
+/* "Pin" / "Unpin" label under the button on hover */
+.feature-toggle[data-label]:hover:not(:disabled)::after,
+.feature-toggle[data-label]:focus-visible::after {
+  content: attr(data-label);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+/* white pad behind the checkbox so it shows up on any photo */
 .select-box {
   position: absolute;
   top: 8px;
   left: 8px;
-  width: 1.4rem;
-  height: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
   margin: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
+}
+.select-box .form-check-input {
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0;
+  border: 2px solid var(--muted);
+  cursor: pointer;
+}
+.select-box .form-check-input:checked {
+  border-color: var(--ocean);
 }
 .selectable {
   cursor: pointer;

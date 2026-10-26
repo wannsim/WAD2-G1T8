@@ -2,12 +2,12 @@
 import { computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { currentUser, isLoggedIn, isSeller, clearUser } from '@/utils/auth'
-import { navOpen, recentOrders, loadRecentOrders } from '@/utils/layout'
+import { navOpen, navCollapsed, recentOrders, loadRecentOrders } from '@/utils/layout'
 import { API_URL } from '@/utils/config'
 
 // Owner: Wan Sim (sidebar layout: Cheyenne)
 // Left sidebar, like the BuyMore inspiration: logo, main links, quick actions, last orders, log out.
-// Wide screens: always shown. Phones / tablets: a drawer opened from the top bar's ☰ button.
+// Wide screens: always shown; the « button collapses it to icons only. Phones / tablets: a drawer opened from the top bar's ☰ button.
 const router = useRouter()
 const route = useRoute()
 
@@ -28,6 +28,7 @@ const ICONS = {
   basket: 'M5.757 1.071a.5.5 0 0 1 .172.686L3.383 6h9.234L10.07 1.757a.5.5 0 1 1 .858-.514L13.783 6H15.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-.623l-1.844 6.456a.75.75 0 0 1-.722.544H3.69a.75.75 0 0 1-.722-.544L1.123 8H.5a.5.5 0 0 1-.5-.5v-1A.5.5 0 0 1 .5 6h1.717L5.07 1.243a.5.5 0 0 1 .686-.172zM2.163 8l1.714 6h8.246l1.714-6z',
   shop: 'M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm3 0h-2v3h2z',
   plus: 'M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4',
+  collapse: 'M8.354 1.646a.5.5 0 0 1 0 .708L2.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0m6 0a.5.5 0 0 1 0 .708L8.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0',
   logout: 'M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0zM15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z',
   login: 'M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0zM11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z',
 }
@@ -68,9 +69,9 @@ onMounted(loadRecentOrders)
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ open: navOpen }" aria-label="Main menu">
-    <div class="d-flex align-items-center justify-content-between">
-      <RouterLink class="brand" to="/home">
+  <aside class="sidebar" :class="{ open: navOpen, collapsed: navCollapsed }" aria-label="Main menu">
+    <div class="sidebar-top d-flex align-items-center justify-content-between">
+      <RouterLink class="brand" to="/home" title="Homly Hauls">
         <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true">
           <defs>
             <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
@@ -82,16 +83,20 @@ onMounted(loadRecentOrders)
           <path d="M8 16 17 8l9 8v10H8z" fill="#fff" />
           <rect x="14" y="19" width="6" height="7" fill="#18204a" />
         </svg>
-        <span>Homly Hauls</span>
+        <span class="label">Homly Hauls</span>
       </RouterLink>
       <button type="button" class="close-drawer" aria-label="Close menu" @click="navOpen = false">&times;</button>
+      <button type="button" class="collapse-btn" :aria-label="navCollapsed ? 'Expand menu' : 'Collapse menu'"
+        :title="navCollapsed ? 'Expand menu' : 'Collapse menu'" :aria-expanded="!navCollapsed" @click="navCollapsed = !navCollapsed">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.collapse" /></svg>
+      </button>
     </div>
     <span class="brand-underline" aria-hidden="true"></span>
 
     <nav class="side-links">
-      <RouterLink v-for="link in links" :key="link.to" :to="link.to" class="side-link">
+      <RouterLink v-for="link in links" :key="link.to" :to="link.to" class="side-link" :title="navCollapsed ? link.label : null">
         <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS[link.icon]" /></svg>
-        {{ link.label }}
+        <span class="label">{{ link.label }}</span>
       </RouterLink>
     </nav>
 
@@ -115,13 +120,13 @@ onMounted(loadRecentOrders)
     </div>
 
     <div class="side-bottom">
-      <button v-if="isLoggedIn" type="button" class="side-link w-100" @click="logout">
+      <button v-if="isLoggedIn" type="button" class="side-link w-100" :title="navCollapsed ? 'Log out' : null" @click="logout">
         <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.logout" /></svg>
-        Log out
+        <span class="label">Log out</span>
       </button>
-      <RouterLink v-else to="/login" class="side-link">
+      <RouterLink v-else to="/login" class="side-link" :title="navCollapsed ? 'Log in' : null">
         <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.login" /></svg>
-        Log in
+        <span class="label">Log in</span>
       </RouterLink>
       <p v-if="currentUser" class="small text-muted mt-2 mb-0 px-3 clamp-1">Signed in as {{ currentUser.name }}</p>
     </div>
@@ -276,6 +281,59 @@ onMounted(loadRecentOrders)
   padding-top: 1.5rem;
 }
 
+/* « button: wide screens only (phones use the drawer) */
+.collapse-btn {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--ink-soft);
+  transition: transform 0.2s ease;
+}
+.collapse-btn:hover {
+  color: var(--navy);
+}
+.sidebar {
+  transition: flex-basis 0.2s ease, width 0.2s ease;
+}
+
+/* collapsed: a narrow rail with just the icons (labels show as tooltips) */
+@media (min-width: 992px) {
+  .sidebar.collapsed {
+    flex-basis: 84px;
+    width: 84px;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+  .sidebar.collapsed .sidebar-top {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .sidebar.collapsed .brand {
+    padding: 0;
+  }
+  .sidebar.collapsed .collapse-btn {
+    transform: rotate(180deg);
+  }
+  .sidebar.collapsed .label,
+  .sidebar.collapsed .brand-underline,
+  .sidebar.collapsed .side-section,
+  .sidebar.collapsed .side-bottom p {
+    display: none;
+  }
+  .sidebar.collapsed .side-links {
+    margin-top: 1.25rem;
+  }
+  .sidebar.collapsed .side-link {
+    justify-content: center;
+    padding: 0.7rem 0;
+  }
+}
+
 /* phones / tablets: the sidebar slides in from the left */
 .drawer-shade {
   display: none;
@@ -301,6 +359,9 @@ onMounted(loadRecentOrders)
   .close-drawer {
     display: block;
   }
+  .collapse-btn {
+    display: none;
+  }
   .drawer-shade {
     display: block;
     position: fixed;
@@ -310,6 +371,6 @@ onMounted(loadRecentOrders)
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar { transition: none; }
+  .sidebar, .collapse-btn { transition: none; }
 }
 </style>

@@ -53,13 +53,13 @@ async function toggleFollow() {
         v-if="currentUser"
         type="button"
         class="btn follow-btn"
-        :class="[following ? 'btn-secondary' : 'btn-outline-secondary', small ? 'btn-sm' : 'big']"
+        :class="[following ? 'btn-outline-primary' : 'btn-primary', small ? 'btn-sm' : 'big']"
         :disabled="busy"
         @click="toggleFollow"
       >
         {{ following ? '✓ Following' : '+ Follow' }}
       </button>
-      <RouterLink v-else to="/login" class="btn follow-btn btn-outline-secondary" :class="small ? 'btn-sm' : 'big'">+ Follow</RouterLink>
+      <RouterLink v-else to="/login" class="btn follow-btn btn-primary" :class="small ? 'btn-sm' : 'big'">+ Follow</RouterLink>
     </template>
     <span v-if="followerCountTF" class="small text-muted">{{ followerCount }} {{ followerCount === 1 ? 'follower' : 'followers' }}</span>
     <span v-if="error" class="small text-danger">{{ error }}</span>

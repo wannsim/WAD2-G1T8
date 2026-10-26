@@ -31,10 +31,11 @@
 
     <h4>Products & services <span class="text-muted fs-6">({{ products.length }})</span></h4>
     <p v-if="products.length === 0" class="text-muted">This shop has no listings yet.</p>
+    <p v-if="isOwner && products.length" class="small text-muted mb-2">Click the pin on a product to show it first (up to 3).</p>
+    <p v-if="pinError" class="small text-danger">{{ pinError }}</p>
     <div class="card-grid">
       <div v-for="item in sortedProducts" :key="item._id">
-        <ProductCard :product="item">
-          <span v-if="isPinned(item)" class="badge bg-warning text-dark">Pinned</span>
+        <ProductCard :product="item" :pinned="isPinned(item)" :pinnable="isOwner" :pin-busy="pinning" @toggle-pin="togglePin(item)">
           <!-- only the shop owner can edit -->
           <button v-if="isOwner" class="btn btn-outline-primary btn-sm" @click="openEditModal(item)">Edit</button>
         </ProductCard>
@@ -70,7 +71,23 @@ const isPinned = (item) => pinnedIds.value.includes(item._id)
 // pinned products first (in the order they were pinned), the rest stay newest first
 const pinRank = (item) => (isPinned(item) ? pinnedIds.value.indexOf(item._id) : pinnedIds.value.length)
 const sortedProducts = computed(() => [...products.value].sort((a, b) => pinRank(a) - pinRank(b)))
-const certImageUrl = (cert) => `${API_URL}/shops/${shop.value._id}/certs/${cert._id}/image`
+
+// shop owner: pin / unpin from the pin in the top right of each card
+const pinning = ref(false)
+const pinError = ref('')
+async function togglePin(item) {
+  pinError.value = ''
+  pinning.value = true
+  try {
+    const res = await axios.put(`${API_URL}/shops/${shop.value._id}/pin`, { user: currentUser.value._id, productId: item._id })
+    shop.value.pinnedProducts = res.data.pinnedProducts
+  } catch (err) {
+    pinError.value = err.response?.data?.message || err.message
+  } finally {
+    pinning.value = false
+  }
+}
+const certImageUrl =(cert) => `${API_URL}/shops/${shop.value._id}/certs/${cert._id}/image`
 
 onMounted(async () => {
   try {

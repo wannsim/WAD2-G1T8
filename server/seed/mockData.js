@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import bcrypt from 'bcryptjs'
@@ -30,7 +33,18 @@ const daysFromNow = (d, hour = 14) => {
 }
 const pick = (arr, i) => arr[i % arr.length]
 
-// ---------- product photos: simple coloured SVG cards, stored like uploaded photos (Base64) ----------
+// ---------- product photos, stored like uploaded photos (Base64) ----------
+// Real-looking photos live in seed/images/<product-name-slug>-<n>.jpg (AI-generated to match each product).
+// If one is missing, a simple coloured SVG card is used instead.
+const IMAGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'images')
+const slugify = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+function productPhoto(name, category, emoji, variant) {
+  const file = path.join(IMAGE_DIR, `${slugify(name)}-${variant}.jpg`)
+  if (fs.existsSync(file)) return `data:image/jpeg;base64,${fs.readFileSync(file).toString('base64')}`
+  return svgPhoto(name, category, emoji, variant)
+}
+
 const CATEGORY_STYLE = {
   'Baked goods': ['#f59e0b', '#b45309'],
   Meals: ['#ef4444', '#991b1b'],
@@ -182,7 +196,7 @@ async function run() {
       productDocs.push({
         shop: shopBy[sellerKey]._id, name, category, price, unit, description, tags, customisable,
         isAvailable: !(sellerKey === 'hari' && i === 1), // one sold-out item to test availability
-        images: Array.from({ length: photos }, (_, v) => svgPhoto(name, category, emoji, v)),
+        images: Array.from({ length: photos }, (_, v) => productPhoto(name, category, emoji, v)),
         orderSlots: [
           { start: daysFromNow(2 + (i % 3), 11), capacity: 5 },
           { start: daysFromNow(4 + (i % 3), 15), capacity: 5 },
