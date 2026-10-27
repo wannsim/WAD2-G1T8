@@ -88,6 +88,23 @@ const SELLERS = [
     categories: ['Handmade crafts', 'Others'], delivery: true, desc: 'Custom stickers, prints and personalised cards.' },
 ]
 
+// ---------- 6 more shops (50 more products, real photos from Wikimedia Commons - see seed/images/CREDITS.md) ----------
+const MORE_SELLERS = [
+  { name: 'Mei Ling Tan', email: 'mei', shop: "Auntie Mei's Kitchen", mrt: 'Hougang', lat: 1.3712, lng: 103.8925, postal: '530111',
+    categories: ['Meals'], delivery: true, desc: 'Hawker favourites cooked at home - the way my family has made them for 30 years.' },
+  { name: 'Jason Lim', email: 'jason', shop: 'Little Oven Co', mrt: 'Serangoon', lat: 1.3498, lng: 103.8737, postal: '550222',
+    categories: ['Baked goods'], delivery: true, desc: 'Sourdough, viennoiserie and cakes baked in small batches every morning.' },
+  { name: 'Nur Aisyah', email: 'aisyah', shop: 'Sip Sip Hooray', mrt: 'Ang Mo Kio', lat: 1.37, lng: 103.8495, postal: '560333',
+    categories: ['Drinks'], delivery: true, desc: 'Fresh local drinks, kombucha and bubble tea kits - less sugar, more flavour.' },
+  { name: 'Kelvin Goh', email: 'kelvin', shop: 'Snack Shack SG', mrt: 'Sengkang', lat: 1.3917, lng: 103.8954, postal: '540444',
+    categories: ['Snacks & desserts', 'Baked goods'], delivery: false, desc: 'Old-school kueh and festive snacks, made by hand in Sengkang.' },
+  { name: 'Priya Nair', email: 'priya', shop: 'Knot & Thread', mrt: 'Yishun', lat: 1.4295, lng: 103.835, postal: '760555',
+    categories: ['Handmade crafts'], delivery: true, desc: 'Macrame, knits, ceramics and other slow-made things for your home.' },
+  { name: 'Rachel Koh', email: 'rachel', shop: 'Studio Sundays', mrt: 'Pasir Ris', lat: 1.373, lng: 103.9493, postal: '510666',
+    categories: ['Others', 'Handmade crafts'], delivery: false, desc: 'Weekend art and baking workshops, plus plant and flower arrangements.' },
+]
+SELLERS.push(...MORE_SELLERS)
+
 // ---------- products (by seller email) ----------
 // [name, category, price, unit, emoji, description, tags, customisable, photoCount]
 const PRODUCTS = {
@@ -133,12 +150,82 @@ const PRODUCTS = {
   ],
 }
 
+// the 50 extra products (one real photo each)
+Object.assign(PRODUCTS, {
+  mei: [
+    ['Hainanese Chicken Rice', 'Meals', 6.5, 'set', '🍗', 'Poached chicken, fragrant rice, chilli and ginger sauce.', ['chicken rice', 'hawker', 'rice'], false, 1],
+    ['Nasi Lemak', 'Meals', 7, 'set', '🍚', 'Coconut rice with sambal, fried chicken, egg, anchovies and peanuts.', ['nasi lemak', 'malay', 'spicy'], false, 1],
+    ['Laksa', 'Meals', 8, 'bowl', '🍜', 'Rich coconut curry broth with thick noodles, prawns and tau pok.', ['laksa', 'noodles', 'spicy'], false, 1],
+    ['Char Kway Teow', 'Meals', 7.5, 'plate', '🍳', 'Wok-fried flat noodles with prawns, egg, cockles and chinese sausage.', ['noodles', 'hawker', 'wok'], true, 1],
+    ['Mee Siam', 'Meals', 6, 'plate', '🍝', 'Tangy, spicy rice vermicelli with egg, tau pok and lime.', ['noodles', 'malay', 'spicy'], false, 1],
+    ['Bak Kut Teh', 'Meals', 9, 'bowl', '🍲', 'Peppery pork rib soup, served with rice and you tiao.', ['soup', 'pork', 'hawker'], false, 1],
+    ['Fish Head Curry', 'Meals', 28, 'pot (2-3 pax)', '🐟', 'Red snapper head in tangy curry with okra and brinjal.', ['curry', 'seafood', 'spicy'], false, 1],
+    ['Hokkien Mee', 'Meals', 8, 'plate', '🦐', 'Prawn-stock fried noodles with squid, pork belly and sambal.', ['noodles', 'seafood', 'hawker'], false, 1],
+  ],
+  jason: [
+    ['Sourdough Loaf', 'Baked goods', 12, 'loaf', '🍞', '48-hour fermented country loaf with a crackly crust.', ['bread', 'sourdough'], false, 1],
+    ['Basque Burnt Cheesecake', 'Baked goods', 42, '6-inch cake', '🍰', 'Caramelised outside, molten creamy middle.', ['cheesecake', 'cake', 'dessert'], true, 1],
+    ['Butter Croissants', 'Baked goods', 15, 'box of 4', '🥐', 'Laminated with French butter, 27 flaky layers.', ['croissant', 'pastry', 'breakfast'], false, 1],
+    ['Cinnamon Rolls', 'Baked goods', 16, 'box of 4', '🌀', 'Soft brioche swirls with cinnamon sugar and cream cheese glaze.', ['pastry', 'cinnamon', 'breakfast'], false, 1],
+    ['Portuguese Egg Tarts', 'Baked goods', 14, 'box of 6', '🥧', 'Blistered custard in crisp puff pastry, best eaten warm.', ['tarts', 'custard', 'pastry'], false, 1],
+    ['Fudgy Brownies', 'Baked goods', 18, 'box of 9', '🍫', 'Dark chocolate brownies with a shiny crackle top.', ['brownies', 'chocolate', 'dessert'], true, 1],
+    ['Rosemary Focaccia', 'Baked goods', 13, 'tray', '🫓', 'Olive oil focaccia with fresh rosemary and sea salt.', ['bread', 'italian'], false, 1],
+    ['Lemon Drizzle Cake', 'Baked goods', 22, 'loaf cake', '🍋', 'Zesty lemon sponge soaked with lemon syrup.', ['cake', 'lemon', 'tea time'], false, 1],
+    ['Blueberry Muffins', 'Baked goods', 15, 'box of 6', '🫐', 'Bursting with blueberries and topped with crumble.', ['muffins', 'blueberry', 'breakfast'], false, 1],
+  ],
+  aisyah: [
+    ['Rose Bandung', 'Drinks', 4, '500ml bottle', '🌹', 'Rose syrup and milk, the pink drink of every hari raya.', ['bandung', 'local', 'rose'], false, 1],
+    ['Ginger Kombucha', 'Drinks', 8, '500ml bottle', '🫙', 'Small-batch fermented tea with fresh ginger. Lightly fizzy.', ['kombucha', 'healthy', 'ginger'], false, 1],
+    ['Iced Lemon Tea', 'Drinks', 4.5, '500ml bottle', '🧊', 'Freshly brewed black tea with real lemon juice.', ['tea', 'lemon', 'refreshing'], true, 1],
+    ['Brown Sugar Boba Kit', 'Drinks', 18, 'kit (6 cups)', '🧋', 'Tapioca pearls, brown sugar syrup and tea - make bubble tea at home.', ['bubble tea', 'boba', 'kit'], false, 1],
+    ['Soya Bean Milk', 'Drinks', 3.5, '1L bottle', '🥛', 'Freshly ground soya beans, less sweet. Made every morning.', ['soy', 'healthy', 'local'], true, 1],
+    ['Iced Matcha Latte', 'Drinks', 6.5, '400ml bottle', '🍵', 'Ceremonial-grade matcha over fresh milk.', ['matcha', 'latte'], true, 1],
+    ['Sugarcane Juice', 'Drinks', 4, '500ml bottle', '🎋', 'Freshly pressed sugarcane with a squeeze of lemon.', ['juice', 'local', 'refreshing'], false, 1],
+    ['Calamansi Juice', 'Drinks', 3.5, '500ml bottle', '🍊', 'Sweet and sour calamansi with sour plum.', ['juice', 'local', 'calamansi'], false, 1],
+  ],
+  kelvin: [
+    ['Curry Puffs', 'Snacks & desserts', 10, 'box of 6', '🥟', 'Flaky spiral pastry filled with curry potato, chicken and egg.', ['curry puff', 'snacks', 'local'], false, 1],
+    ['Muah Chee', 'Snacks & desserts', 6, 'box', '🥜', 'Soft glutinous rice dough tossed in crushed peanuts and sugar.', ['muah chee', 'peanut', 'local'], false, 1],
+    ['Love Letters', 'Snacks & desserts', 16, 'tin of 40', '📜', 'Thin crispy coconut egg rolls, a CNY classic.', ['love letters', 'cny', 'festive'], false, 1],
+    ['Kuih Bangkit', 'Snacks & desserts', 18, 'tub of 50', '🌼', 'Melt-in-your-mouth tapioca and coconut cookies.', ['kuih', 'cny', 'festive'], false, 1],
+    ['Kueh Salat', 'Snacks & desserts', 14, 'tray', '🟩', 'Pandan custard on blue pea glutinous rice.', ['kueh', 'pandan', 'peranakan'], false, 1],
+    ['Chendol', 'Snacks & desserts', 5, 'cup', '🍧', 'Shaved ice, pandan jelly, red bean, coconut milk and gula melaka.', ['chendol', 'dessert', 'local'], false, 1],
+    ['Bubur Cha Cha', 'Snacks & desserts', 5, 'bowl', '🥣', 'Sweet potato, yam and sago in warm coconut milk.', ['dessert', 'coconut', 'local'], false, 1],
+    ['Tang Yuan', 'Snacks & desserts', 6, 'bowl of 8', '🍡', 'Glutinous rice balls with black sesame filling in ginger soup.', ['tang yuan', 'dessert', 'festive'], false, 1],
+    ['Pandan Chiffon Cake', 'Baked goods', 16, 'whole cake', '🎂', 'Fluffy chiffon made with fresh pandan juice and coconut milk.', ['cake', 'pandan', 'local'], false, 1],
+  ],
+  priya: [
+    ['Macrame Wall Hanging', 'Handmade crafts', 38, 'piece', '🪢', 'Hand-knotted cotton cord on a wooden dowel, 60cm long.', ['macrame', 'home', 'decor'], true, 1],
+    ['Hand-knitted Snood', 'Handmade crafts', 32, 'piece', '🧣', 'Chunky ribbed snood in soft merino. Choose your colour.', ['knit', 'gift', 'winter'], true, 1],
+    ['Ceramic Coffee Mug', 'Handmade crafts', 28, 'piece', '☕', 'Wheel-thrown stoneware mug with hand-painted stars.', ['ceramics', 'mug', 'gift'], true, 1],
+    ['Crochet Coasters', 'Handmade crafts', 15, 'set of 4', '🧶', 'Thick cotton coasters in stripes, machine washable.', ['crochet', 'home', 'gift'], true, 1],
+    ['Beaded Bracelet', 'Handmade crafts', 12, 'piece', '📿', 'Glass seed beads woven in a geometric pattern.', ['jewellery', 'beads', 'gift'], true, 1],
+    ['Embroidery Hoop Art', 'Handmade crafts', 35, 'piece', '🪡', 'Hand-stitched floral embroidery framed in a 20cm hoop.', ['embroidery', 'art', 'decor'], true, 1],
+    ['Canvas Tote Bag', 'Handmade crafts', 24, 'piece', '👜', 'Sturdy striped canvas tote with an inner pocket.', ['bag', 'tote', 'gift'], false, 1],
+    ['Handmade Soap Bars', 'Handmade crafts', 18, 'set of 3', '🧼', 'Cold-process soap with shea butter and essential oils.', ['soap', 'self care', 'gift'], false, 1],
+    ['Pressed Flower Art', 'Handmade crafts', 30, 'A4 frame', '🌸', 'Real flowers and leaves pressed and arranged by hand.', ['flowers', 'art', 'decor'], true, 1],
+  ],
+  rachel: [
+    ['Watercolour Workshop', 'Others', 65, 'session (3 hours)', '🎨', 'Beginner-friendly watercolour class. All materials provided.', ['workshop', 'art', 'class'], false, 1],
+    ['Pottery Wheel Class', 'Others', 85, 'session (2 hours)', '🏺', 'Try the pottery wheel and make two pieces to take home.', ['workshop', 'pottery', 'class'], false, 1],
+    ['Bread Baking Class', 'Others', 70, 'session (3 hours)', '👩‍🍳', 'Learn to knead, shape and bake your own loaf.', ['workshop', 'baking', 'class'], false, 1],
+    ['Modern Calligraphy Lesson', 'Others', 55, 'session (2 hours)', '✒️', 'Learn the basics of pointed-pen lettering. Starter kit included.', ['workshop', 'calligraphy', 'class'], false, 1],
+    ['Terrarium Kit', 'Handmade crafts', 45, 'kit', '🌿', 'Glass bowl, soil, moss and succulents to build your own terrarium.', ['plants', 'terrarium', 'kit'], false, 1],
+    ['Succulent Arrangement', 'Others', 25, 'pot', '🪴', 'Low-maintenance succulent in a matte ceramic pot.', ['plants', 'gift', 'home'], true, 1],
+    ['Fresh Flower Bouquet', 'Others', 48, 'bouquet', '💐', 'Seasonal roses and carnations, arranged on the day.', ['flowers', 'gift', 'occasion'], true, 1],
+  ],
+})
+
 // ---------- buyers ----------
 const BUYERS = [
   { name: 'Alice Lee', email: 'alice', preferences: ['Baked goods', 'Snacks & desserts'] },
   { name: 'Ben Ong', email: 'ben', preferences: ['Meals', 'Drinks'] },
   { name: 'Chloe Teo', email: 'chloe', preferences: ['Handmade crafts'] },
   { name: 'Daniel Yeo', email: 'daniel', preferences: [] }, // new user - tests the FYP with no preferences
+  { name: 'Farah Ismail', email: 'farah', preferences: ['Meals', 'Snacks & desserts'] },
+  { name: 'Gabriel Chen', email: 'gabriel', preferences: ['Baked goods', 'Drinks'] },
+  { name: 'Hannah Lee', email: 'hannah', preferences: ['Handmade crafts', 'Others'] },
+  { name: 'Irfan Hakim', email: 'irfan', preferences: ['Meals', 'Drinks'] },
 ]
 
 async function removeOldMockData() {
@@ -240,6 +327,49 @@ async function run() {
     ['ben', 'Lemongrass Ginger Tea', 'declined', 3],
     ['chloe', 'Ondeh Ondeh', 'cancelled', 4, null, null, { cancelledBy: 'buyer' }],
     ['alice', 'Teh Tarik Kit', 'cancelled', 6, null, null, { cancelledBy: 'seller' }],
+    // ----- the 6 extra shops -----
+    ['farah', 'Nasi Lemak', 'completed', 21, 5, 'Sambal is shiok! Tastes just like the ones at Adam Road.'],
+    ['irfan', 'Nasi Lemak', 'completed', 9, 4, 'Chicken wing was crispy, rice could be more lemak.'],
+    ['ben', 'Laksa', 'completed', 17, 5, 'Thick and rich gravy, generous with the prawns.'],
+    ['irfan', 'Hainanese Chicken Rice', 'completed', 13, 5, 'Silky chicken and the chilli has a good kick.'],
+    ['farah', 'Char Kway Teow', 'completed', 8, 4, 'Good wok hei. Asked for no cockles and she remembered.'],
+    ['ben', 'Bak Kut Teh', 'completed', 6, 5, 'Very peppery, exactly how I like it.'],
+    ['gabriel', 'Fish Head Curry', 'completed', 24, 4, 'Big portion, enough for my family of four.'],
+    ['gabriel', 'Sourdough Loaf', 'completed', 19, 5, 'Proper crust and open crumb. Best sourdough in the east.'],
+    ['alice', 'Basque Burnt Cheesecake', 'completed', 15, 5, 'Creamy centre, not too sweet. Everyone at the party asked where it was from.'],
+    ['gabriel', 'Butter Croissants', 'completed', 10, 5, 'Flaky and buttery, shattered everywhere in the best way.'],
+    ['chloe', 'Cinnamon Rolls', 'completed', 12, 4, 'Soft and gooey, a little too much icing for me.'],
+    ['alice', 'Portuguese Egg Tarts', 'completed', 7, 5, 'Still warm when I collected them!'],
+    ['farah', 'Fudgy Brownies', 'completed', 16, 3, 'Tasty but a bit too dense this batch.'],
+    ['gabriel', 'Blueberry Muffins', 'completed', 4, 4, 'Lots of blueberries, nice crumble top.'],
+    ['irfan', 'Brown Sugar Boba Kit', 'completed', 14, 5, 'Pearls turned out chewy, my kids loved making it.'],
+    ['gabriel', 'Ginger Kombucha', 'completed', 20, 4, 'Nice fizz and strong ginger. Will try other flavours.'],
+    ['ben', 'Sugarcane Juice', 'completed', 11, 5, 'Fresh and not watered down.'],
+    ['farah', 'Rose Bandung', 'completed', 5, 5, 'Brings back hari raya memories.'],
+    ['irfan', 'Soya Bean Milk', 'completed', 3, 4, 'Smooth and less sweet as promised.'],
+    ['farah', 'Curry Puffs', 'completed', 18, 5, 'Crispy spiral pastry and a whole quail egg inside!'],
+    ['alice', 'Kueh Salat', 'completed', 22, 5, 'Perfect balance of pandan custard and rice.'],
+    ['chloe', 'Muah Chee', 'completed', 10, 4, 'Soft and chewy, generous peanuts.'],
+    ['hannah', 'Love Letters', 'completed', 26, 5, 'Thin and crispy, bought another tin for my grandma.'],
+    ['farah', 'Chendol', 'completed', 6, 4, 'Gula melaka is legit. Would be nice to have durian option.'],
+    ['alice', 'Pandan Chiffon Cake', 'completed', 9, 5, 'So fluffy and fragrant.'],
+    ['hannah', 'Macrame Wall Hanging', 'completed', 27, 5, 'Priya customised the length for my wall. Beautiful work.'],
+    ['chloe', 'Ceramic Coffee Mug', 'completed', 15, 5, 'Each mug is slightly different, love the hand-painted stars.'],
+    ['hannah', 'Crochet Coasters', 'completed', 12, 4, 'Cute and thick, they absorb well.'],
+    ['chloe', 'Embroidery Hoop Art', 'completed', 21, 5, 'Gave it as a birthday gift, my friend teared up.'],
+    ['hannah', 'Handmade Soap Bars', 'completed', 8, 4, 'Smells lovely, lather is a bit light.'],
+    ['hannah', 'Pottery Wheel Class', 'completed', 16, 5, 'Rachel is so patient. Came home with two wonky but lovely bowls.'],
+    ['chloe', 'Watercolour Workshop', 'completed', 23, 5, 'Relaxing Sunday afternoon, everything provided.'],
+    ['gabriel', 'Bread Baking Class', 'completed', 13, 4, 'Learnt a lot, class could be a little smaller.'],
+    ['hannah', 'Terrarium Kit', 'completed', 7, 5, 'Easy instructions and good quality plants.'],
+    ['alice', 'Fresh Flower Bouquet', 'completed', 11, 5, 'Fresh flowers that lasted over a week.'],
+    ['irfan', 'Mee Siam', 'completed', 2], // completed, not reviewed yet
+    ['farah', 'Hokkien Mee', 'pending', 0],
+    ['gabriel', 'Lemon Drizzle Cake', 'accepted', 1],
+    ['hannah', 'Beaded Bracelet', 'pending', 0],
+    ['irfan', 'Iced Matcha Latte', 'rescheduled', 1],
+    ['ben', 'Calamansi Juice', 'declined', 2],
+    ['chloe', 'Modern Calligraphy Lesson', 'accepted', 2],
   ]
 
   const orders = []
@@ -271,7 +401,10 @@ async function run() {
   await Review.insertMany(reviews)
 
   // follows
-  const FOLLOWS = { alice: ['bob', 'ella', 'grace'], ben: ['dinesh', 'farid'], chloe: ['cara', 'ivy', 'bob'] }
+  const FOLLOWS = {
+    alice: ['bob', 'ella', 'grace', 'jason'], ben: ['dinesh', 'farid', 'mei'], chloe: ['cara', 'ivy', 'bob', 'priya'],
+    farah: ['mei', 'kelvin', 'aisyah'], gabriel: ['jason', 'aisyah', 'bob'], hannah: ['priya', 'rachel', 'cara'], irfan: ['mei', 'aisyah', 'dinesh'],
+  }
   for (const [buyerKey, sellerKeys] of Object.entries(FOLLOWS)) {
     for (const s of sellerKeys) await Shop.updateOne({ _id: shopBy[s]._id }, { $addToSet: { followers: buyer[buyerKey]._id } })
   }
@@ -285,6 +418,10 @@ async function run() {
     alice: ['Matcha Cupcakes', 'Strawberry Mochi', 'Kueh Lapis', 'Pineapple Tarts', 'Brown Sugar Pudding Jars'],
     ben: ['Chicken Biryani', 'Classic Cold Brew', 'Cereal Prawns'],
     chloe: ['Crochet Plushie', 'Lavender Soy Candle', 'Illustrated Pet Portrait', 'Matcha Cupcakes'],
+    farah: ['Nasi Lemak', 'Curry Puffs', 'Chendol', 'Laksa'],
+    gabriel: ['Sourdough Loaf', 'Butter Croissants', 'Ginger Kombucha'],
+    hannah: ['Macrame Wall Hanging', 'Pottery Wheel Class', 'Pressed Flower Art', 'Terrarium Kit'],
+    irfan: ['Hainanese Chicken Rice', 'Brown Sugar Boba Kit', 'Bak Kut Teh'],
   }
   const favDocs = []
   const interactions = []
@@ -301,6 +438,10 @@ async function run() {
     alice: ['Ondeh Ondeh', 'Mango Sago Pudding', 'Banana Walnut Loaf', 'Kueh Lapis', 'Chocolate Chip Cookies'],
     ben: ['Sambal Kangkong', 'Teh Tarik Kit', 'Masala Dosa (Frozen Batter)', 'Lemongrass Ginger Tea'],
     chloe: ['Handmade Greeting Cards', 'Beaded Keychain', 'Custom Name Stickers', 'Strawberry Mochi'],
+    farah: ['Mee Siam', 'Kuih Bangkit', 'Tang Yuan', 'Fish Head Curry'],
+    gabriel: ['Basque Burnt Cheesecake', 'Rosemary Focaccia', 'Iced Lemon Tea'],
+    hannah: ['Hand-knitted Snood', 'Canvas Tote Bag', 'Watercolour Workshop', 'Succulent Arrangement'],
+    irfan: ['Char Kway Teow', 'Sugarcane Juice', 'Calamansi Juice'],
   }
   for (const [buyerKey, names] of Object.entries(BROWSING)) {
     names.forEach((n, i) => {
@@ -314,7 +455,10 @@ async function run() {
   await Interaction.insertMany(interactions)
 
   // search history
-  const SEARCHES = { alice: ['cake', 'mochi', 'kueh'], ben: ['biryani', 'coffee', 'spicy'], chloe: ['candle', 'gift', 'crochet'] }
+  const SEARCHES = {
+    alice: ['cake', 'mochi', 'kueh'], ben: ['biryani', 'coffee', 'spicy'], chloe: ['candle', 'gift', 'crochet'],
+    farah: ['nasi lemak', 'kueh'], gabriel: ['sourdough', 'croissant'], hannah: ['workshop', 'macrame'], irfan: ['chicken rice', 'boba'],
+  }
   await SearchHistory.insertMany(Object.entries(SEARCHES).flatMap(([b, terms]) =>
     terms.map((term, i) => ({ user: buyer[b]._id, term, createdAt: daysFromNow(-i, 19) }))))
 
