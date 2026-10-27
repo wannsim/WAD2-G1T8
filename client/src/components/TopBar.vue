@@ -5,7 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { socket } from '@/utils/socket'
 import { currentUser, isLoggedIn, isSeller, clearUser } from '@/utils/auth'
-import { navOpen, recentOrders, loadRecentOrders } from '@/utils/layout'
+import { navOpen, recentOrders, loadRecentOrders, myShopAvatar, userAvatarUrl } from '@/utils/layout'
 import NotificationBell from './NotificationBell.vue'
 
 // Owner: Cheyenne (chat badge + user menu moved here from Wan Sim's NavBar)
@@ -79,6 +79,12 @@ const orderStat = computed(() => {
   }
 })
 const initial = computed(() => (currentUser.value?.name || '?').charAt(0).toUpperCase())
+// sellers: their shop's profile picture. buyers: their own (set on the profile page). '' -> first letter
+const brokenPhoto = ref('')
+const avatarPhoto = computed(() => {
+  const url = isSeller.value ? myShopAvatar.value : userAvatarUrl(currentUser.value)
+  return url && url !== brokenPhoto.value ? url : ''
+})
 
 function refreshAll() {
   loadUnread()
@@ -151,7 +157,9 @@ onUnmounted(() => {
 
         <div class="dropdown">
           <button class="user-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <span class="user-avatar" aria-hidden="true">{{ initial }}</span>
+            <!-- sellers: their shop's profile photo, buyers: their own; otherwise the first letter of their name -->
+            <img v-if="avatarPhoto" :src="avatarPhoto" alt="" class="user-avatar user-photo" @error="brokenPhoto = avatarPhoto" />
+            <span v-else class="user-avatar" aria-hidden="true">{{ initial }}</span>
             <span class="user-name d-none d-md-inline">{{ currentUser.name }}</span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
@@ -174,10 +182,15 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* above the page, so the bell / user pop-ups are never hidden behind cards */
+/* sticky: stays at the top while the page scrolls under it.
+   Above the page, so the bell / user pop-ups are never hidden behind cards */
 .top-bar {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 1030;
+  border-bottom: 1px solid var(--line);
+  border-top-right-radius: 2rem; /* matches the app frame's rounded corner */
+  background: var(--surface);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -353,9 +366,13 @@ onUnmounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fbeeb0, #f8c9b8);
+  background: var(--ocean-soft);
   font-weight: 700;
   color: var(--navy);
+}
+.user-photo {
+  object-fit: cover;
+  background: var(--tile);
 }
 .user-name {
   max-width: 140px;
@@ -370,6 +387,7 @@ onUnmounted(() => {
 }
 @media (max-width: 991.98px) {
   .top-bar {
+    border-top-right-radius: 0; /* phones: the frame has square corners */
     padding: 0.75rem 1rem;
     gap: 0.6rem;
   }

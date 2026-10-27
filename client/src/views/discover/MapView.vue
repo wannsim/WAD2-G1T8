@@ -53,7 +53,7 @@ const stationLabel = (shop) => (cleanMrtName(shop?.nearestMrt) ? `${cleanMrtName
 const categoryLabel = (shop) => (shop.categories?.length ? shop.categories.join(', ') : 'No category yet')
 
 // same colour for the same shop every time
-const AVATAR_COLOURS = ['#2f63e0', '#36b3cc', '#18204a', '#5a6fd6', '#23899f', '#7fa6ee', '#234bb8', '#4fc3c9'] // ocean palette
+const AVATAR_COLOURS = ['#24498a', '#5b86c5', '#13284b', '#1b3a70', '#3f6aa8', '#93b2dd', '#46577a', '#e3a63a'] // navy / blue palette
 function avatarColour(name) {
   let hash = 0
   for (const ch of String(name)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0

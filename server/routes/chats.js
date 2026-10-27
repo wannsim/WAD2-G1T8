@@ -12,6 +12,21 @@ import { emitFromRoute } from '../utils/realtime.js'
 // GET  /chats/:id/messages?userId=   messages of one chat (also marks them as read for that user)
 // POST /chats/:id/messages        send a message
 const router = express.Router()
+
+// the OTHER person in a chat, as the chat list / header shows them:
+//   buyers see the shop (its name + profile picture) and the seller's "last seen"
+//   sellers see the buyer (their name + profile picture) and the buyer's "last seen"
+// needs buyer / seller / shop populated (see PEER_FIELDS)
+const PEER_FIELDS = [
+  { path: 'buyer', select: 'name avatarUpdatedAt lastSeenAt' },
+  { path: 'seller', select: 'lastSeenAt' },
+  { path: 'shop', select: 'name avatarUpdatedAt' },
+]
+function peerOf(c, isBuyer) {
+  return isBuyer
+    ? { title: c.shop.name, avatar: { kind: 'shop', id: c.shop._id, updatedAt: c.shop.avatarUpdatedAt || null }, lastSeenAt: c.seller?.lastSeenAt || null }
+    : { title: c.buyer.name, avatar: { kind: 'user', id: c.buyer._id, updatedAt: c.buyer.avatarUpdatedAt || null }, lastSeenAt: c.buyer.lastSeenAt || null }
+}
  
 // ---- start (or reopen) a chat with a shop ----  body: { buyer, shop }
 router.post('/start', async (req, res) => {
@@ -60,15 +75,14 @@ router.get('/user/:userId', async (req, res) => {
     const { userId } = req.params
     if (!mongoose.isValidObjectId(userId)) return res.json([])
     const conversations = await Conversation.find({ $or: [{ buyer: userId }, { seller: userId }] })
-      .populate('buyer', 'name')
-      .populate('shop', 'name')
+      .populate(PEER_FIELDS)
       .sort({ lastMessageAt: -1 })
  
     const list = conversations.map((c) => {
       const isBuyer = String(c.buyer._id) === String(userId)
       return {
         _id: c._id,
-        title: isBuyer ? c.shop.name : c.buyer.name, // buyers see the shop name, sellers see the buyer's name
+        ...peerOf(c, isBuyer), // title (buyers see the shop name, sellers see the buyer's name), avatar, lastSeenAt
         lastMessage: c.lastMessage,
         lastMessageAt: c.lastMessageAt,
         unread: isBuyer ? c.buyerUnread : c.sellerUnread,
@@ -85,11 +99,11 @@ router.get('/:id/messages', async (req, res) => {
   try {
     const { userId } = req.query
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Chat not found' })
-    const conversation = await Conversation.findById(req.params.id).populate('buyer', 'name').populate('shop', 'name')
+    const conversation = await Conversation.findById(req.params.id).populate(PEER_FIELDS)
     if (!conversation) return res.status(404).json({ message: 'Chat not found' })
  
     const isBuyer = String(conversation.buyer._id) === String(userId)
-    const isSeller = String(conversation.seller) === String(userId)
+    const isSeller = String(conversation.seller._id) === String(userId)
     if (!isBuyer && !isSeller) return res.status(403).json({ message: 'This is not your chat' })
  
     // opening the chat = reading it
@@ -101,7 +115,9 @@ router.get('/:id/messages', async (req, res) => {
     emitFromRoute([userId], 'unread-changed') // navbar badge refreshes
  
     const messages = await Message.find({ conversation: conversation._id }).sort({ createdAt: 1 })
-    res.json({ title: isBuyer ? conversation.shop.name : conversation.buyer.name, messages })
+    // peerUnread = how many of MY latest messages the other person hasn't read yet (one tick vs two ticks)
+    const peerUnread = isBuyer ? conversation.sellerUnread : conversation.buyerUnread
+    res.json({ ...peerOf(conversation, isBuyer), peerUnread, messages })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

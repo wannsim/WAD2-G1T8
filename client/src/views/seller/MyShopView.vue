@@ -44,7 +44,7 @@
     </template>
     <div class="card-grid">
       <div v-for="item in shownProducts" :key="item._id">
-        <div class="card h-100 shadow-sm"
+        <div class="card product-tile h-100 shadow-sm"
           :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting }"
           @click="selecting && toggleSelected(item)">
           <div class="position-relative">
@@ -395,6 +395,15 @@ onBeforeUnmount(() => shopController?.abort())
 }
 .select-box .form-check-input:checked {
   border-color: var(--ocean);
+}
+/* product cards: no background until hovered (like YouTube), same as ProductCard */
+.product-tile {
+  --bs-card-bg: transparent;
+  transition: background-color 0.18s ease;
+}
+.product-tile:hover,
+.product-tile.selected {
+  --bs-card-bg: var(--tile);
 }
 .selectable {
   cursor: pointer;

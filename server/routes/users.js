@@ -1,10 +1,13 @@
 import express from 'express'
+import multer from 'multer'
+import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import { OAuth2Client } from 'google-auth-library'
 
 // Owner: Wan Sim
 // POST /users/register   POST /users/login   GET /users/:id   PUT /users/:id
+// POST/DELETE/GET /users/:id/avatar (profile picture)
 const router = express.Router()
 
 // never send the password hash back to the client
@@ -12,6 +15,7 @@ function safeUser(u) {
   return {
     _id: u._id, name: u.name, email: u.email, role: u.role, preferences: u.preferences, preferredMrt: u.preferredMrt || '',
     deliveryAddress: u.deliveryAddress || '', deliveryUnit: u.deliveryUnit || '', deliveryPostalCode: u.deliveryPostalCode || '',
+    avatarUpdatedAt: u.avatarUpdatedAt || null,
   }
 }
 
@@ -99,6 +103,69 @@ router.put('/:id', async (req, res) => {
     res.json(safeUser(user))
   } catch (err) {
     res.status(500).json({ message: err.message })
+  }
+})
+
+// ---------- profile picture (buyers; sellers use their shop's picture) ----------
+// images only, max 5MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+})
+function uploadImage(req, res, next) {
+  upload.single('image')(req, res, (err) => {
+    if (!err) return next()
+    res.status(400).json({ message: err.code === 'LIMIT_FILE_SIZE' ? 'Image is too big (max 5MB)' : err.message })
+  })
+}
+// only the account owner may change it (body.user must be the same id)
+function isMe(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id) || String(req.body?.user) !== req.params.id) {
+    res.status(403).json({ message: 'You can only change your own profile picture' })
+    return false
+  }
+  return true
+}
+
+// upload / replace it. multipart form: user (text) + image (file). Returns the updated user
+router.post('/:id/avatar', uploadImage, async (req, res) => {
+  try {
+    if (!isMe(req, res)) return
+    if (!req.file) return res.status(400).json({ message: 'Please choose an image file (max 5MB)' })
+    const avatar = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+    const user = await User.findByIdAndUpdate(req.params.id, { avatar, avatarUpdatedAt: new Date() }, { new: true })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    res.json(safeUser(user))
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// remove it (back to the first letter of the name). body: { user }
+router.delete('/:id/avatar', async (req, res) => {
+  try {
+    if (!isMe(req, res)) return
+    const user = await User.findByIdAndUpdate(req.params.id, { $unset: { avatar: 1 }, avatarUpdatedAt: null }, { new: true })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    res.json(safeUser(user))
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// the picture itself. Use ?v=<avatarUpdatedAt> so a new picture isn't hidden by the cache
+router.get('/:id/avatar', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.sendStatus(404)
+    const user = await User.findById(req.params.id).select('+avatar').lean()
+    const match = /^data:(.+?);base64,(.+)$/s.exec(user?.avatar || '')
+    if (!match) return res.sendStatus(404)
+    res.set('Content-Type', match[1])
+    res.set('Cache-Control', 'public, max-age=604800')
+    res.send(Buffer.from(match[2], 'base64'))
+  } catch (err) {
+    res.sendStatus(500)
   }
 })
 

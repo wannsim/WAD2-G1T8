@@ -27,6 +27,18 @@ watch(navCollapsed, (collapsed) => {
   }
 })
 
+// sellers: their shop's profile photo (shown as the avatar in the top bar). '' = none -> first letter of the name.
+// ShopHeader updates it straight away when the seller uploads / removes the photo.
+export const myShopAvatar = ref('')
+export const shopAvatarUrl = (shopId, updatedAt) =>
+  updatedAt ? `${API_URL}/shops/${shopId}/avatar?v=${new Date(updatedAt).getTime()}` : ''
+// a user's own profile picture (buyers); '' if they have none
+export const userAvatarUrl = (user) =>
+  user?.avatarUpdatedAt ? `${API_URL}/users/${user._id}/avatar?v=${new Date(user.avatarUpdatedAt).getTime()}` : ''
+// chat: { kind: 'shop' | 'user', id, updatedAt } (from /chats) -> the picture's URL, or ''
+export const chatAvatarUrl = (avatar) =>
+  !avatar?.updatedAt ? '' : avatar.kind === 'shop' ? shopAvatarUrl(avatar.id, avatar.updatedAt) : userAvatarUrl({ _id: avatar.id, avatarUpdatedAt: avatar.updatedAt })
+
 // the user's latest orders (buyers: what they ordered, sellers: what their shop received)
 // used by the sidebar ("Last orders") and the top bar ("N orders, last 7 days")
 export const recentOrders = ref([])
@@ -35,12 +47,14 @@ export async function loadRecentOrders() {
   const user = currentUser.value
   if (!user) {
     recentOrders.value = []
+    myShopAvatar.value = ''
     return
   }
   try {
     let url = `${API_URL}/orders/buyer/${user._id}`
     if (isSeller.value) {
       const shop = await axios.get(`${API_URL}/shops/mine/${user._id}`)
+      myShopAvatar.value = shopAvatarUrl(shop.data?._id, shop.data?.avatarUpdatedAt)
       if (!shop.data?._id) {
         recentOrders.value = []
         return

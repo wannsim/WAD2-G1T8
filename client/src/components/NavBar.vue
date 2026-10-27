@@ -68,13 +68,13 @@ onMounted(loadRecentOrders)
         <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true">
           <defs>
             <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#2f63e0" />
-              <stop offset="1" stop-color="#36b3cc" />
+              <stop offset="0" stop-color="#24498a" />
+              <stop offset="1" stop-color="#5b86c5" />
             </linearGradient>
           </defs>
           <rect width="34" height="34" rx="10" fill="url(#logo-gradient)" />
           <path d="M8 16 17 8l9 8v10H8z" fill="#fff" />
-          <rect x="14" y="19" width="6" height="7" fill="#18204a" />
+          <rect x="14" y="19" width="6" height="7" fill="#13284b" />
         </svg>
         <span class="label">Homly Hauls</span>
       </RouterLink>
@@ -179,9 +179,9 @@ onMounted(loadRecentOrders)
 .side-link:hover {
   background: var(--tile);
 }
-/* the page you are on: filled blue pill (like "Explore New") */
+/* the page you are on: navy gradient pill */
 .side-link.router-link-active {
-  background: var(--ocean);
+  background: linear-gradient(135deg, var(--ocean), var(--aqua));
   color: #fff;
   box-shadow: 0 8px 18px rgba(var(--ocean-rgb), 0.3);
 }

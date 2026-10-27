@@ -51,7 +51,6 @@ const bare = computed(() => route.path === '/login' || route.path === '/register
 }
 .app-content {
   padding: 0.5rem 2rem 2.5rem;
-  border-top: 1px solid var(--line);
   padding-top: 1.5rem;
 }
 @media (max-width: 991.98px) {

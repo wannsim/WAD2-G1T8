@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser, saveUser } from '@/utils/auth'
 import { CATEGORIES } from '@/utils/constants'
+import { userAvatarUrl } from '@/utils/layout'
+import AvatarEditor from '@/components/AvatarEditor.vue'
  
 // Save as: client/src/views/auth/BuyerProfileView.vue   (Owner: Wan Sim)
 // The buyer's profile page (shown at /profile when the logged-in user is a buyer).
@@ -20,7 +22,37 @@ const purchases = ref([])
 const followedShops = ref([])
 const loadingActivity = ref(true)
 const message = ref('')
- 
+const photoError = ref('')
+// the page opens read-only; "Edit profile" shows the form, Save / Cancel go back to viewing
+const editing = ref(false)
+
+// puts a saved user into the form (on load, and on Cancel to throw away unsaved changes)
+function fillForm(user) {
+  name.value = user.name
+  email.value = user.email
+  preferences.value = [...(user.preferences || [])]
+  preferredMrt.value = user.preferredMrt || ''
+  deliveryAddress.value = user.deliveryAddress || ''
+  deliveryUnit.value = user.deliveryUnit || ''
+  deliveryPostalCode.value = user.deliveryPostalCode || ''
+}
+function startEditing() {
+  message.value = ''
+  editing.value = true
+}
+function cancelEditing() {
+  fillForm(currentUser.value)
+  message.value = ''
+  photoError.value = ''
+  editing.value = false
+}
+// view mode: the address on one line ('' if none)
+const fullAddress = computed(() => [
+  deliveryAddress.value,
+  deliveryUnit.value,
+  deliveryPostalCode.value ? 'Singapore ' + deliveryPostalCode.value : '',
+].filter(Boolean).join(', '))
+
 onMounted(async () => {
   if (!currentUser.value) {
     router.push('/login') // access control: must be logged in
@@ -28,13 +60,7 @@ onMounted(async () => {
   }
   try {
     const response = await axios.get(`${API_URL}/users/${currentUser.value._id}`)
-    name.value = response.data.name
-    email.value = response.data.email
-    preferences.value = response.data.preferences
-    preferredMrt.value = response.data.preferredMrt || ''
-    deliveryAddress.value = response.data.deliveryAddress || ''
-    deliveryUnit.value = response.data.deliveryUnit || ''
-    deliveryPostalCode.value = response.data.deliveryPostalCode || ''
+    fillForm(response.data)
     const [ordersResponse, followedResponse] = await Promise.all([
       axios.get(`${API_URL}/orders/buyer/${currentUser.value._id}`),
       axios.get(`${API_URL}/shops/following/${currentUser.value._id}`),
@@ -63,7 +89,9 @@ async function save() {
       deliveryPostalCode: deliveryPostalCode.value,
     })
     saveUser(response.data) // keep the saved login + NavBar in sync
+    fillForm(response.data)
     message.value = 'Profile saved!'
+    editing.value = false
   } catch (error) {
     message.value = error.response?.data?.message || error.message
   }
@@ -75,6 +103,44 @@ async function save() {
       <h2 class="page-title">My profile</h2>
       <div v-if="message" class="alert alert-info">{{ message }}</div>
       <section class="card p-4 shadow-sm mb-4">
+        <!-- profile picture (while editing: click it to upload / remove - same "Change Profile Photo" box as the seller's shop page) -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <AvatarEditor :src="userAvatarUrl(currentUser)" :name="name || currentUser?.name" size="96px" :editable="editing"
+            :upload-url="`${API_URL}/users/${currentUser._id}/avatar`" :remove-url="`${API_URL}/users/${currentUser._id}/avatar`"
+            @uploaded="saveUser" @removed="saveUser" @error="photoError = $event" />
+          <div class="flex-grow-1" style="min-width: 0">
+            <h3 class="h5 mb-1 text-truncate">{{ name || currentUser?.name }}</h3>
+            <p class="small text-muted mb-0">
+              <template v-if="editing">Click your picture to {{ userAvatarUrl(currentUser) ? 'change or remove it' : 'add a profile photo' }}.</template>
+              <template v-else>{{ email }}</template>
+            </p>
+            <p v-if="photoError" class="small text-danger mb-0">{{ photoError }}</p>
+          </div>
+          <button v-if="!editing" type="button" class="btn btn-primary edit-btn" @click="startEditing">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
+            </svg>
+            Edit profile
+          </button>
+        </div>
+
+        <!-- view mode (the page opens like this) -->
+        <dl v-if="!editing" class="profile-details mb-0">
+          <div><dt>Name</dt><dd>{{ name || '-' }}</dd></div>
+          <div><dt>Email</dt><dd>{{ email || '-' }}</dd></div>
+          <div><dt>Preferred MRT station</dt><dd>{{ preferredMrt || 'Not set' }}</dd></div>
+          <div><dt>Delivery address</dt><dd>{{ fullAddress || 'Not added' }}</dd></div>
+          <div class="full">
+            <dt>Interests</dt>
+            <dd>
+              <span v-for="category in preferences" :key="category" class="interest-chip">{{ category }}</span>
+              <span v-if="preferences.length === 0" class="text-muted">None picked yet</span>
+            </dd>
+          </div>
+        </dl>
+
+        <!-- edit mode -->
+        <template v-else>
         <div class="row g-3 mb-3">
           <div class="col-12 col-sm-6">
             <label class="form-label" for="buyer-name">Name</label>
@@ -121,7 +187,11 @@ async function save() {
           </div>
         </div>
 
-        <button class="btn btn-primary w-100" @click="save">Save profile</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn cancel-btn flex-fill" @click="cancelEditing">Cancel</button>
+          <button type="button" class="btn btn-primary flex-fill" @click="save">Save profile</button>
+        </div>
+        </template>
       </section>
 
       <section class="card p-4 shadow-sm mb-4">
@@ -155,6 +225,59 @@ async function save() {
 </template>
 
 <style scoped>
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+}
+/* Cancel (edit mode): outlined, so it reads as a button */
+.cancel-btn {
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+.cancel-btn:hover {
+  border-color: var(--ocean);
+  color: var(--ocean);
+}
+/* view mode: label above value, two columns on wide screens */
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem 2rem;
+}
+.profile-details .full {
+  grid-column: 1 / -1;
+}
+.profile-details dt {
+  margin-bottom: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.profile-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.interest-chip {
+  display: inline-block;
+  margin: 0 0.4rem 0.4rem 0;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: var(--ocean-soft);
+  font-size: 0.85rem;
+  color: var(--ocean-dark);
+}
+@media (max-width: 575.98px) {
+  .profile-details {
+    grid-template-columns: 1fr;
+  }
+}
 .interest-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

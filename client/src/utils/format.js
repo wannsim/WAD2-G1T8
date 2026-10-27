@@ -47,3 +47,17 @@ export function shortNumber(n) {
   const value = Number(n || 0)
   return value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k` : String(value)
 }
+
+// chat header: "Online" (seen in the last 2 minutes), "Last seen today at 3:42 pm",
+// "Last seen yesterday at 9:10 am", "Last seen 13/10/2026". '' if never seen.
+export function lastSeenLabel(d) {
+  if (!d) return ''
+  const seen = new Date(d)
+  if (Date.now() - seen.getTime() < 2 * 60 * 1000) return 'Online'
+  const sg = { timeZone: 'Asia/Singapore' }
+  const day = (date) => date.toLocaleDateString('en-SG', sg)
+  const time = seen.toLocaleTimeString('en-SG', { ...sg, hour: 'numeric', minute: '2-digit' })
+  if (day(seen) === day(new Date())) return `Last seen today at ${time}`
+  if (day(seen) === day(new Date(Date.now() - 86400000))) return `Last seen yesterday at ${time}`
+  return `Last seen ${seen.toLocaleDateString('en-SG', { ...sg, day: '2-digit', month: '2-digit', year: 'numeric' })}`
+}

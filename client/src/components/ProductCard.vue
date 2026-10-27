@@ -103,19 +103,19 @@ function useFallbackImage(event) {
         <span class="card-label clamp-1">{{ product.category ? capitalize(product.category) : 'Homemade' }}</span>
         <!-- card-link stretches over the whole card: clicking anywhere opens the product -->
         <RouterLink :to="`/products/${product._id}`" class="card-title card-link clamp-2" @click="$emit('open')">{{ product.name }}</RouterLink>
-        <p v-if="shopName" class="text-muted small mb-2 clamp-1">
+        <p v-if="shopName" class="text-muted small mb-1 clamp-1">
           {{ shopName }}<span v-if="product.shop.nearestMrt"> &middot; {{ product.shop.nearestMrt }} MRT</span>
         </p>
         <!-- price as a blue pill, like the inspiration -->
-        <div class="price-row mb-2">
+        <div class="price-row mb-1">
           <span class="unit clamp-1">/ {{ product.unit }}</span>
           <span class="price-pill">{{ formatPrice(product.price) }}</span>
         </div>
 
         <!-- grey hint; the reason shows in a tooltip on hover (or keyboard focus) -->
-        <div v-if="reason" class="reason mb-2">
+        <div v-if="reason" class="reason mb-1">
           <span class="reason-hint" tabindex="0" :aria-label="`Why recommended: ${reason}`" @click="openProduct">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
               <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
             </svg>
@@ -139,14 +139,15 @@ function useFallbackImage(event) {
   position: relative;
   overflow: hidden;
   min-width: 0;
-  padding: 0.55rem; /* photo sits inside the grey tile, with its own rounded corners */
+  padding: 0.55rem; /* photo has its own rounded corners, inside the card's rounded shape */
+  --bs-card-bg: transparent; /* like YouTube: no background until you hover */
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background-color 0.18s ease;
 }
-/* the whole card reacts like a button */
-.product-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(var(--navy-rgb), 0.14) !important;
+/* hover: the rounded grey tile appears behind the photo + text */
+.product-card:hover,
+.product-card:has(.card-link:focus-visible) {
+  --bs-card-bg: var(--tile);
 }
 .product-card:has(.card-link:focus-visible) {
   outline: 3px solid rgba(var(--ocean-rgb), 0.45);
@@ -173,7 +174,7 @@ function useFallbackImage(event) {
   z-index: 2;
 }
 @media (prefers-reduced-motion: reduce) {
-  .product-card, .product-card:hover { transition: none; transform: none; }
+  .product-card { transition: none; }
 }
 
 .carousel-box {
@@ -184,17 +185,18 @@ function useFallbackImage(event) {
   border-radius: 0; /* the box above rounds the corners */
 }
 .card-summary .card-body {
-  padding: 0.85rem 0.6rem 0.35rem;
+  padding: 0.6rem 0.5rem 0.25rem;
 }
 .card-label {
   font-size: 0.75rem;
   color: var(--muted);
 }
 .card-title {
+  min-height: 0; /* short names don't keep an empty second line (tighter card) */
   font-size: 1.02rem;
   font-weight: 600;
   line-height: 1.25;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
 }
 .price-row {
   display: flex;
@@ -351,9 +353,9 @@ function useFallbackImage(event) {
 .reason-hint {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--muted); /* greyed out */
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--muted); /* greyed out, small */
   cursor: help;
   border-radius: 4px;
 }

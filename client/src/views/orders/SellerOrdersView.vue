@@ -40,12 +40,12 @@ const STATUS_HELP_SELLER = {
 
 // Sets the colour of each order status tag.
 const STATUS_BADGE = {
-  pending: 'bg-warning text-dark',
-  accepted: 'bg-success',
-  declined: 'bg-danger',
-  rescheduled: 'bg-info text-dark',
-  completed: 'bg-success',
-  cancelled: 'bg-dark',
+  pending: 'status-pending',
+  accepted: 'status-accepted',
+  declined: 'status-declined',
+  rescheduled: 'status-rescheduled',
+  completed: 'bg-success status-completed',
+  cancelled: 'status-cancelled',
 }
 
 // Groups pending orders that need the seller's reply.

@@ -16,6 +16,7 @@ import reviewRoutes from './routes/reviews.js'
 import chatRoutes from './routes/chats.js'
 import notificationRoutes from './routes/notifications.js'
 import { startRealtime } from './utils/realtime.js'
+import User from './models/User.js'
 import { startTrendRefresh } from './utils/trends.js'
  
 dotenv.config({ path: './config.env' })
@@ -31,12 +32,36 @@ app.set('io', io) // route files can reach it with req.app.get('io')
  
 // Every logged-in browser joins a private "room" named after its user id.
 // To notify someone we just send to their room.
+// "Last seen" (chat): while a browser is joined, its user's lastSeenAt is refreshed every minute,
+// and once more when it leaves / disconnects. Chat shows "Online" if that was under ~2 minutes ago.
+const SEEN_EVERY_MS = 60 * 1000
+const markSeen = (userId) => {
+  if (mongoose.isValidObjectId(userId)) User.updateOne({ _id: userId }, { lastSeenAt: new Date() }).catch(() => {})
+}
 io.on('connection', (socket) => {
+  let seenTimer = null
+  const stopSeen = () => {
+    clearInterval(seenTimer)
+    seenTimer = null
+    markSeen(socket.data.userId)
+    socket.data.userId = null
+  }
   socket.on('join', (userId) => {
-    if (typeof userId === 'string') socket.join(`user:${userId}`)
+    if (typeof userId !== 'string') return
+    socket.join(`user:${userId}`)
+    if (socket.data.userId && socket.data.userId !== userId) stopSeen()
+    socket.data.userId = userId
+    markSeen(userId)
+    clearInterval(seenTimer)
+    seenTimer = setInterval(() => markSeen(userId), SEEN_EVERY_MS)
   })
   socket.on('leave', (userId) => {
-    if (typeof userId === 'string') socket.leave(`user:${userId}`)
+    if (typeof userId !== 'string') return
+    socket.leave(`user:${userId}`)
+    if (socket.data.userId === userId) stopSeen()
+  })
+  socket.on('disconnect', () => {
+    if (socket.data.userId) stopSeen()
   })
 })
  

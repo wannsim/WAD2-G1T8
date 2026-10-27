@@ -23,7 +23,8 @@ async function chatWithSeller() {
       buyer: currentUser.value._id,
       shop: product.value.shop._id,
     })
-    router.push(`/chats/${response.data._id}`) // opens the chat tab with this chat open
+    // opens the chat tab with this chat open; ?product= shows this product at the top of the chat
+    router.push({ path: `/chats/${response.data._id}`, query: { product: product.value._id } })
   } catch (error) {
     chatError.value = error.response?.data?.message || error.message
   }

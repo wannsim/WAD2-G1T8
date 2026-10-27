@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import axios from 'axios'
+import { ref, computed, watch } from 'vue'
 import { API_URL } from '@/utils/config'
-import { currentUser } from '@/utils/auth'
+import { myShopAvatar } from '@/utils/layout'
 import FollowButton from './FollowButton.vue'
+import AvatarEditor from './AvatarEditor.vue'
 
 // Channel-style header for a shop (like a YouTube channel): banner, round profile picture, name,
 // "@handle · followers · products · rating", one-line description, Follow button.
@@ -12,7 +12,7 @@ import FollowButton from './FollowButton.vue'
 //     <template #actions> owner-only buttons </template>
 //   </ShopHeader>
 // The shop owner clicks the profile picture to change it (Instagram-style "Change Profile Photo" box:
-// upload / remove / cancel, see POST + DELETE /shops/:id/avatar), and gets a Manage | Public page toggle
+// upload / remove / cancel - AvatarEditor, using POST + DELETE /shops/:id/avatar), and gets a Manage | Public page toggle
 // in the top right to switch between My shop and the public shop page.
 // The banner shows the profile picture (cropped to fit); shops without one get a colour picked from their id.
 const props = defineProps({
@@ -25,11 +25,11 @@ const emit = defineEmits(['more'])
 
 // banner + letter-avatar colour: picked from the shop id, so each shop always gets the same one
 const BANNERS = [
-  'linear-gradient(120deg, #2f63e0, #36b3cc)',
-  'linear-gradient(120deg, #e0607e, #f0b54a)',
-  'linear-gradient(120deg, #18204a, #2f63e0)',
-  'linear-gradient(120deg, #23899f, #7fd3b0)',
-  'linear-gradient(120deg, #8b5cf6, #e0607e)',
+  'linear-gradient(120deg, #24498a, #5b86c5)',
+  'linear-gradient(120deg, #3f6aa8, #b4c9e8)',
+  'linear-gradient(120deg, #13284b, #24498a)',
+  'linear-gradient(120deg, #e3a63a, #f6d9b0)',
+  'linear-gradient(120deg, #3f6aa8, #b4c9e8)',
 ]
 const bannerColour = computed(() => {
   const sum = [...String(props.shop._id || '')].reduce((total, ch) => total + ch.charCodeAt(0), 0)
@@ -54,60 +54,11 @@ const avatarUpdatedAt = ref(null)
 watch(() => props.shop.avatarUpdatedAt, (value) => (avatarUpdatedAt.value = value || null), { immediate: true })
 const avatarUrl = computed(() =>
   avatarUpdatedAt.value ? `${API_URL}/shops/${props.shop._id}/avatar?v=${new Date(avatarUpdatedAt.value).getTime()}` : '')
-const avatarInput = ref(null)
-const avatarBusy = ref(false)
-const avatarError = ref('')
-
-async function uploadAvatar(event) {
-  const file = event.target.files[0]
-  event.target.value = '' // so choosing the same file again still triggers a change
-  if (!file) return
-  avatarError.value = ''
-  if (!file.type.startsWith('image/')) return (avatarError.value = 'Please choose an image file.')
-  if (file.size > 5 * 1024 * 1024) return (avatarError.value = 'That image is too big (max 5MB).')
-  avatarBusy.value = true
-  try {
-    const form = new FormData()
-    form.append('user', currentUser.value._id)
-    form.append('image', file)
-    const res = await axios.post(`${API_URL}/shops/${props.shop._id}/avatar`, form)
-    avatarUpdatedAt.value = res.data.avatarUpdatedAt
-  } catch (err) {
-    avatarError.value = err.response?.data?.message || 'Could not upload the picture. Please try again.'
-  } finally {
-    avatarBusy.value = false
-  }
-}
-
-// "Change Profile Photo" box (owner clicks their picture)
-const photoMenuOpen = ref(false)
-const firstMenuButton = ref(null)
-watch(photoMenuOpen, async (open) => {
-  if (!open) return
-  await nextTick()
-  firstMenuButton.value?.focus() // keyboard users land inside the box (Esc closes it)
+// the seller's own shop: keep the top bar's avatar in step after an upload / removal
+watch(avatarUrl, (url) => {
+  if (props.isOwner) myShopAvatar.value = url
 })
-function chooseNewPhoto() {
-  photoMenuOpen.value = false
-  avatarInput.value.click()
-}
-function removeFromMenu() {
-  photoMenuOpen.value = false
-  removeAvatar()
-}
-
-async function removeAvatar() {
-  avatarError.value = ''
-  avatarBusy.value = true
-  try {
-    await axios.delete(`${API_URL}/shops/${props.shop._id}/avatar`, { data: { user: currentUser.value._id } })
-    avatarUpdatedAt.value = null
-  } catch (err) {
-    avatarError.value = err.response?.data?.message || 'Could not remove the picture. Please try again.'
-  } finally {
-    avatarBusy.value = false
-  }
-}
+const avatarError = ref('')
 </script>
 
 <template>
@@ -117,22 +68,10 @@ async function removeAvatar() {
   </div>
 
   <div class="profile-head">
-    <div class="avatar-wrap">
-      <img v-if="avatarUrl" :src="avatarUrl" :alt="`${shop.name} profile picture`" class="avatar" @error="avatarUpdatedAt = null" />
-      <div v-else class="avatar avatar-letter" :style="{ background: bannerColour }" aria-hidden="true">{{ initial }}</div>
-      <!-- shop owner: click the picture -> "Change Profile Photo" box (like Instagram) -->
-      <template v-if="isOwner">
-        <button type="button" class="avatar-edit" :disabled="avatarBusy" aria-label="Change profile photo" aria-haspopup="dialog"
-          @click="photoMenuOpen = true">
-          <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z" />
-            <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0" />
-          </svg>
-          <span>{{ avatarBusy ? 'Saving...' : 'Change' }}</span>
-        </button>
-        <input ref="avatarInput" type="file" accept="image/*" class="d-none" @change="uploadAvatar" />
-      </template>
-    </div>
+    <!-- shop owner: click the picture -> "Change Profile Photo" box (like Instagram) -->
+    <AvatarEditor :src="avatarUrl" :name="shop.name" :background="bannerColour" size="clamp(96px, 20vw, 160px)"
+      :editable="isOwner" :upload-url="`${API_URL}/shops/${shop._id}/avatar`" :remove-url="`${API_URL}/shops/${shop._id}/avatar`"
+      @uploaded="avatarUpdatedAt = $event.avatarUpdatedAt" @removed="avatarUpdatedAt = null" @error="avatarError = $event" />
 
     <div class="profile-info">
       <h1 class="shop-name">{{ shop.name }}</h1>
@@ -173,18 +112,6 @@ async function removeAvatar() {
       </nav>
     </div>
   </div>
-
-  <!-- "Change Profile Photo" box (like Instagram). Click outside or press Esc to close -->
-  <Teleport to="body">
-    <div v-if="photoMenuOpen" class="photo-menu-shade" @click.self="photoMenuOpen = false" @keydown.esc="photoMenuOpen = false">
-      <div class="photo-menu" role="dialog" aria-modal="true" aria-labelledby="photo-menu-title">
-        <h2 id="photo-menu-title" class="photo-menu-title">Change Profile Photo</h2>
-        <button ref="firstMenuButton" type="button" class="photo-menu-option upload" @click="chooseNewPhoto">Upload Photo</button>
-        <button v-if="avatarUrl" type="button" class="photo-menu-option remove" @click="removeFromMenu">Remove Current Photo</button>
-        <button type="button" class="photo-menu-option" @click="photoMenuOpen = false">Cancel</button>
-      </div>
-    </div>
-  </Teleport>
 </template>
 
 <style scoped>
@@ -206,51 +133,6 @@ async function removeAvatar() {
   align-items: center;
   gap: 1.75rem;
   padding: 1.5rem 0.25rem 1.25rem;
-}
-.avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-.avatar {
-  display: block;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--tile);
-}
-.avatar-letter {
-  display: grid;
-  place-items: center;
-  font-size: 4rem;
-  font-weight: 700;
-  color: #fff;
-}
-/* owner: dark overlay with "Change" on hover / focus */
-.avatar-edit {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(var(--navy-rgb), 0.55);
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 600;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-.avatar-edit:hover,
-.avatar-edit:focus-visible,
-.avatar-edit:disabled {
-  opacity: 1;
-}
-@media (hover: none) {
-  .avatar-edit { opacity: 0.85; } /* phones: no hover, so always show it */
 }
 .profile-info {
   flex: 1;
@@ -336,55 +218,6 @@ async function removeAvatar() {
   box-shadow: 0 4px 12px rgba(var(--navy-rgb), 0.1);
 }
 
-/* ---------- "Change Profile Photo" box (like Instagram) ---------- */
-.photo-menu-shade {
-  position: fixed;
-  inset: 0;
-  z-index: 1100; /* above the sidebar drawer */
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.55);
-}
-.photo-menu {
-  width: min(400px, 100%);
-  overflow: hidden;
-  border-radius: 1.25rem;
-  background: var(--surface);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-  text-align: center;
-}
-.photo-menu-title {
-  margin: 0;
-  padding: 1.6rem 1rem 1.4rem;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: var(--ink);
-}
-.photo-menu-option {
-  display: block;
-  width: 100%;
-  padding: 0.9rem 1rem;
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: none;
-  font-size: 0.95rem;
-  color: var(--ink);
-}
-.photo-menu-option:hover,
-.photo-menu-option:focus-visible {
-  background: var(--surface-hover);
-  outline: none;
-}
-.photo-menu-option.upload {
-  font-weight: 700;
-  color: var(--ocean);
-}
-.photo-menu-option.remove {
-  font-weight: 700;
-  color: var(--rose);
-}
-
 /* below ~992px there isn't room for the toggle beside the name: it goes on its own line above */
 @media (max-width: 991.98px) {
   .profile-head {
@@ -407,13 +240,6 @@ async function removeAvatar() {
   }
   .profile-info {
     align-self: stretch; /* full width, so long text wraps / clamps instead of widening the page */
-  }
-  .avatar {
-    width: 96px;
-    height: 96px;
-  }
-  .avatar-letter {
-    font-size: 2.5rem;
   }
 }
 </style>

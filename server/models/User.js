@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema(
     deliveryAddress: { type: String, default: '', trim: true },
     deliveryUnit: { type: String, default: '', trim: true },
     deliveryPostalCode: { type: String, default: '', trim: true },
+    // profile picture (chat list, top bar). avatar = Base64, never sent in the user JSON (select: false),
+    // served by GET /users/:id/avatar. avatarUpdatedAt = when it last changed (null = no picture)
+    avatar: { type: String, select: false },
+    avatarUpdatedAt: { type: Date, default: null },
+    // "Last seen ..." in chat: updated while the user has the app open (see server.js)
+    lastSeenAt: { type: Date, default: null },
   },
   { timestamps: true }
 )

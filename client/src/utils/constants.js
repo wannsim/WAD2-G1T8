@@ -11,12 +11,13 @@ export const CATEGORIES = [
 // units a seller can sell by (price is "per unit")
 export const UNITS = ['piece', 'box', 'pack', 'set', 'dozen', 'slice', 'jar', 'bottle', 'kg', 'session', 'hour']
 
-// Bootstrap badge classes for each order status (used with :class="ORDER_STATUS_BADGE[order.status]")
+// badge classes for each order status (used with :class="ORDER_STATUS_BADGE[order.status]")
+// status-* colours live in assets/main.css: pending yellow, accepted green, declined / cancelled red, rescheduled blue
 export const ORDER_STATUS_BADGE = {
-  pending: 'bg-warning text-dark',
-  accepted: 'bg-success',
-  declined: 'bg-danger',
-  rescheduled: 'bg-info text-dark',
-  completed: 'bg-secondary',
-  cancelled: 'bg-dark',
+  pending: 'status-pending',
+  accepted: 'status-accepted',
+  declined: 'status-declined',
+  rescheduled: 'status-rescheduled',
+  completed: 'bg-secondary status-completed',
+  cancelled: 'status-cancelled',
 }

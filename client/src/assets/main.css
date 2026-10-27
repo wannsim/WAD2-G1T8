@@ -1,42 +1,43 @@
 /* Global styles shared by everyone. Keep it short.
    Component-specific CSS goes in that component's <style scoped>. */
 :root {
-  /* ---- colour palette: "Ocean" (deep navy -> ocean blue -> aqua) - use these, not raw hex codes ---- */
-  --navy: #18204a;          /* headings, active tabs / toggles (deep ocean) */
-  --navy-rgb: 24, 32, 74;
-  --ocean: #2f63e0;         /* main buttons, links */
-  --ocean-dark: #234bb8;
-  --ocean-soft: #e6eefc;
-  --ocean-rgb: 47, 99, 224;
-  --aqua: #36b3cc;          /* accents, selected chips, success, info */
-  --aqua-dark: #23899f;
-  --aqua-soft: #e2f5f9;
-  --aqua-rgb: 54, 179, 204;
-  --rose: #e0607e;          /* errors, remove / decline */
-  --rose-rgb: 224, 96, 126;
-  --amber: #f0b54a;         /* warnings, pending */
-  --amber-rgb: 240, 181, 74;
+  /* ---- colour palette: "Navy" (deep navy ink -> navy blue -> mid blue, on light blue, with a golden amber accent) - use these, not raw hex codes.
+     The old names (navy / ocean / aqua) are kept so every component picks up the new colours ---- */
+  --navy: #13284b;          /* headings, active tabs / toggles (deep navy) */
+  --navy-rgb: 19, 40, 75;
+  --ocean: #24498a;         /* main buttons, links (navy blue) */
+  --ocean-dark: #1b3a70;
+  --ocean-soft: #e8f0fa;
+  --ocean-rgb: 36, 73, 138;
+  --aqua: #5b86c5;          /* accents, selected chips, success, info (mid blue) */
+  --aqua-dark: #3f6aa8;
+  --aqua-soft: #edf3fb;
+  --aqua-rgb: 91, 134, 197;
+  --rose: #e5484d;          /* errors, remove / decline, sale badges (red) */
+  --rose-rgb: 229, 72, 77;
+  --amber: #e3a63a;         /* warnings, pending, stars, pins (golden amber) */
+  --amber-rgb: 227, 166, 58;
 
   --brand: var(--ocean);    /* kept so older components keep working */
   --brand-dark: var(--ocean-dark);
   --brand-rgb: var(--ocean-rgb);
 
-  --ink: #18204a;           /* main text */
-  --ink-soft: #424d6e;
-  --muted: #6e7896;         /* secondary text */
-  --line: #dfe6f3;          /* borders */
+  --ink: #13284b;           /* main text */
+  --ink-soft: #46577a;
+  --muted: #7a8aa6;         /* secondary text */
+  --line: #e3e9f2;          /* borders */
   --surface: #ffffff;
-  --surface-soft: #f7f9fe;  /* tinted boxes */
-  --surface-hover: #edf2fc; /* hover on light buttons / rows */
-  --cream: #e6edf5;         /* page background around the white app frame */
-  --tile: #f3f5f9;          /* grey tiles / pill buttons (BuyMore style) */
-  --tile-hover: #e8ecf3;
-  /* pastel tiles for banners (For you page) */
-  --mint: #d9f2e5;
-  --butter: #fbeeb4;
-  --peach: #fbe7dd;
-  --ice: #e4ecfb;
-  --shadow: 0 6px 20px rgba(24, 32, 74, 0.06);
+  --surface-soft: #f6f9fd;  /* tinted boxes */
+  --surface-hover: #edf2fa; /* hover on light buttons / rows */
+  --cream: #f1f5fb;         /* page background around the white app frame */
+  --tile: #f2f6fb;          /* grey tiles / pill buttons */
+  --tile-hover: #e6edf7;
+  /* soft tiles for banners (For you page) - soft blues + butter */
+  --mint: #e9f0f8;
+  --butter: #fbefd9;
+  --peach: #eef2fa;
+  --ice: #e7eef9;
+  --shadow: 0 6px 20px rgba(19, 40, 75, 0.06);
 
   /* ---- Bootstrap uses our palette everywhere (alerts, badges, text-*, bg-*, links...) ---- */
   --bs-body-font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif; /* the whole site uses Poppins */
@@ -45,7 +46,7 @@
   --bs-secondary-color: var(--muted);
   --bs-border-color: var(--line);
   --bs-link-color: var(--ocean-dark);
-  --bs-link-color-rgb: 35, 75, 184;
+  --bs-link-color-rgb: 27, 58, 112; /* = --ocean-dark */
   --bs-link-hover-color: var(--navy);
   --bs-link-hover-color-rgb: var(--navy-rgb);
   --bs-border-radius: 0.75rem;
@@ -54,37 +55,37 @@
 
   --bs-primary: var(--ocean);
   --bs-primary-rgb: var(--ocean-rgb);
-  --bs-primary-text-emphasis: #1a3a8f;
+  --bs-primary-text-emphasis: #1b3a70;
   --bs-primary-bg-subtle: var(--ocean-soft);
-  --bs-primary-border-subtle: #bcd0f6;
+  --bs-primary-border-subtle: #c5d6ef;
   --bs-success: var(--ocean);
   --bs-success-rgb: var(--ocean-rgb);
-  --bs-success-text-emphasis: #16677a;
+  --bs-success-text-emphasis: #2f5795;
   --bs-success-bg-subtle: var(--aqua-soft);
-  --bs-success-border-subtle: #b3e3ec;
+  --bs-success-border-subtle: #cfdcf0;
   --bs-info: var(--aqua);
   --bs-info-rgb: var(--aqua-rgb);
-  --bs-info-text-emphasis: #16677a;
+  --bs-info-text-emphasis: #2f5795;
   --bs-info-bg-subtle: var(--aqua-soft);
-  --bs-info-border-subtle: #b3e3ec;
+  --bs-info-border-subtle: #cfdcf0;
   --bs-warning: var(--amber);
   --bs-warning-rgb: var(--amber-rgb);
-  --bs-warning-text-emphasis: #7a5410;
-  --bs-warning-bg-subtle: #fdf3df;
-  --bs-warning-border-subtle: #f6dca7;
+  --bs-warning-text-emphasis: #8a4a1e;
+  --bs-warning-bg-subtle: #fbefd9;
+  --bs-warning-border-subtle: #f3d9a6;
   --bs-danger: var(--rose);
   --bs-danger-rgb: var(--rose-rgb);
-  --bs-danger-text-emphasis: #9b2f4a;
-  --bs-danger-bg-subtle: #fce8ed;
-  --bs-danger-border-subtle: #f4c2cf;
-  --bs-secondary: #8592b0;
-  --bs-secondary-rgb: 133, 146, 176;
+  --bs-danger-text-emphasis: #9b2328;
+  --bs-danger-bg-subtle: #fdecec;
+  --bs-danger-border-subtle: #f6c4c6;
+  --bs-secondary: #8c97ab;
+  --bs-secondary-rgb: 140, 151, 171;
   --bs-secondary-text-emphasis: var(--ink-soft);
   --bs-secondary-bg-subtle: var(--surface-hover);
   --bs-secondary-border-subtle: var(--line);
   --bs-dark: var(--navy);
   --bs-dark-rgb: var(--navy-rgb);
-  --bs-light-rgb: 247, 249, 254;
+  --bs-light-rgb: 246, 249, 253;
 }
 
 /* soft background around the white app frame (pale blue -> pale aqua).
@@ -99,7 +100,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(160deg, #e4ebf6 0%, #e8eef6 50%, #e0eef1 100%);
+  background: linear-gradient(160deg, #f5f8fc 0%, #f1f5fb 50%, #f6f9fd 100%);
   pointer-events: none;
 }
 h1, h2, h3, h4, h5, h6 {
@@ -156,11 +157,11 @@ button, input, select, textarea {
   --bs-btn-bg: var(--navy);
   --bs-btn-border-color: var(--navy);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: #263270;
-  --bs-btn-hover-border-color: #263270;
+  --bs-btn-hover-bg: #1c3566;
+  --bs-btn-hover-border-color: #1c3566;
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: #263270;
-  --bs-btn-active-border-color: #263270;
+  --bs-btn-active-bg: #1c3566;
+  --bs-btn-active-border-color: #1c3566;
   --bs-btn-disabled-bg: var(--navy);
   --bs-btn-disabled-border-color: var(--navy);
   --bs-btn-focus-shadow-rgb: var(--navy-rgb);
@@ -187,25 +188,25 @@ button, input, select, textarea {
   --bs-btn-bg: var(--rose);
   --bs-btn-border-color: var(--rose);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: #c94c69;
-  --bs-btn-hover-border-color: #c94c69;
-  --bs-btn-active-bg: #c94c69;
-  --bs-btn-active-border-color: #c94c69;
+  --bs-btn-hover-bg: #cc3a40;
+  --bs-btn-hover-border-color: #cc3a40;
+  --bs-btn-active-bg: #cc3a40;
+  --bs-btn-active-border-color: #cc3a40;
   --bs-btn-disabled-bg: var(--rose);
   --bs-btn-disabled-border-color: var(--rose);
   --bs-btn-focus-shadow-rgb: var(--rose-rgb);
 }
 .btn-outline-danger {
-  --bs-btn-color: #c94c69;
-  --bs-btn-border-color: #f0b3c2;
+  --bs-btn-color: #cc3a40;
+  --bs-btn-border-color: #f5b5b7;
   --bs-btn-hover-color: #fff;
   --bs-btn-hover-bg: var(--rose);
   --bs-btn-hover-border-color: var(--rose);
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: #c94c69;
-  --bs-btn-active-border-color: #c94c69;
-  --bs-btn-disabled-color: #e9a3b4;
-  --bs-btn-disabled-border-color: #f0b3c2;
+  --bs-btn-active-bg: #cc3a40;
+  --bs-btn-active-border-color: #cc3a40;
+  --bs-btn-disabled-color: #eea0a3;
+  --bs-btn-disabled-border-color: #f5b5b7;
   --bs-btn-focus-shadow-rgb: var(--rose-rgb);
 }
 .btn-warning {
@@ -213,23 +214,23 @@ button, input, select, textarea {
   --bs-btn-bg: var(--amber);
   --bs-btn-border-color: var(--amber);
   --bs-btn-hover-color: var(--navy);
-  --bs-btn-hover-bg: #e5a536;
-  --bs-btn-hover-border-color: #e5a536;
-  --bs-btn-active-bg: #e5a536;
-  --bs-btn-active-border-color: #e5a536;
+  --bs-btn-hover-bg: #d39229;
+  --bs-btn-hover-border-color: #d39229;
+  --bs-btn-active-bg: #d39229;
+  --bs-btn-active-border-color: #d39229;
   --bs-btn-disabled-bg: var(--amber);
   --bs-btn-disabled-border-color: var(--amber);
 }
 .btn-outline-warning {
   --bs-btn-color: #b07a16;
-  --bs-btn-border-color: #f3cf8a;
+  --bs-btn-border-color: #f0d29a;
   --bs-btn-hover-color: var(--navy);
   --bs-btn-hover-bg: var(--amber);
   --bs-btn-hover-border-color: var(--amber);
   --bs-btn-active-bg: var(--amber);
   --bs-btn-active-border-color: var(--amber);
-  --bs-btn-disabled-color: #d8b06a;
-  --bs-btn-disabled-border-color: #f3cf8a;
+  --bs-btn-disabled-color: #dcc08a;
+  --bs-btn-disabled-border-color: #f0d29a;
 }
 .btn-link {
   --bs-btn-color: var(--ocean-dark);
@@ -396,6 +397,29 @@ a.card-title:hover {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* order status badges (see ORDER_STATUS_BADGE in utils/constants.js) - also colour the status bars on Shop orders */
+.status-pending {
+  background-color: #f6c744; /* yellow */
+  color: var(--navy);
+}
+.status-accepted {
+  background-color: #2e9e5b; /* green */
+  color: #fff;
+}
+.status-declined,
+.status-cancelled {
+  background-color: var(--rose); /* red */
+  color: #fff;
+}
+.status-rescheduled {
+  background-color: var(--aqua); /* blue */
+  color: #fff;
+}
+/* roomier status badges (only badges - the status bars use the same classes for their colour) */
+.badge[class*="status-"] {
+  padding: 0.65em 1.3em;
 }
 
 /* tabs (Bootstrap nav-pills): one pill-shaped toggle with the brand colour, same on every page
