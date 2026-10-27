@@ -6,6 +6,7 @@ import Product from '../models/Product.js'
 
 // Owner: Cheyenne
 // GET /shops   GET /shops/map   GET /shops/name-available   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
+// POST/DELETE/GET /shops/:id/avatar (profile picture)
 const router = express.Router()
 
 // certificate photos: images only, max 5MB each
@@ -110,7 +111,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { certificationFiles, ...data } = req.body // photos are uploaded separately
+    const { certificationFiles, avatar, avatarUpdatedAt, ...data } = req.body // photos are uploaded separately
     data.name = cleanName(data.name)
     const problem = await checkShopName(data.name)
     if (problem) return res.status(409).json({ message: problem })
@@ -124,8 +125,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     // never let the client overwrite the owner or the trust stats
-    // certificate photos have their own routes below, so they can't be wiped by a profile save
-    const { owner, stats, pinnedProducts, followers, certificationFiles, ...changes } = req.body
+    // certificate photos + the profile picture have their own routes below, so they can't be wiped by a profile save
+    const { owner, stats, pinnedProducts, followers, certificationFiles, avatar, avatarUpdatedAt, ...changes } = req.body
     if ('name' in changes) {
       if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Shop not found' })
       changes.name = cleanName(changes.name)
@@ -232,6 +233,62 @@ router.delete('/:id/certs/:certId', async (req, res) => {
     res.json(shop.certificationFiles)
   } catch (err) {
     res.status(500).json({ message: err.message })
+  }
+})
+
+// ---------- profile picture (shop page) ----------
+// only the shop owner may change it. returns the shop's new avatarUpdatedAt (null = no picture)
+async function findOwnShop(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(404).json({ message: 'Shop not found' })
+    return null
+  }
+  const shop = await Shop.findById(req.params.id).select('owner')
+  if (!shop) res.status(404).json({ message: 'Shop not found' })
+  else if (String(shop.owner) !== String(req.body?.user)) {
+    res.status(403).json({ message: 'Only the shop owner can change the profile picture' })
+    return null
+  }
+  return shop
+}
+
+// upload / replace it. multipart form: user (text) + image (file, images only, max 5MB)
+router.post('/:id/avatar', uploadCertImage, async (req, res) => {
+  try {
+    if (!(await findOwnShop(req, res))) return
+    if (!req.file) return res.status(400).json({ message: 'Please choose an image file (max 5MB)' })
+    const avatar = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+    const shop = await Shop.findByIdAndUpdate(req.params.id, { avatar, avatarUpdatedAt: new Date() }, { new: true })
+      .select('avatarUpdatedAt')
+    res.json({ avatarUpdatedAt: shop.avatarUpdatedAt })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// remove it (the page goes back to the first letter of the shop name). body: { user }
+router.delete('/:id/avatar', async (req, res) => {
+  try {
+    if (!(await findOwnShop(req, res))) return
+    await Shop.updateOne({ _id: req.params.id }, { $unset: { avatar: 1 }, avatarUpdatedAt: null })
+    res.json({ avatarUpdatedAt: null })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// the picture itself. Use ?v=<avatarUpdatedAt> in the URL so a new picture isn't hidden by the cache
+router.get('/:id/avatar', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.sendStatus(404)
+    const shop = await Shop.findById(req.params.id).select('+avatar').lean()
+    const match = /^data:(.+?);base64,(.+)$/s.exec(shop?.avatar || '')
+    if (!match) return res.sendStatus(404)
+    res.set('Content-Type', match[1])
+    res.set('Cache-Control', 'public, max-age=604800')
+    res.send(Buffer.from(match[2], 'base64'))
+  } catch (err) {
+    res.sendStatus(500)
   }
 })
 

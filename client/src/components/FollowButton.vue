@@ -12,6 +12,8 @@ const props = defineProps({
   followerCountTF: Boolean,
   small: Boolean,
 })
+// fires after a follow / unfollow with { following, followerCount } (the shop page updates its follower count)
+const emit = defineEmits(['change'])
 
 const following = ref(false)
 const followerCount = ref(0)
@@ -38,6 +40,7 @@ async function toggleFollow() {
     const response = await axios.post(`${API_URL}/shops/${props.shop._id}/follow`, { user: currentUser.value._id })
     following.value = response.data.following
     followerCount.value = response.data.followerCount
+    emit('change', response.data)
   } catch (err) {
     error.value = err.response?.data?.message || err.message
   } finally {

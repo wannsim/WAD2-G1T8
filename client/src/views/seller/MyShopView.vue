@@ -1,12 +1,18 @@
 <template>
   <div v-if="shop">
-    <div class="p-4 bg-light rounded mb-4">
-      <h2 class="page-title">{{ shop.name }}</h2>
-      <p><strong>Location (nearest MRT):</strong> {{ shop.nearestMrt }}</p>
-      <p><strong>Experience:</strong> {{ shop.experience }}</p>
-      <div>
+    <!-- channel-style header (same as the public shop page); click the circle to change the profile picture -->
+    <ShopHeader :shop="shop" :product-count="products.length" is-owner>
+      <template #actions>
+        <RouterLink to="/profile" class="btn btn-primary owner-btn">Edit profile</RouterLink>
+        <RouterLink :to="`/shops/${shop._id}`" class="btn btn-outline-primary owner-btn">View public page</RouterLink>
+      </template>
+    </ShopHeader>
+    <div class="shop-details mb-4">
+      <span v-if="shop.nearestMrt"><strong>Nearest MRT:</strong> {{ shop.nearestMrt }}</span>
+      <span v-if="shop.experience"><strong>Experience:</strong> {{ shop.experience }}</span>
+      <span v-if="shop.categories?.length">
         <span class="badge bg-secondary me-1" v-for="cat in shop.categories" :key="cat">{{ cat }}</span>
-      </div>
+      </span>
     </div>
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
@@ -126,6 +132,7 @@ import { formatPrice, capitalize } from '@/utils/format'
 import EditProductModal from '@/components/EditProductModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
 import SearchBox from '@/components/SearchBox.vue'
+import ShopHeader from '@/components/ShopHeader.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -279,6 +286,16 @@ onBeforeUnmount(() => shopController?.abort())
 </script>
 
 <style scoped>
+/* MRT, experience and categories under the header */
+.shop-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: 0 0.25rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+}
 .icon-btn {
   position: relative;
   display: inline-flex;

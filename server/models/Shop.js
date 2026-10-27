@@ -19,6 +19,10 @@ const shopSchema = new mongoose.Schema({
   // photos of certificates (e.g. food hygiene cert). image = Base64, served by GET /shops/:id/certs/:certId/image
   certificationFiles: [{ name: { type: String, trim: true, default: '' }, image: String }],
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // profile picture on the shop page. avatar = Base64, never sent in the shop JSON (select: false),
+  // served by GET /shops/:id/avatar. avatarUpdatedAt = when it last changed (null = no picture)
+  avatar: { type: String, select: false },
+  avatarUpdatedAt: { type: Date, default: null },
 
   stats: {
     avgRating: { type: Number, default: 0 },
