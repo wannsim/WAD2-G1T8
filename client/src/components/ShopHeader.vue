@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
@@ -11,7 +11,10 @@ import FollowButton from './FollowButton.vue'
 //   <ShopHeader :shop="shop" :product-count="products.length" :is-owner="isOwner" @more="...">
 //     <template #actions> owner-only buttons </template>
 //   </ShopHeader>
-// The shop owner can click the profile picture to upload a new one (POST /shops/:id/avatar).
+// The shop owner clicks the profile picture to change it (Instagram-style "Change Profile Photo" box:
+// upload / remove / cancel, see POST + DELETE /shops/:id/avatar), and gets a Manage | Public page toggle
+// in the top right to switch between My shop and the public shop page.
+// The banner shows the profile picture (cropped to fit); shops without one get a colour picked from their id.
 const props = defineProps({
   shop: { type: Object, required: true },
   productCount: { type: Number, default: 0 },
@@ -76,6 +79,23 @@ async function uploadAvatar(event) {
   }
 }
 
+// "Change Profile Photo" box (owner clicks their picture)
+const photoMenuOpen = ref(false)
+const firstMenuButton = ref(null)
+watch(photoMenuOpen, async (open) => {
+  if (!open) return
+  await nextTick()
+  firstMenuButton.value?.focus() // keyboard users land inside the box (Esc closes it)
+})
+function chooseNewPhoto() {
+  photoMenuOpen.value = false
+  avatarInput.value.click()
+}
+function removeFromMenu() {
+  photoMenuOpen.value = false
+  removeAvatar()
+}
+
 async function removeAvatar() {
   avatarError.value = ''
   avatarBusy.value = true
@@ -91,20 +111,24 @@ async function removeAvatar() {
 </script>
 
 <template>
-  <div class="banner" :style="{ background: bannerColour }" aria-hidden="true"></div>
+  <!-- banner: the profile picture itself (cropped to fill the wide strip), or the shop's colour if there is no picture -->
+  <div class="banner" :style="{ background: bannerColour }" aria-hidden="true">
+    <div v-if="avatarUrl" class="banner-photo" :style="{ backgroundImage: `url(${avatarUrl})` }"></div>
+  </div>
 
   <div class="profile-head">
     <div class="avatar-wrap">
       <img v-if="avatarUrl" :src="avatarUrl" :alt="`${shop.name} profile picture`" class="avatar" @error="avatarUpdatedAt = null" />
       <div v-else class="avatar avatar-letter" :style="{ background: bannerColour }" aria-hidden="true">{{ initial }}</div>
-      <!-- shop owner: click the picture to upload a new one -->
+      <!-- shop owner: click the picture -> "Change Profile Photo" box (like Instagram) -->
       <template v-if="isOwner">
-        <button type="button" class="avatar-edit" :disabled="avatarBusy" aria-label="Change profile picture" @click="avatarInput.click()">
+        <button type="button" class="avatar-edit" :disabled="avatarBusy" aria-label="Change profile photo" aria-haspopup="dialog"
+          @click="photoMenuOpen = true">
           <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z" />
             <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0" />
           </svg>
-          <span>{{ avatarBusy ? 'Uploading...' : 'Change' }}</span>
+          <span>{{ avatarBusy ? 'Saving...' : 'Change' }}</span>
         </button>
         <input ref="avatarInput" type="file" accept="image/*" class="d-none" @change="uploadAvatar" />
       </template>
@@ -124,23 +148,58 @@ async function removeAvatar() {
       </p>
       <div class="d-flex flex-wrap align-items-center gap-2">
         <FollowButton :shop="shop" @change="followerCount = $event.followerCount" />
-        <template v-if="isOwner">
-          <slot name="actions"></slot>
-          <button v-if="avatarUrl" type="button" class="btn btn-link btn-sm text-muted" :disabled="avatarBusy" @click="removeAvatar">
-            Remove picture
-          </button>
-        </template>
+        <slot v-if="isOwner" name="actions"></slot>
       </div>
-      <p v-if="isOwner && !avatarUrl" class="small text-muted mt-2 mb-0">Tip: click the circle to upload your profile picture.</p>
+      <p v-if="isOwner && !avatarUrl" class="small text-muted mt-2 mb-0">Tip: click the circle to add your profile photo.</p>
       <p v-if="avatarError" class="small text-danger mt-2 mb-0">{{ avatarError }}</p>
     </div>
+
+    <!-- owner: switch between managing the shop and seeing it like a buyer (top right, same look as the List / Map toggle) -->
+    <div v-if="isOwner" class="toggle-row">
+      <nav class="view-toggle" aria-label="Manage your shop or see your public page">
+        <RouterLink to="/seller/shop" class="toggle-option" active-class="active">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z" />
+          </svg>
+          Manage
+        </RouterLink>
+        <RouterLink :to="`/shops/${shop._id}`" class="toggle-option" active-class="active">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+          </svg>
+          Public page
+        </RouterLink>
+      </nav>
+    </div>
   </div>
+
+  <!-- "Change Profile Photo" box (like Instagram). Click outside or press Esc to close -->
+  <Teleport to="body">
+    <div v-if="photoMenuOpen" class="photo-menu-shade" @click.self="photoMenuOpen = false" @keydown.esc="photoMenuOpen = false">
+      <div class="photo-menu" role="dialog" aria-modal="true" aria-labelledby="photo-menu-title">
+        <h2 id="photo-menu-title" class="photo-menu-title">Change Profile Photo</h2>
+        <button ref="firstMenuButton" type="button" class="photo-menu-option upload" @click="chooseNewPhoto">Upload Photo</button>
+        <button v-if="avatarUrl" type="button" class="photo-menu-option remove" @click="removeFromMenu">Remove Current Photo</button>
+        <button type="button" class="photo-menu-option" @click="photoMenuOpen = false">Cancel</button>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .banner {
+  position: relative;
+  overflow: hidden;
   height: clamp(110px, 16vw, 200px);
   border-radius: 1.5rem;
+}
+/* the profile picture across the banner: fills the strip, and the top / bottom are cut off if it's too tall */
+.banner-photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
 }
 .profile-head {
   display: flex;
@@ -240,6 +299,103 @@ async function removeAvatar() {
   border-radius: 999px;
   padding: 0.55rem 1.4rem;
   font-weight: 600;
+}
+
+/* Manage | Public page toggle (same as ViewToggle's List | Map); the page you're on is the white pill.
+   Sits in the top right corner, just under the banner */
+.toggle-row {
+  align-self: flex-start;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.view-toggle {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border-radius: 1.2rem;
+  background: var(--tile);
+}
+.toggle-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.2rem;
+  border-radius: 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.toggle-option:hover {
+  color: var(--navy);
+}
+.toggle-option.active {
+  background: var(--surface);
+  color: var(--navy);
+  box-shadow: 0 4px 12px rgba(var(--navy-rgb), 0.1);
+}
+
+/* ---------- "Change Profile Photo" box (like Instagram) ---------- */
+.photo-menu-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 1100; /* above the sidebar drawer */
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.55);
+}
+.photo-menu {
+  width: min(400px, 100%);
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+.photo-menu-title {
+  margin: 0;
+  padding: 1.6rem 1rem 1.4rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.photo-menu-option {
+  display: block;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.photo-menu-option:hover,
+.photo-menu-option:focus-visible {
+  background: var(--surface-hover);
+  outline: none;
+}
+.photo-menu-option.upload {
+  font-weight: 700;
+  color: var(--ocean);
+}
+.photo-menu-option.remove {
+  font-weight: 700;
+  color: var(--rose);
+}
+
+/* below ~992px there isn't room for the toggle beside the name: it goes on its own line above */
+@media (max-width: 991.98px) {
+  .profile-head {
+    flex-wrap: wrap;
+  }
+  .toggle-row {
+    order: -1;
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
 }
 
 /* phones: picture above the name, like the YouTube app */

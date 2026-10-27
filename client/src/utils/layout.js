@@ -9,12 +9,13 @@ import { currentUser, isSeller } from './auth'
 // phones / tablets: is the sidebar drawer open?
 export const navOpen = ref(false)
 
-// wide screens: is the sidebar collapsed to icons only? (remembered in this browser)
+// wide screens: is the sidebar collapsed to icons only? Collapsed by default (it opens while hovered);
+// clicking the expand button keeps it open. The choice is remembered in this browser.
 const readCollapsed = () => {
   try {
-    return localStorage.getItem('navCollapsed') === '1'
+    return localStorage.getItem('navCollapsed') !== '0'
   } catch {
-    return false
+    return true
   }
 }
 export const navCollapsed = ref(readCollapsed())

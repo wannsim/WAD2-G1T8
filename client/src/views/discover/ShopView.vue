@@ -9,7 +9,6 @@
     <ShopHeader :shop="shop" :product-count="products.length" :is-owner="isOwner" @more="tab = 'about'">
       <template #actions>
         <RouterLink to="/profile" class="btn btn-primary owner-btn">Edit profile</RouterLink>
-        <RouterLink to="/seller/shop" class="btn btn-outline-primary owner-btn">Manage products</RouterLink>
       </template>
     </ShopHeader>
 

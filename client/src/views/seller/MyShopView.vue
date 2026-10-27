@@ -4,7 +4,6 @@
     <ShopHeader :shop="shop" :product-count="products.length" is-owner>
       <template #actions>
         <RouterLink to="/profile" class="btn btn-primary owner-btn">Edit profile</RouterLink>
-        <RouterLink :to="`/shops/${shop._id}`" class="btn btn-outline-primary owner-btn">View public page</RouterLink>
       </template>
     </ShopHeader>
     <div class="shop-details mb-4">

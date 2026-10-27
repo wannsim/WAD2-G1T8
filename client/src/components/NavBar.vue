@@ -7,7 +7,8 @@ import { API_URL } from '@/utils/config'
 
 // Owner: Wan Sim (sidebar layout: Cheyenne)
 // Left sidebar, like the BuyMore inspiration: logo, main links, last orders, log out.
-// Wide screens: always shown; the « button collapses it to icons only. Phones / tablets: a drawer opened from the top bar's ☰ button.
+// Wide screens: collapsed to icons by default (like Instagram); hovering opens it over the page,
+// the » button keeps it open (« collapses it again). Phones / tablets: a drawer opened from the top bar's ☰ button.
 const router = useRouter()
 const route = useRoute()
 
@@ -78,8 +79,8 @@ onMounted(loadRecentOrders)
         <span class="label">Homly Hauls</span>
       </RouterLink>
       <button type="button" class="close-drawer" aria-label="Close menu" @click="navOpen = false">&times;</button>
-      <button type="button" class="collapse-btn" :aria-label="navCollapsed ? 'Expand menu' : 'Collapse menu'"
-        :title="navCollapsed ? 'Expand menu' : 'Collapse menu'" :aria-expanded="!navCollapsed" @click="navCollapsed = !navCollapsed">
+      <button type="button" class="collapse-btn" :aria-label="navCollapsed ? 'Keep menu open' : 'Collapse menu'"
+        :title="navCollapsed ? 'Keep menu open' : 'Collapse menu'" :aria-expanded="!navCollapsed" @click="navCollapsed = !navCollapsed">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.collapse" /></svg>
       </button>
     </div>
@@ -257,39 +258,56 @@ onMounted(loadRecentOrders)
   color: var(--navy);
 }
 .sidebar {
-  transition: flex-basis 0.2s ease, width 0.2s ease;
+  transition: flex-basis 0.2s ease, width 0.2s ease, margin-right 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* collapsed: a narrow rail with just the icons (labels show as tooltips) */
 @media (min-width: 992px) {
+  /* collapsed: a narrow rail with just the icons (labels show as tooltips) */
   .sidebar.collapsed {
     flex-basis: 84px;
     width: 84px;
+  }
+  /* collapsed + hovered (or reached with the Tab key): opens to full width ON TOP of the page.
+     The negative margin keeps its place in the layout at 84px, so the page doesn't jump */
+  .sidebar.collapsed:hover,
+  .sidebar.collapsed:has(:focus-visible) {
+    flex-basis: 248px;
+    width: 248px;
+    margin-right: -164px;
+    z-index: 1035; /* above the top bar (1030), below pop-up dialogs (1050+) */
+    box-shadow: 12px 0 40px rgba(var(--navy-rgb), 0.16);
+    transition-delay: 0.08s; /* a quick pass of the mouse doesn't flash it open */
+  }
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) {
     padding-left: 0.85rem;
     padding-right: 0.85rem;
   }
-  .sidebar.collapsed .sidebar-top {
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .sidebar-top {
     flex-direction: column;
     gap: 0.75rem;
   }
-  .sidebar.collapsed .brand {
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .brand {
     padding: 0;
   }
+  /* » = "keep it open"; « = "collapse it" */
   .sidebar.collapsed .collapse-btn {
     transform: rotate(180deg);
   }
-  .sidebar.collapsed .label,
-  .sidebar.collapsed .brand-underline,
-  .sidebar.collapsed .side-section,
-  .sidebar.collapsed .side-bottom p {
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .label,
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .brand-underline,
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .side-section,
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .side-bottom p {
     display: none;
   }
-  .sidebar.collapsed .side-links {
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .side-links {
     margin-top: 1.25rem;
   }
-  .sidebar.collapsed .side-link {
+  .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) .side-link {
     justify-content: center;
     padding: 0.7rem 0;
+  }
+  .sidebar.collapsed .label {
+    white-space: nowrap; /* labels don't wrap while it slides open */
   }
 }
 
