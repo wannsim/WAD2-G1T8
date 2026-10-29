@@ -1,5 +1,6 @@
 import Product from '../models/Product.js'
 import TrendSignal from '../models/TrendSignal.js'
+import { filterVideosWithAI, aiFilterEnabled, resetAiQuota } from './geminiFilter.js'
 
 // Owner: Cheyenne
 // ONLINE TRENDS for the Trending tab, from the YouTube Data API v3 (free key, put it in config.env):
@@ -27,7 +28,7 @@ import TrendSignal from '../models/TrendSignal.js'
 
 const API = 'https://www.googleapis.com/youtube/v3'
 const REFRESH_HOURS = 24
-const SOURCE_VERSION = 5 // 1-3 were Wikimedia, 4 compared raw totals; bump when the rules below change, so old results are redone
+const SOURCE_VERSION = 6 // 1-3 were Wikimedia, 4 compared raw totals, 5 had no AI filter; bump when the rules below change, so old results are redone
 const MAX_TERMS = 40 // searches per day (Google allows 100)
 const PARALLEL = 4
 const DAY = 86400000
@@ -93,12 +94,16 @@ export async function youtubeInterest(term, key, log = () => {}) {
   if (ids.length === 0) return { ...empty, query }
 
   const details = await getJson(`${API}/videos?part=snippet,statistics&id=${ids.join(',')}&key=${key}`)
+  for (const v of details.items || []) log('video', `${Number(v.statistics?.viewCount || 0).toLocaleString()} views | ${v.snippet?.title}`)
+  const matched = (details.items || []).filter((v) => {
+    if (aboutKeyword(v, words)) return true
+    log('skip', `${v.snippet?.title} (not about "${query}")`)
+    return false
+  })
+  // second check: Gemini reads the titles and drops videos that only mention the word (needs GEMINI_API_KEY)
+  const relevant = await filterVideosWithAI(term, matched)
   const result = { ...empty, query }
-  for (const v of details.items || []) {
-    if (!aboutKeyword(v, words)) {
-      log('skip', `${v.snippet?.title} (not about "${query}")`)
-      continue
-    }
+  for (const v of relevant) {
     const views = Number(v.statistics?.viewCount || 0)
     const published = new Date(v.snippet.publishedAt).getTime()
     const perDay = views / Math.max((now - published) / DAY, 1) // a 2-day-old video is not compared with a 12-day-old one on totals
@@ -145,6 +150,8 @@ export async function refreshTrends({ force = false } = {}) {
     return
   }
   if (refreshing) return
+  resetAiQuota()
+  console.log(`Trends: Gemini filter ${aiFilterEnabled() ? 'ON' : 'OFF (no GEMINI_API_KEY in config.env)'}`)
   refreshing = true
   try {
     const products = await Product.find({ isAvailable: { $ne: false } }).select('name tags').lean()
@@ -161,7 +168,7 @@ export async function refreshTrends({ force = false } = {}) {
     for (let i = 0; i < todo.length && !quotaHit; i += PARALLEL) {
       await Promise.all(todo.slice(i, i + PARALLEL).map(async (term) => {
         try {
-          const r = await youtubeInterest(term, key)
+          const r = await youtubeInterest(term, key, (step, text) => console.log(`[YouTube] ${step}: ${text}`))
           const now = Date.now()
           // history from older versions measured something else, so start it again
           const old = saved.get(term)

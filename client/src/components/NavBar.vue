@@ -7,7 +7,7 @@ import { API_URL } from '@/utils/config'
 
 // Owner: Wan Sim (sidebar layout: Cheyenne)
 // Left sidebar, like the BuyMore inspiration: logo, main links, last orders, log out.
-// Wide screens: collapsed to icons by default (like Instagram); hovering opens it over the page,
+// Wide screens: collapsed to icons by default (like Instagram); hovering opens it and pushes the page right,
 // the » button keeps it open (« collapses it again). Phones / tablets: a drawer opened from the top bar's ☰ button.
 const router = useRouter()
 const route = useRoute()
@@ -258,7 +258,7 @@ onMounted(loadRecentOrders)
   color: var(--navy);
 }
 .sidebar {
-  transition: flex-basis 0.2s ease, width 0.2s ease, margin-right 0.2s ease, box-shadow 0.2s ease;
+  transition: flex-basis 0.2s ease, width 0.2s ease;
 }
 
 @media (min-width: 992px) {
@@ -267,15 +267,12 @@ onMounted(loadRecentOrders)
     flex-basis: 84px;
     width: 84px;
   }
-  /* collapsed + hovered (or reached with the Tab key): opens to full width ON TOP of the page.
-     The negative margin keeps its place in the layout at 84px, so the page doesn't jump */
+  /* collapsed + hovered (or reached with the Tab key): opens to full width and pushes the page
+     to the right (the page area is flex: 1, so it shrinks smoothly as the sidebar grows) */
   .sidebar.collapsed:hover,
   .sidebar.collapsed:has(:focus-visible) {
     flex-basis: 248px;
     width: 248px;
-    margin-right: -164px;
-    z-index: 1035; /* above the top bar (1030), below pop-up dialogs (1050+) */
-    box-shadow: 12px 0 40px rgba(var(--navy-rgb), 0.16);
     transition-delay: 0.08s; /* a quick pass of the mouse doesn't flash it open */
   }
   .sidebar.collapsed:not(:hover):not(:has(:focus-visible)) {
