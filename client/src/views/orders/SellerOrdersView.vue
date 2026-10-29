@@ -8,6 +8,7 @@ import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { ORDER_STATUS_BADGE } from '@/utils/constants'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
+import ReasonModal from '@/components/ReasonModal.vue'
 
 // Owner: Basile - seller's order dashboard: accept / decline / propose new time / complete
 const router = useRouter()
@@ -23,6 +24,7 @@ const message = ref('')
 const busyId = ref('')
 const confirmId = ref('')
 const confirmStatus = ref('')
+const reasonModal = ref(null) // pop-up asking why the seller is declining / cancelling
 const proposeOpenId = ref('') // The order whose new-time input is open.
 const chatBusyId = ref('')
 const chatError = ref('')
@@ -258,6 +260,19 @@ function askConfirm(order, status) {
   proposeOpenId.value = ''
 }
 
+// Asks why the seller is declining / cancelling (shown to the buyer), then sends it.
+async function askReason(order, status) {
+  clearConfirm()
+  proposeOpenId.value = ''
+  const declining = status === 'declined'
+  const reason = await reasonModal.value.ask({
+    title: declining ? 'Decline this order?' : 'Cancel this order?',
+    hint: 'The buyer will see this reason.',
+    confirmLabel: declining ? 'Yes, decline' : 'Yes, cancel',
+  })
+  if (reason) updateStatus(order, status, reason)
+}
+
 // Closes the confirmation without changing an order.
 function clearConfirm() {
   confirmId.value = ''
@@ -281,7 +296,7 @@ function closeProposal() {
 }
 
 // Changes one order at a time, shows the result and refreshes the dashboard.
-async function updateStatus(order, status) {
+async function updateStatus(order, status, reason = '') {
   if (busyId.value !== '') return // Ignore another action while a request is being sent.
   message.value = ''
   error.value = ''
@@ -291,6 +306,7 @@ async function updateStatus(order, status) {
       status,
       userId: currentUser.value._id,
       proposedTime: proposals.value[order._id],
+      reason,
     })
     if (status === 'accepted') message.value = 'Order accepted.' // Explain the accepted order.
     if (status === 'declined') message.value = 'Order declined.' // Explain the declined order.
@@ -458,28 +474,19 @@ onMounted(() => {
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                     <div class="mt-auto pt-2">
-                      <div v-if="confirmId === o._id && confirmStatus === 'declined'">
-                        <p class="mb-1">Decline this order?</p>
-                        <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">Yes, decline</button>
-                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-success" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
+                        <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">Decline</button>
+                        <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
+                        <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                      </div>
+                      <div v-if="proposeOpenId === o._id" class="mt-2">
+                        <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
+                        <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
                         </div>
                       </div>
-                      <template v-else>
-                        <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm btn-success" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
-                          <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'declined')" data-testid="order-decline">Decline</button>
-                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
-                          <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                        </div>
-                        <div v-if="proposeOpenId === o._id" class="mt-2">
-                          <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
-                          <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
-                          <div class="d-flex flex-wrap gap-2 mt-2">
-                            <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
-                          </div>
-                        </div>
-                      </template>
                       <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
                       <div class="d-flex justify-content-end mt-2">
                         <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
@@ -550,16 +557,16 @@ onMounted(() => {
                     <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                     <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                     <div class="mt-auto pt-2">
-                      <div v-if="confirmId === o._id && (confirmStatus === 'completed' || confirmStatus === 'cancelled')">
-                        <p class="mb-1">{{ confirmStatus === 'completed' ? 'Mark this order as completed?' : 'Cancel this order?' }}</p>
+                      <div v-if="confirmId === o._id && confirmStatus === 'completed'">
+                        <p class="mb-1">Mark this order as completed?</p>
                         <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm" :class="confirmStatus === 'completed' ? 'btn-success' : 'btn-danger'" :disabled="busyId !== ''" @click="updateStatus(o, confirmStatus)" data-testid="order-confirm-yes">{{ confirmStatus === 'completed' ? 'Yes, completed' : 'Yes, cancel' }}</button>
+                          <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
                           <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                         </div>
                       </div>
                       <div v-else class="d-flex flex-wrap gap-2">
                         <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                        <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askConfirm(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
+                        <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
                         <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
                       </div>
                       <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
@@ -615,6 +622,9 @@ onMounted(() => {
                       <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
                       <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
                       <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
+                      <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="order-reason mb-1 small" data-testid="order-reason">
+                        <strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? "Buyer's reason" : 'Your reason' }}:</strong> {{ o.reason }}
+                      </p>
                       <div class="mt-auto pt-2">
                       <div v-if="o.buyer" class="d-flex flex-wrap gap-2">
                         <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
@@ -634,9 +644,18 @@ onMounted(() => {
       </template>
     </div>
   </div>
+  <ReasonModal ref="reasonModal" />
 </template>
 
 <style scoped>
+/* why the order was declined / cancelled */
+.order-reason {
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  background: rgba(var(--rose-rgb), 0.08);
+  overflow-wrap: anywhere;
+}
+
 .order-thumb {
   width: 72px;
   height: 72px;

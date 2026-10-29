@@ -324,9 +324,9 @@ async function run() {
     ['ben', 'Cereal Prawns', 'pending', 0],
     ['chloe', 'Custom Name Stickers', 'accepted', 1],
     ['alice', 'Brown Sugar Pudding Jars', 'rescheduled', 1],
-    ['ben', 'Lemongrass Ginger Tea', 'declined', 3],
-    ['chloe', 'Ondeh Ondeh', 'cancelled', 4, null, null, { cancelledBy: 'buyer' }],
-    ['alice', 'Teh Tarik Kit', 'cancelled', 6, null, null, { cancelledBy: 'seller' }],
+    ['ben', 'Lemongrass Ginger Tea', 'declined', 3, null, null, { reason: 'Sorry, I am out of lemongrass this week.' }],
+    ['chloe', 'Ondeh Ondeh', 'cancelled', 4, null, null, { cancelledBy: 'buyer', reason: 'My plans changed, I cannot pick it up anymore.' }],
+    ['alice', 'Teh Tarik Kit', 'cancelled', 6, null, null, { cancelledBy: 'seller', reason: 'I fell sick and cannot make this order in time.' }],
     // ----- the 6 extra shops -----
     ['farah', 'Nasi Lemak', 'completed', 21, 5, 'Sambal is shiok! Tastes just like the ones at Adam Road.'],
     ['irfan', 'Nasi Lemak', 'completed', 9, 4, 'Chicken wing was crispy, rice could be more lemak.'],

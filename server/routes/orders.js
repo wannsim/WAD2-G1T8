@@ -12,14 +12,18 @@ import { formatDateTime } from '../utils/format.js'
 // what the buyer is told when the seller changes their order
 const BUYER_UPDATE = {
   accepted: (product, shop) => ({ title: 'Order accepted', message: `${shop} accepted your order for ${product}.` }),
-  declined: (product, shop) => ({ title: 'Order declined', message: `${shop} declined your order for ${product}.` }),
+  declined: (product, shop, order) => ({ title: 'Order declined', message: `${shop} declined your order for ${product}. Reason: ${order.reason}` }),
   rescheduled: (product, shop, order) => ({
     title: 'New time proposed',
     message: `${shop} proposed ${formatDateTime(order.proposedTime)} for ${product}. Please accept or cancel.`,
   }),
   completed: (product, shop) => ({ title: 'Order completed', message: `Your order for ${product} from ${shop} is completed.` }),
-  cancelled: (product, shop) => ({ title: 'Order cancelled', message: `${shop} cancelled your order for ${product}.` }),
+  cancelled: (product, shop, order) => ({ title: 'Order cancelled', message: `${shop} cancelled your order for ${product}. Reason: ${order.reason}` }),
 }
+
+// declining / cancelling needs a short reason, shown to the other side
+const NEEDS_REASON = ['declined', 'cancelled']
+const MAX_REASON_LENGTH = 300
 
 // Owner: Basile
 // POST /orders   GET /orders/buyer/:userId   GET /orders/shop/:shopId   PUT /orders/:id/status
@@ -132,6 +136,7 @@ function safeOrderForBuyer(order, reviewedIds) {
     status: order.status,
     reviewed: reviewedIds.includes(String(order._id)), // Show whether this order has a review.
     cancelledBy: order.cancelledBy,
+    reason: order.reason || '',
     createdAt: order.createdAt,
     shop: null,
     pickupAddress: '',
@@ -244,10 +249,11 @@ router.get('/shop/:shopId', async (req, res) => {
 })
 
 // Applies an allowed status change for the order's buyer or seller.
-// body: { status, userId, proposedTime }
+// body: { status, userId, proposedTime, reason }   reason: required when declining / cancelling
 router.put('/:id/status', async (req, res) => {
   try {
     const { status, userId, proposedTime } = req.body
+    const reason = String(req.body.reason ?? '').trim()
     const order = await Order.findById(req.params.id)
     if (!order) return res.status(404).json({ message: 'Order not found' })
 
@@ -259,6 +265,13 @@ router.put('/:id/status', async (req, res) => {
     }
     if (!isAllowedChange(order.status, actor, status)) { // Follow the status table for this person.
       return res.status(400).json({ message: `You cannot change this order from ${order.status} to ${status}.` })
+    }
+
+    if (NEEDS_REASON.includes(status)) {
+      if (!reason) return res.status(400).json({ message: 'Please give a reason.' })
+      if (reason.length > MAX_REASON_LENGTH) {
+        return res.status(400).json({ message: `Please keep the reason under ${MAX_REASON_LENGTH} characters.` })
+      }
     }
 
     if (status === 'rescheduled') {
@@ -293,6 +306,7 @@ router.put('/:id/status', async (req, res) => {
       order.respondedAt = new Date()
     }
     if (status === 'cancelled') order.cancelledBy = actor // Record who cancelled using the checked actor.
+    if (NEEDS_REASON.includes(status)) order.reason = reason
 
     order.status = status
     await order.save()
@@ -328,7 +342,7 @@ router.put('/:id/status', async (req, res) => {
             await notify(req, shop.owner, {
               type: 'order-update',
               title: 'Order cancelled',
-              message: `The buyer cancelled their order for ${productName} (${formatDateTime(order.requestedTime)}).`,
+              message: `The buyer cancelled their order for ${productName} (${formatDateTime(order.requestedTime)}). Reason: ${order.reason}`,
               link: '/seller/orders',
             })
           } else {
@@ -342,6 +356,32 @@ router.put('/:id/status', async (req, res) => {
         }
       } catch (err) {
         console.error('Could not notify the seller:', err.message)
+      }
+    }
+    // Also tells the person who declined / cancelled, so both sides have it in their notifications.
+    if (NEEDS_REASON.includes(status)) {
+      try {
+        const product = await Product.findById(order.product).select('name')
+        const productName = product?.name || 'an item'
+        const action = status === 'declined' ? 'declined' : 'cancelled'
+        let userToTell = order.buyer
+        let link = '/orders'
+        let whose = 'your order'
+        if (actor === 'seller') {
+          const shop = await Shop.findById(order.shop).select('owner')
+          const buyer = await User.findById(order.buyer).select('name')
+          userToTell = shop?.owner
+          link = '/seller/orders'
+          whose = `${buyer?.name || 'the buyer'}'s order`
+        }
+        await notify(req, userToTell, {
+          type: 'order-update',
+          title: `Order ${action}`,
+          message: `You ${action} ${whose} for ${productName}. Reason: ${order.reason}`,
+          link,
+        })
+      } catch (err) {
+        console.error('Could not send the confirmation notification:', err.message)
       }
     }
     res.json(order)

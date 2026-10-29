@@ -52,7 +52,7 @@ export function toProductFormData(form, files = []) {
   formData.append('tags', JSON.stringify(form.tagsInput.split(',').map((t) => t.trim()).filter(Boolean)))
   // local time from the input -> real date, so the time doesn't shift when saved
   const slots = form.orderSlots
-    .filter((slot) => slot.start)
+    .filter((slot) => slot.start && !Number.isNaN(new Date(slot.start).getTime())) // skip empty / half-filled slots
     .map((slot) => ({ ...slot, start: new Date(slot.start).toISOString() }))
   formData.append('orderSlots', JSON.stringify(slots))
   files.forEach((file) => formData.append('images', file))

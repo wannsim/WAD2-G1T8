@@ -32,6 +32,19 @@ export function presetSalesRange(days = 30, now = new Date()) {
   return { startDate: singaporeDate(dateMillis(endDate) - (days - 1) * DAY_MS), endDate }
 }
 
+// The period of the same length just before a range, e.g. 8-14 Oct -> 1-7 Oct (for "+4.2%" changes).
+export function previousSalesRange({ startDate, endDate }) {
+  const start = dateMillis(startDate)
+  const days = Math.round((dateMillis(endDate) - start) / DAY_MS) + 1
+  return { startDate: singaporeDate(start - days * DAY_MS), endDate: singaporeDate(start - DAY_MS) }
+}
+
+// Percentage change from the previous period; null when there is nothing to compare with.
+export function percentChange(current, previous) {
+  if (!previous) return null
+  return ((current - previous) / previous) * 100
+}
+
 // Monetary metrics use the price saved on the order, never today's product price.
 function amountCents(amount) {
   if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0) return null
@@ -39,17 +52,21 @@ function amountCents(amount) {
   return Number.isSafeInteger(cents) ? cents : null
 }
 
-export function calculateSalesAnalytics(orders, { startDate, endDate }) {
+// grouping of the trend: 'daily' | 'monthly' | 'yearly'; left out = daily up to 90 days, else monthly
+const KEY_LENGTH = { daily: 10, monthly: 7, yearly: 4 } // "2026-10-29" -> "2026-10-29" / "2026-10" / "2026"
+
+export function calculateSalesAnalytics(orders, { startDate, endDate }, chosenGrouping) {
   const error = validateSalesRange(startDate, endDate)
   if (error) throw new RangeError(error)
 
   const start = dateMillis(startDate)
   const endExclusive = dateMillis(endDate) + DAY_MS
-  const grouping = (endExclusive - start) / DAY_MS <= 90 ? 'daily' : 'monthly'
+  const grouping = KEY_LENGTH[chosenGrouping] ? chosenGrouping : (endExclusive - start) / DAY_MS <= 90 ? 'daily' : 'monthly'
+  const keyLength = KEY_LENGTH[grouping]
   const buckets = new Map()
   // Walking calendar days also handles partial months at either end of a range.
   for (let day = start; day < endExclusive; day += DAY_MS) {
-    const key = singaporeDate(day).slice(0, grouping === 'daily' ? 10 : 7)
+    const key = singaporeDate(day).slice(0, keyLength)
     if (!buckets.has(key)) buckets.set(key, { date: key, revenueCents: 0, completedOrders: 0 })
   }
 
@@ -81,7 +98,7 @@ export function calculateSalesAnalytics(orders, { startDate, endDate }) {
       pricedOrderCount++
     }
 
-    const bucket = buckets.get(singaporeDate(placed).slice(0, grouping === 'daily' ? 10 : 7))
+    const bucket = buckets.get(singaporeDate(placed).slice(0, keyLength))
     bucket.completedOrders++
     bucket.revenueCents += cents ?? 0
 
@@ -108,4 +125,46 @@ export function calculateSalesAnalytics(orders, { startDate, endDate }) {
     averageOrderValueCents: pricedOrderCount ? Math.round(revenueCents / pricedOrderCount) : 0,
     trend: [...buckets.values()], statusCounts, topProducts,
   }
+}
+
+// ---- export: one row per completed order placed in the range, as a CSV file Excel opens directly ----
+const EXPORT_COLUMNS = ['Order placed', 'Product', 'Buyer', 'Quantity', 'Fulfilment', 'Pickup / delivery time', 'Total (SGD)']
+
+// Quotes every cell; a leading = + - @ is escaped so Excel does not run it as a formula.
+function csvCell(value) {
+  let text = value === null || value === undefined ? '' : String(value)
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
+  return `"${text.replace(/"/g, '""')}"`
+}
+
+// "2026-10-29 14:05" in Singapore time
+function singaporeDateTime(date) {
+  const millis = new Date(date).getTime()
+  if (!Number.isFinite(millis)) return ''
+  return new Date(millis + SINGAPORE_OFFSET_MS).toISOString().slice(0, 16).replace('T', ' ')
+}
+
+export function salesCsv(orders, { startDate, endDate }) {
+  const start = dateMillis(startDate)
+  const endExclusive = dateMillis(endDate) + DAY_MS
+  const rows = orders
+    .filter((order) => {
+      const placed = new Date(order?.createdAt).getTime()
+      return order?.status === 'completed' && placed >= start && placed < endExclusive
+    })
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map((order) => {
+      const cents = amountCents(order.totalPrice)
+      return [
+        singaporeDateTime(order.createdAt),
+        order.product?.name || 'Unavailable product',
+        order.buyer?.name || 'Buyer removed',
+        order.quantity ?? '',
+        order.fulfilment || '',
+        singaporeDateTime(order.requestedTime),
+        cents === null ? '' : (cents / 100).toFixed(2),
+      ]
+    })
+  // ﻿ tells Excel the file is UTF-8 (names with accents / Chinese characters stay readable)
+  return '﻿' + [EXPORT_COLUMNS, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
 }

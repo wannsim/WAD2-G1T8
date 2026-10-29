@@ -6,6 +6,7 @@ import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
+import ReasonModal from '@/components/ReasonModal.vue'
 
 // Owner: Basile - buyer's order dashboard
 const router = useRouter()
@@ -16,7 +17,7 @@ const error = ref('')
 const activeTab = ref('pending')
 const message = ref('')
 const busyId = ref('')
-const confirmId = ref('')
+const reasonModal = ref(null) // pop-up asking why the buyer is cancelling
 const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
@@ -198,9 +199,14 @@ async function refreshOrders() {
 // A new notification from the server reloads this list, so reload the orders too.
 watch(notifications, () => { loadOrders() })
 
-// Shows the cancellation confirmation for this order.
-function askConfirm(order) {
-  confirmId.value = order._id
+// Asks why the buyer is cancelling (shown to the seller), then cancels.
+async function askCancel(order) {
+  const reason = await reasonModal.value.ask({
+    title: 'Cancel this order?',
+    hint: 'The seller will see this reason.',
+    confirmLabel: 'Yes, cancel',
+  })
+  if (reason) updateStatus(order, 'cancelled', reason)
 }
 
 // Checks whether the buyer may still cancel this order.
@@ -208,27 +214,20 @@ function canCancel(order) {
   return order.status === 'pending' || order.status === 'rescheduled' || order.status === 'accepted'
 }
 
-// Closes the cancellation confirmation without changing an order.
-function clearConfirm() {
-  confirmId.value = ''
-}
-
 // Changes one order at a time, shows the result and refreshes the list.
-async function updateStatus(order, status) {
+async function updateStatus(order, status, reason = '') {
   if (busyId.value !== '') return // Ignore another action while a request is being sent.
   message.value = ''
   error.value = ''
   busyId.value = order._id
   try {
-    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id })
+    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id, reason })
     if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the successful cancellation.
     if (status === 'accepted') message.value = 'New time accepted.' // Explain the accepted proposal.
-    confirmId.value = ''
     busyId.value = ''
     await loadOrders()
   } catch (err) {
     error.value = getErrorMessage(err)
-    confirmId.value = ''
     busyId.value = ''
     await loadOrders()
   }
@@ -358,6 +357,9 @@ onMounted(() => {
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z" /><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0" /></svg>
                     <span>{{ buyerHelp(o) }}</span>
                   </p>
+                  <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="status-help reason" data-testid="order-reason">
+                    <span><strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? 'Your reason' : "Seller's reason" }}:</strong> {{ o.reason }}</span>
+                  </p>
                   <p v-if="o.status === 'rescheduled'" class="status-help proposal" data-testid="order-proposal">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" /></svg>
                     <span>Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></span>
@@ -366,17 +368,10 @@ onMounted(() => {
               </div>
 
               <!-- action buttons on the left, price on the right -->
-              <template v-if="confirmId === o._id && canCancel(o)">
-                <p class="mt-3 mb-2">Cancel this order?</p>
-                <div class="d-flex flex-wrap gap-2">
-                  <button class="btn btn-danger pill-btn" :disabled="busyId !== ''" @click="updateStatus(o, 'cancelled')" data-testid="order-confirm-yes">Yes, cancel</button>
-                  <button class="btn btn-outline-brand pill-btn" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
-                </div>
-              </template>
-              <div v-else class="order-footer">
+              <div class="order-footer">
                 <div class="d-flex flex-wrap gap-2">
                   <button v-if="o.status === 'rescheduled'" class="btn btn-brand pill-btn" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
-                  <button v-if="canCancel(o)" class="btn btn-outline-cancel pill-btn" :disabled="busyId !== ''" @click="askConfirm(o)" data-testid="order-cancel">Cancel order</button>
+                  <button v-if="canCancel(o)" class="btn btn-outline-cancel pill-btn" :disabled="busyId !== ''" @click="askCancel(o)" data-testid="order-cancel">Cancel order</button>
                   <template v-if="o.status === 'completed'">
                     <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-outline-brand pill-btn" data-testid="order-review-link">Leave a review</RouterLink>
                     <span v-else class="status-pill pill-reviewed align-self-center" data-testid="order-reviewed">Reviewed</span>
@@ -392,6 +387,7 @@ onMounted(() => {
       </template>
     </div>
   </div>
+  <ReasonModal ref="reasonModal" />
 </template>
 
 <style scoped>
@@ -562,6 +558,12 @@ onMounted(() => {
 .status-help.proposal {
   background: var(--aqua-soft);
   color: var(--ink);
+}
+/* why the order was declined / cancelled */
+.status-help.reason {
+  background: rgba(var(--rose-rgb), 0.08);
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .order-footer {

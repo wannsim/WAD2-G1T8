@@ -5,7 +5,8 @@
       {{ statusMessage.text }}
     </div>
 
-    <h2 class="page-title">Add products & services</h2>
+    <h2 class="page-title mb-1">Add products & services</h2>
+    <p class="text-muted mb-4">Create a listing so buyers can discover your products.</p>
 
     <p v-if="loadingShop" class="text-muted">Loading...</p>
 
@@ -17,10 +18,9 @@
     </div>
 
     <div v-else class="card p-4 shadow-sm">
-      <h5>Add new item / service</h5>
       <form @submit.prevent="submitItem">
         <ProductFields v-model="form" v-model:files="files" />
-        <button type="submit" class="btn btn-success w-100" :disabled="saving">{{ saving ? 'Creating...' : 'Create listing' }}</button>
+        <button type="submit" class="btn btn-success w-100 mt-2" :disabled="saving">{{ saving ? 'Creating...' : 'Create listing' }}</button>
       </form>
     </div>
   </div>

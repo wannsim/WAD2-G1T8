@@ -14,6 +14,19 @@ const route = useRoute()
 const product = ref(null)
 
 const router = useRouter()
+
+// "Back to For you" / "Back to Browse": goes back in history, so the feed / search keeps its filters and scroll.
+// Opened straight from a link (no page before it) -> goes to Browse instead.
+const BACK_LABELS = { '/home': 'For you', '/browse': 'Browse', '/favourites': 'Favourites', '/map': 'Shops near you' }
+const backPath = window.history.state?.back || ''
+const backLabel = (() => {
+  const page = Object.keys(BACK_LABELS).find((path) => backPath.split('?')[0] === path)
+  return page ? `Back to ${BACK_LABELS[page]}` : backPath ? 'Back' : 'Back to Browse'
+})()
+function goBack() {
+  if (backPath) router.back()
+  else router.push('/browse')
+}
 const chatError = ref('')
 
 async function chatWithSeller() {
@@ -98,6 +111,12 @@ onMounted(async () => {
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>
   <div v-else-if="product">
+  <button type="button" class="btn btn-sm back-btn d-inline-flex align-items-center gap-1 mb-3 px-0" @click="goBack">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8" />
+    </svg>
+    {{ backLabel }}
+  </button>
   <div class="row g-4 align-items-start">
     <div class="col-md-6">
       <!-- fixed square frame so every product lines up the same, whatever the photo's shape -->
@@ -181,6 +200,12 @@ onMounted(async () => {
 
 
 <style scoped>
+.back-btn {
+  color: var(--ink-soft);
+}
+.back-btn:hover {
+  color: var(--ink);
+}
 .product-image-frame {
   aspect-ratio: 1 / 1;
   width: 100%;

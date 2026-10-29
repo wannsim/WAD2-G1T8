@@ -17,8 +17,8 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
       <h4 class="mb-0">Products & services</h4>
       <!-- select mode: tick products, then delete them together -->
-      <div v-if="products.length > 0" class="d-flex align-items-center gap-2">
-        <template v-if="selecting">
+      <div class="d-flex align-items-center gap-2">
+        <template v-if="selecting && products.length > 0">
           <span class="small text-muted">{{ selectedIds.length }} selected</span>
           <button type="button" class="btn btn-sm btn-outline-secondary" @click="toggleSelectAll">
             {{ shownProducts.length && shownProducts.every((p) => selectedIds.includes(p._id)) ? 'Clear all' : 'Select all' }}
@@ -28,7 +28,10 @@
           </button>
           <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="deleting" @click="stopSelecting">Cancel</button>
         </template>
-        <button v-else type="button" class="btn btn-sm btn-outline-secondary" @click="selecting = true">Select</button>
+        <template v-else>
+          <button v-if="products.length > 0" type="button" class="btn btn-sm btn-outline-secondary" @click="selecting = true">Select</button>
+          <RouterLink to="/seller/products" class="btn btn-sm btn-brand">+ Add product</RouterLink>
+        </template>
       </div>
     </div>
     <p class="small text-muted mb-2">

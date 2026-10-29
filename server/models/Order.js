@@ -22,6 +22,7 @@ const orderSchema = new mongoose.Schema(
       default: 'pending',
     },
     cancelledBy: { type: String, enum: ['buyer', 'seller'] },
+    reason: { type: String, default: '' }, // why the order was declined / cancelled (shown to the other side)
     respondedAt: Date, // first seller response - used for average response time (Yu Chen)
   },
   { timestamps: true }
