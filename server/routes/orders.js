@@ -26,7 +26,7 @@ const NEEDS_REASON = ['declined', 'cancelled']
 const MAX_REASON_LENGTH = 300
 
 // Owner: Basile
-// POST /orders   GET /orders/buyer/:userId   GET /orders/shop/:shopId   PUT /orders/:id/status
+// POST /orders   GET /orders/open-slots/:productId   GET /orders/buyer/:userId   GET /orders/shop/:shopId   PUT /orders/:id/status
 const router = express.Router()
 
 const NEXT_STATUS = {
@@ -84,7 +84,8 @@ function findSlot(product, requestedTime) {
 }
 
 // Returns the first problem with a new order, or an empty string if it is valid.
-function checkNewOrder(body, product, shop) {
+// noOpenSlots: every slot has passed or is full -> delivery may ask for any future time (pickup still needs a slot).
+function checkNewOrder(body, product, shop, noOpenSlots) {
   if (!body.buyer) return 'Please log in again.' // An order needs a buyer.
   if (product.isAvailable === false) return 'This product is not available right now.' // Only available products may be ordered.
   if (!Number.isInteger(body.quantity) || body.quantity < 1) return 'Quantity must be a whole number, 1 or more.' // Quantity must be a positive whole number.
@@ -98,11 +99,42 @@ function checkNewOrder(body, product, shop) {
   }
   if (body.customisation && body.customisation.length > 200) return 'Keep your note under 200 characters.' // Limit the buyer's customisation note.
   if (!body.requestedTime) return 'Please choose a pickup time.' // An order needs a time.
+  if (noOpenSlots) {
+    if (body.fulfilment !== 'delivery') return 'There are no pickup slots left. Choose delivery and suggest a time.'
+    const time = new Date(body.requestedTime).getTime()
+    if (!Number.isFinite(time)) return 'Please choose a valid delivery time.'
+    if (time < startOfTomorrowSingapore()) return 'Please choose a delivery date from tomorrow onwards.' // The seller needs a day's notice.
+    if (time > Date.now() + MAX_REQUEST_AHEAD_MS) return 'Please choose a time within the next 6 months.'
+    return ''
+  }
   const slot = findSlot(product, body.requestedTime)
   if (!slot) return 'That time is not one of the seller\'s slots.' // Use one of the product's slots.
   if (!(new Date().getTime() < new Date(slot.start).getTime())) return 'That time has already passed.' // The slot must start in the future.
   return ''
 }
+
+const MAX_REQUEST_AHEAD_MS = 183 * 24 * 60 * 60 * 1000 // about 6 months
+const DAY_MS = 24 * 60 * 60 * 1000
+const SINGAPORE_OFFSET_MS = 8 * 60 * 60 * 1000
+
+// midnight at the start of tomorrow, Singapore time (as a timestamp)
+function startOfTomorrowSingapore() {
+  const singaporeNow = Date.now() + SINGAPORE_OFFSET_MS
+  return Math.floor(singaporeNow / DAY_MS) * DAY_MS + DAY_MS - SINGAPORE_OFFSET_MS
+}
+
+// The product's slots that can still be booked: in the future and not full.
+async function openSlotsOf(product) {
+  const now = Date.now()
+  const open = []
+  for (const slot of product.orderSlots || []) {
+    if (new Date(slot.start).getTime() <= now) continue
+    const capacity = slot.capacity ?? 10 // Same default as Product.js
+    if ((await countSlotOrders(product._id, slot.start)) < capacity) open.push(slot)
+  }
+  return open
+}
+const hasNoOpenSlots = async (product) => (await openSlotsOf(product)).length === 0
 
 // Counts orders that use a place in this product's requested slot.
 async function countSlotOrders(productId, requestedTime) {
@@ -156,6 +188,18 @@ function safeOrderForBuyer(order, reviewedIds) {
   return safeOrder
 }
 
+// The slots a buyer can still pick for a product (future and not full), for the order page.
+// GET /orders/open-slots/:productId -> [{ _id, start, capacity }]
+router.get('/open-slots/:productId', async (req, res) => {
+  try {
+    const p = await Product.findById(req.params.productId).select('orderSlots')
+    if (!p) return res.status(404).json({ message: 'Product not found' })
+    res.json(await openSlotsOf(p))
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 // Creates an order after checking its fields and slot capacity. Repeat orders are allowed.
 router.post('/', async (req, res) => {
   try {
@@ -167,14 +211,17 @@ router.post('/', async (req, res) => {
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
     if (String(shop.owner) === String(buyer)) return res.status(403).json({ message: 'You cannot order from your own shop.' }) // Sellers cannot buy their own products.
 
-    const message = checkNewOrder(req.body, p, shop)
+    const noOpenSlots = await hasNoOpenSlots(p)
+    const message = checkNewOrder(req.body, p, shop, noOpenSlots)
     if (message) return res.status(400).json({ message }) // Reject invalid order fields.
 
-    const slot = findSlot(p, requestedTime)
-    const used = await countSlotOrders(product, requestedTime)
-    let capacity = slot.capacity
-    if (capacity === undefined || capacity === null) capacity = 10 // Same default as Product.js when capacity is missing or empty.
-    if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // Count orders, not quantity.
+    if (!noOpenSlots) { // A delivery time the buyer suggested (no slots left) uses no slot place.
+      const slot = findSlot(p, requestedTime)
+      const used = await countSlotOrders(product, requestedTime)
+      let capacity = slot.capacity
+      if (capacity === undefined || capacity === null) capacity = 10 // Same default as Product.js when capacity is missing or empty.
+      if (used >= capacity) return res.status(409).json({ message: 'That time slot is full. Please pick another.' }) // Count orders, not quantity.
+    }
 
     let customisationNote = customisation
     if (p.customisable === false) customisationNote = '' // Non-customisable products get no note.

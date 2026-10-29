@@ -244,6 +244,11 @@ const activeConversation = computed(() => conversations.value.find((c) => c._id 
 const activeAvatarUrl = computed(() => chatAvatarUrl(activeConversation.value?.avatar || activePeer.value?.avatar))
 // the name shows straight away from the chat list (the messages call fills it in otherwise)
 const headerTitle = computed(() => activeConversation.value?.title || activeTitle.value)
+// buyers: the header's picture + name open the shop (the chat's avatar is the shop's, so its id is the shop id)
+const activeShopLink = computed(() => {
+  const avatar = activeConversation.value?.avatar || activePeer.value?.avatar
+  return !isSeller.value && avatar?.kind === 'shop' && avatar.id ? `/shops/${avatar.id}` : ''
+})
 const now = ref(Date.now())
 const activeLastSeen = computed(() => {
   now.value // re-check every minute ("Online" -> "Last seen today at ...")
@@ -335,11 +340,14 @@ onUnmounted(() => {
           <!-- header: their picture, name, Online / Last seen; the product (if they came from a product page); search -->
           <div class="convo-header">
             <button class="btn btn-sm btn-outline-secondary d-md-none" @click="closeMessageSearch(); activeId = null">All chats</button>
-            <AvatarEditor :src="activeAvatarUrl" :name="headerTitle" size="48px" />
-            <div class="chat-text">
-              <strong class="convo-name text-truncate">{{ headerTitle }}</strong>
-              <span v-if="activeLastSeen" class="last-seen" :class="{ online: activeLastSeen === 'Online' }">{{ activeLastSeen }}</span>
-            </div>
+            <component :is="activeShopLink ? 'RouterLink' : 'div'" :to="activeShopLink || undefined"
+              class="convo-peer" :class="{ 'is-link': activeShopLink }" :title="activeShopLink ? `View ${headerTitle}'s shop` : undefined">
+              <AvatarEditor :src="activeAvatarUrl" :name="headerTitle" size="48px" />
+              <div class="chat-text">
+                <strong class="convo-name text-truncate">{{ headerTitle }}</strong>
+                <span v-if="activeLastSeen" class="last-seen" :class="{ online: activeLastSeen === 'Online' }">{{ activeLastSeen }}</span>
+              </div>
+            </component>
             <RouterLink v-if="shownProduct" :to="`/products/${shownProduct._id}`" class="product-strip">
               <img :src="shownProduct.imageUrl || '/placeholder.svg'" alt="" @error="$event.target.src = '/placeholder.svg'" />
               <span class="product-strip-text">
@@ -433,6 +441,19 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* header: picture + name (buyers: a link to the shop) */
+.convo-peer {
+  display: flex;
+  align-items: center;
+  flex: 1; /* takes the space the name used to, so the product strip stays on the right */
+  gap: 0.75rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.convo-peer.is-link:hover .convo-name {
+  text-decoration: underline;
+}
 /* ---------- the two white panels ---------- */
 .chat-panel {
   border: 1px solid var(--line);

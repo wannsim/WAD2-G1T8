@@ -47,12 +47,35 @@ const futureSlots = computed(() => {
   return slots
 })
 
+// Slots that can still be booked (future and not full), from the server. null = could not check, so use futureSlots.
+const openSlotList = ref(null)
+const openSlots = computed(() => openSlotList.value ?? futureSlots.value)
+// No slot left: the buyer can still ask for DELIVERY at a time they suggest (pickup needs a slot).
+const noSlots = computed(() => openSlots.value.length === 0)
+const canRequestDelivery = computed(() => noSlots.value && product.value?.shop?.delivery !== false)
+// earliest time for the suggested-time box: the start of tomorrow, as "2026-10-30T00:00" (the seller needs a day's notice)
+function startOfTomorrow() {
+  const day = new Date()
+  day.setHours(24, 0, 0, 0)
+  return day
+}
+const minRequestTime = computed(() => {
+  const day = startOfTomorrow()
+  return new Date(day.getTime() - day.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+})
+
 // Loads the product and chooses delivery when pickup is not offered.
 async function loadProduct() {
   try {
     const response = await axios.get(`${API_URL}/products/${route.params.productId}`)
     product.value = response.data
-    if (!product.value.shop.pickup && product.value.shop.delivery) { // Use an option the shop offers.
+    try {
+      const slotsResponse = await axios.get(`${API_URL}/orders/open-slots/${product.value._id}`)
+      openSlotList.value = slotsResponse.data
+    } catch (err) {
+      openSlotList.value = null // fall back to all future slots; the server still checks when sending
+    }
+    if ((!product.value.shop.pickup || noSlots.value) && product.value.shop.delivery) { // Use an option the shop offers.
       fulfilment.value = 'delivery'
     }
     loading.value = false
@@ -124,7 +147,8 @@ async function messageSeller() {
 // Returns the first problem with the form, or an empty string if it is valid.
 function validateForm() {
   if (!Number.isInteger(quantity.value) || quantity.value < 1) return 'Quantity must be a whole number, 1 or more.' // Quantity must be a positive whole number.
-  if (!requestedTime.value) return 'Please choose a pickup time.' // An order needs a time.
+  if (!requestedTime.value) return noSlots.value ? 'Please suggest a delivery time.' : 'Please choose a pickup time.' // An order needs a time.
+  if (noSlots.value && !(new Date(requestedTime.value).getTime() >= startOfTomorrow().getTime())) return 'Please choose a delivery date from tomorrow onwards.'
   if (fulfilment.value !== 'pickup' && fulfilment.value !== 'delivery') return 'Choose pickup or delivery.' // Use one of the two fulfilment options.
   if (fulfilment.value === 'delivery') {
     if (!deliveryAddress.value) return 'Please enter the delivery address.' // Delivery needs somewhere to go.
@@ -150,7 +174,8 @@ async function submitOrder() {
       quantity: quantity.value,
       customisation: customisation.value,
       fulfilment: fulfilment.value,
-      requestedTime: requestedTime.value,
+      // a suggested time is local ("2026-11-01T10:00"); send it as a full date so the server reads it the same way
+      requestedTime: noSlots.value ? new Date(requestedTime.value).toISOString() : requestedTime.value,
       deliveryAddress: deliveryAddress.value,
       deliveryUnit: deliveryUnit.value,
       deliveryPostalCode: deliveryPostalCode.value,
@@ -181,7 +206,7 @@ async function submitOrder() {
       <div v-else-if="product && product.isAvailable === false" class="alert alert-warning" data-testid="order-unavailable">
         This product is not available right now. Please browse other products.
       </div>
-      <div v-else-if="futureSlots.length === 0" class="alert alert-info" data-testid="order-no-slots">
+      <div v-else-if="noSlots && !canRequestDelivery" class="alert alert-info" data-testid="order-no-slots">
         <p class="mb-2">No upcoming slots for this product.</p>
         <div v-if="currentUser && currentUser.role === 'buyer'">
           <div class="d-flex flex-wrap gap-2">
@@ -205,11 +230,18 @@ async function submitOrder() {
           <textarea class="form-control" rows="2" maxlength="200" id="customisation" v-model.trim="customisation" data-testid="order-customisation"></textarea>
         </div>
 
+        <div v-if="noSlots" class="alert alert-info small" data-testid="order-no-slots-delivery">
+          No slots are left for this product, but you can still request <strong>delivery</strong> at a time that suits you.
+          The seller will accept it or suggest another time.
+        </div>
+
         <div class="mb-3">
-          <label class="form-label" for="requested-time">Preferred time</label>
-          <select class="form-select" id="requested-time" v-model="requestedTime" data-testid="order-time">
+          <label class="form-label" for="requested-time">{{ noSlots ? 'Preferred delivery time' : 'Preferred time' }}</label>
+          <input v-if="noSlots" type="datetime-local" class="form-control" id="requested-time" v-model="requestedTime"
+            :min="minRequestTime" data-testid="order-time" />
+          <select v-else class="form-select" id="requested-time" v-model="requestedTime" data-testid="order-time">
             <option disabled value="">Please select one</option>
-            <option v-for="slot in futureSlots" :key="slot._id" :value="slot.start">
+            <option v-for="slot in openSlots" :key="slot._id" :value="slot.start">
               {{ formatDateTime(slot.start) }}
             </option>
           </select>
@@ -223,7 +255,7 @@ async function submitOrder() {
         </div>
 
         <div class="mb-3">
-          <div v-if="product.shop.pickup" class="form-check">
+          <div v-if="product.shop.pickup && !noSlots" class="form-check">
             <input class="form-check-input" type="radio" id="pickup" value="pickup" v-model="fulfilment" data-testid="order-fulfilment-pickup" />
             <label class="form-check-label" for="pickup">Pickup</label>
           </div>

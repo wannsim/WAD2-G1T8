@@ -14,6 +14,23 @@
       </span>
     </div>
 
+    <!-- how buyers can get their orders: saved as soon as a switch is flipped -->
+    <section class="fulfil-box mb-4" aria-labelledby="fulfil-title">
+      <div>
+        <h6 id="fulfil-title" class="mb-0">Order options</h6>
+        <span class="small text-muted">Choose how buyers can get their orders. Keep at least one on.</span>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-4">
+        <div v-for="option in FULFIL_OPTIONS" :key="option.key" class="form-check form-switch mb-0">
+          <input :id="`fulfil-${option.key}`" type="checkbox" role="switch" class="form-check-input"
+            :checked="shop[option.key] !== false" :disabled="savingFulfil" @change="toggleFulfil(option.key, $event)">
+          <label class="form-check-label" :for="`fulfil-${option.key}`">{{ option.label }}</label>
+        </div>
+        <span v-if="savingFulfil" class="small text-muted">Saving...</span>
+        <span v-else-if="fulfilMessage" class="small" :class="fulfilError ? 'text-danger' : 'text-success'" role="status">{{ fulfilMessage }}</span>
+      </div>
+    </section>
+
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
       <h4 class="mb-0">Products & services</h4>
       <!-- select mode: tick products, then delete them together -->
@@ -263,6 +280,35 @@ async function loadShop() {
   }
 }
 
+// ---- order options: pickup / delivery (Shop.pickup, Shop.delivery) ----
+const FULFIL_OPTIONS = [{ key: 'pickup', label: 'Pickup' }, { key: 'delivery', label: 'Delivery' }]
+const savingFulfil = ref(false)
+const fulfilMessage = ref('')
+const fulfilError = ref(false)
+async function toggleFulfil(key, event) {
+  const changes = { pickup: shop.value.pickup !== false, delivery: shop.value.delivery === true, [key]: event.target.checked }
+  fulfilError.value = false
+  if (!changes.pickup && !changes.delivery) { // buyers need at least one way to get their order
+    event.target.checked = true
+    fulfilError.value = true
+    fulfilMessage.value = 'Keep at least one option on.'
+    return
+  }
+  savingFulfil.value = true
+  try {
+    const res = await axios.put(`${API_URL}/shops/${shop.value._id}`, changes)
+    shop.value.pickup = res.data.pickup
+    shop.value.delivery = res.data.delivery
+    fulfilMessage.value = 'Saved.'
+  } catch (err) {
+    event.target.checked = !event.target.checked // put the switch back
+    fulfilError.value = true
+    fulfilMessage.value = err.response?.data?.message || 'Could not save. Please try again.'
+  } finally {
+    savingFulfil.value = false
+  }
+}
+
 // load on open, and again if the user logs in as someone else
 // "View reviews" on a card: filter the reviews to that product and scroll down to them
 function showReviewsFor(item) {
@@ -288,6 +334,17 @@ onBeforeUnmount(() => shopController?.abort())
 </script>
 
 <style scoped>
+.fulfil-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-soft);
+}
 /* MRT, experience and categories under the header */
 .shop-details {
   display: flex;
