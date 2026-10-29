@@ -5,7 +5,7 @@ import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { socket } from '@/utils/socket'
 import { currentUser, isLoggedIn, isSeller, clearUser } from '@/utils/auth'
-import { navOpen, recentOrders, loadRecentOrders, myShopAvatar, userAvatarUrl } from '@/utils/layout'
+import { navOpen, recentOrders, loadRecentOrders, myShopAvatar, userAvatarUrl, followedShops, loadFollowedShops } from '@/utils/layout'
 import NotificationBell from './NotificationBell.vue'
 
 // Owner: Cheyenne (chat badge + user menu moved here from Wan Sim's NavBar)
@@ -35,19 +35,8 @@ async function loadUnread() {
 }
 
 // ---- shops the buyer follows (little avatar stack, like the inspiration's "+8") ----
-const followed = ref([])
-async function loadFollowed() {
-  if (!currentUser.value || isSeller.value) {
-    followed.value = []
-    return
-  }
-  try {
-    const response = await axios.get(`${API_URL}/shops/following/${currentUser.value._id}`)
-    followed.value = response.data
-  } catch (error) {
-    followed.value = []
-  }
-}
+// (shared in layout.js so FollowButton can refresh it straight away)
+const followed = followedShops
 
 // shortcuts in the user menu: buyers and sellers get different ones
 const shortcuts = computed(() => (isSeller.value
@@ -88,7 +77,7 @@ const avatarPhoto = computed(() => {
 
 function refreshAll() {
   loadUnread()
-  loadFollowed()
+  loadFollowedShops()
 }
 watch(currentUser, refreshAll)
 watch(() => route.path, () => {

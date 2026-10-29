@@ -41,8 +41,13 @@ function onFilesChange(event) {
 }
 const removeFile = (index) => (files.value = files.value.filter((_, i) => i !== index))
 const needsPhoto = computed(() => !props.currentImageUrl && files.value.length === 0)
+const shownPhotos = computed(() => previews.value.length || (props.currentImageUrl ? 1 : 0))
+const emptyTiles = computed(() => Math.max(0, MAX_PHOTOS - shownPhotos.value))
 
 // ---- order slots ----
+// bootstrap-icons paths (16x16)
+const CALENDAR_ICON = 'M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z'
+const CLOCK_ICON = 'M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71zM8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0'
 const addSlot = () => form.value.orderSlots.push({ start: '', capacity: 10 })
 const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
 </script>
@@ -95,17 +100,19 @@ const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
       <label class="form-label" :for="`${id}-photos`">
         Photos <span class="text-danger">*</span> <span class="text-muted small">(up to {{ MAX_PHOTOS }})</span>
       </label>
-      <input :id="`${id}-photos`" ref="fileInput" type="file" class="form-control" multiple accept="image/*"
+      <!-- hidden file input, opened by clicking an empty tile -->
+      <input :id="`${id}-photos`" ref="fileInput" type="file" class="photo-input" multiple accept="image/*"
         :required="needsPhoto" :disabled="files.length >= MAX_PHOTOS" @change="onFilesChange">
-      <div class="d-flex flex-wrap gap-2 mt-2">
-        <div v-for="(src, index) in previews" :key="src" class="photo-thumb">
+      <div class="photo-grid">
+        <div v-for="(src, index) in previews" :key="src" class="photo-tile">
           <img :src="src" :alt="files[index]?.name">
           <button type="button" class="btn-close btn-close-white" aria-label="Remove photo" @click="removeFile(index)"></button>
         </div>
-        <template v-if="previews.length === 0 && currentImageUrl">
-          <img :src="currentImageUrl" alt="Current photo" class="photo-thumb" @error="$event.target.src = '/placeholder.svg'">
-          <span class="small text-muted align-self-center">Current photo. New photos replace it.</span>
-        </template>
+        <div v-if="previews.length === 0 && currentImageUrl" class="photo-tile" title="Current photo. New photos replace it.">
+          <img :src="currentImageUrl" alt="Current photo" @error="$event.target.src = '/placeholder.svg'">
+        </div>
+        <button v-for="n in emptyTiles" :key="`empty-${n}`" type="button" class="photo-tile photo-add"
+          aria-label="Add photo" @click="fileInput.click()">+</button>
       </div>
 
       <div class="form-check mt-3">
@@ -119,52 +126,134 @@ const removeSlot = (index) => form.value.orderSlots.splice(index, 1)
     </div>
   </div>
 
-  <div class="border rounded bg-light p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="slots-box p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-2">
       <div>
         <h6 class="mb-0">Order slots</h6>
         <span class="small text-muted">Buyers choose one of these times when they order.</span>
       </div>
-      <button type="button" class="btn btn-outline-primary btn-sm" @click="addSlot">+ Add slot</button>
+      <button type="button" class="btn btn-sm add-slot-btn" @click="addSlot">+ Add slot</button>
     </div>
-    <div class="row g-2">
-      <div v-for="(slot, index) in form.orderSlots" :key="index" class="col-lg-6">
-        <div class="input-group input-group-sm">
-          <input type="datetime-local" class="form-control" v-model="slot.start" aria-label="Slot start date and time" required>
-          <span class="input-group-text">Max</span>
-          <input type="number" class="form-control slot-capacity" v-model.number="slot.capacity" min="1" step="1"
-            aria-label="Max orders in this slot" required>
-          <button type="button" class="btn btn-outline-danger" aria-label="Remove slot" title="Remove slot" @click="removeSlot(index)">&times;</button>
-        </div>
+    <div class="d-flex flex-column gap-2">
+      <div v-for="(slot, index) in form.orderSlots" :key="index" class="slot-row">
+        <svg class="slot-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="CALENDAR_ICON" /></svg>
+        <input type="datetime-local" class="slot-time" v-model="slot.start" aria-label="Slot start date and time" required>
+        <svg class="slot-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="CLOCK_ICON" /></svg>
+        <span class="slot-max">Max</span>
+        <input type="number" class="slot-capacity" v-model.number="slot.capacity" min="1" step="1"
+          aria-label="Max orders in this slot" required>
+        <button type="button" class="slot-remove" aria-label="Remove slot" title="Remove slot" @click="removeSlot(index)">&times;</button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.photo-thumb {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: 0.375rem;
-  object-fit: cover;
+/* ---- photos: a row of 5 square tiles, empty ones are dashed "+" buttons ---- */
+.photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0; /* hidden, but still checked by the browser's "required" */
 }
-.photo-thumb img {
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+}
+.photo-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.photo-tile img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 0.375rem;
 }
-.photo-thumb .btn-close {
+.photo-tile .btn-close {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 4px;
+  right: 4px;
   padding: 0.2rem;
   background-color: rgba(0, 0, 0, 0.55);
   border-radius: 50%;
   font-size: 0.55rem;
 }
+.photo-add {
+  border: 1.5px dashed var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 1.6rem;
+  font-weight: 300;
+  line-height: 1;
+}
+.photo-add:hover {
+  border-color: var(--aqua);
+  color: var(--ocean);
+  background: var(--surface-soft);
+}
+
+/* ---- order slots ---- */
+.slots-box {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-soft);
+}
+.add-slot-btn {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.add-slot-btn:hover {
+  background: var(--surface-hover);
+}
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 470px;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+.slot-icon {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+.slot-time {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9rem;
+  outline: none;
+}
+.slot-time::-webkit-calendar-picker-indicator {
+  opacity: 0.5; /* the calendar icon on the left already shows this is a date */
+}
+.slot-max {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
 .slot-capacity {
-  max-width: 70px;
+  width: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9rem;
+  outline: none;
+}
+.slot-remove {
+  border: 0;
+  background: transparent;
+  color: var(--rose);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
 }
 </style>

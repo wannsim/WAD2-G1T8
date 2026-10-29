@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
+import { loadFollowedShops } from '@/utils/layout'
 
 // Follow / Unfollow button for a shop. Used on the product page and the shop page.
 //   <FollowButton :shop="shop" />    shop needs _id, owner, followers
@@ -41,6 +42,7 @@ async function toggleFollow() {
     following.value = response.data.following
     followerCount.value = response.data.followerCount
     emit('change', response.data)
+    loadFollowedShops() // update the "Following" stack in the top bar
   } catch (err) {
     error.value = err.response?.data?.message || err.message
   } finally {

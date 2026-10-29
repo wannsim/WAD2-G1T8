@@ -69,3 +69,19 @@ export async function loadRecentOrders() {
 }
 
 watch(currentUser, loadRecentOrders)
+
+// shops the buyer follows (top bar "Following" stack). FollowButton reloads it after a follow / unfollow.
+export const followedShops = ref([])
+
+export async function loadFollowedShops() {
+  if (!currentUser.value || isSeller.value) {
+    followedShops.value = []
+    return
+  }
+  try {
+    const response = await axios.get(`${API_URL}/shops/following/${currentUser.value._id}`)
+    followedShops.value = response.data
+  } catch (err) {
+    followedShops.value = []
+  }
+}
