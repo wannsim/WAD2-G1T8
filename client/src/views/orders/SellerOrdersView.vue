@@ -145,21 +145,6 @@ const totalActive = computed(() => {
   return count
 })
 
-// Summarises the three active order groups as counts and percentages.
-const breakdown = computed(() => {
-  const groups = [
-    { label: 'Needs reply', status: 'pending', count: needsReply.value.length, percent: 0 },
-    { label: 'Waiting on buyer', status: 'rescheduled', count: waitingOnBuyer.value.length, percent: 0 },
-    { label: 'Accepted', status: 'accepted', count: upcoming.value.length, percent: 0 },
-  ]
-  for (let i = 0; i < groups.length; i++) {
-    if (totalActive.value > 0) { // Avoid dividing by zero when there are no active orders.
-      groups[i].percent = Math.round(groups[i].count * 100 / totalActive.value)
-    }
-  }
-  return groups
-})
-
 // Returns up to five accepted orders whose pickup time has not passed, soonest first.
 const nextPickups = computed(() => {
   const list = []
@@ -181,11 +166,10 @@ const ICONS = {
   time: 'M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71zM8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0',
   note: 'M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2',
   pin: 'M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
-  chart: 'M4 11H2v3h2zm5-4H7v7h2zm5-5v12h-2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1z',
 }
 const statTiles = computed(() => [
-  { key: 'needs', tone: 'amber', icon: ICONS.chat, label: 'Needs reply', value: needsReply.value.length, hint: 'Waiting for your answer', group: 'needs-reply', testid: 'stat-needs-reply' },
   { key: 'accepted', tone: 'blue', icon: ICONS.bag, label: 'Accepted', value: upcoming.value.length, hint: 'Pickups coming up', group: 'upcoming', testid: 'stat-upcoming' },
+  { key: 'needs', tone: 'amber', icon: ICONS.chat, label: 'Needs reply', value: needsReply.value.length, hint: 'Waiting for your answer', group: 'needs-reply', testid: 'stat-needs-reply' },
   { key: 'overdue', tone: 'rose', icon: ICONS.clock, label: 'Overdue', value: overdueCount.value, hint: 'Pickup time has passed', group: 'upcoming', testid: 'stat-overdue' },
   { key: 'active', tone: 'green', icon: ICONS.check, label: 'Total active', value: totalActive.value, hint: 'Not completed yet', group: 'needs-reply', testid: 'stat-total-active' },
 ])
@@ -570,39 +554,28 @@ onMounted(() => {
           </section>
         </div>
 
-        <!-- ===== right: overview + next pickups ===== -->
+        <!-- ===== right: next pickups ===== -->
         <div class="col-lg-4 d-flex flex-column gap-4">
-          <section class="panel overview" data-testid="status-breakdown" aria-labelledby="overview-title">
-            <h3 id="overview-title" class="overview-head">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.chart" /></svg>
-              Order overview
-            </h3>
-            <div class="p-3">
-              <div v-for="b in breakdown" :key="b.status" class="overview-row">
-                <p class="d-flex justify-content-between mb-1"><span>{{ b.label }}</span><strong>{{ b.count }}</strong></p>
-                <div class="overview-bar"><span :class="`bar-${b.status}`" :style="{ width: b.percent + '%' }"></span></div>
-              </div>
-            </div>
-          </section>
-
-          <section class="panel p-3 p-md-4" data-testid="next-pickup" aria-labelledby="pickups-title">
-            <h3 id="pickups-title" class="panel-title mb-3">
+          <section class="panel panel-headed" data-testid="next-pickup" aria-labelledby="pickups-title">
+            <h3 id="pickups-title" class="panel-head">
               <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.calendar" /></svg>
               Next pickups
             </h3>
-            <ul v-if="nextPickups.length > 0" class="pickup-list">
-              <li v-for="p in nextPickups" :key="p._id" data-testid="next-pickup-item">
-                <span class="pickup-date">{{ formatDateTime(p.requestedTime) }}</span>
-                <span class="fw-semibold text-break">{{ p.product ? p.product.name : 'Product removed' }}</span>
-                <span class="small text-muted text-break">{{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(p.fulfilment) }}</span>
-              </li>
-            </ul>
-            <div v-else class="empty-pickups">
-              <span class="empty-icon" aria-hidden="true">
-                <svg width="40" height="40" viewBox="0 0 16 16" fill="currentColor"><path :d="ICONS.calendar" /></svg>
-              </span>
-              <p class="fw-semibold mb-1">No upcoming pickups</p>
-              <p class="small text-muted mb-0">Accepted orders will appear here.</p>
+            <div class="p-3 p-md-4">
+              <ul v-if="nextPickups.length > 0" class="pickup-list">
+                <li v-for="p in nextPickups" :key="p._id" data-testid="next-pickup-item">
+                  <span class="pickup-date">{{ formatDateTime(p.requestedTime) }}</span>
+                  <span class="fw-semibold text-break">{{ p.product ? p.product.name : 'Product removed' }}</span>
+                  <span class="small text-muted text-break">{{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(p.fulfilment) }}</span>
+                </li>
+              </ul>
+              <div v-else class="empty-pickups">
+                <span class="empty-icon" aria-hidden="true">
+                  <svg width="40" height="40" viewBox="0 0 16 16" fill="currentColor"><path :d="ICONS.calendar" /></svg>
+                </span>
+                <p class="fw-semibold mb-1">No upcoming pickups</p>
+                <p class="small text-muted mb-0">Accepted orders will appear here.</p>
+              </div>
             </div>
           </section>
         </div>
@@ -907,9 +880,9 @@ onMounted(() => {
   background: var(--surface-soft);
 }
 
-/* ---------- right column ---------- */
-.overview { overflow: hidden; }
-.overview-head {
+/* Panel with a navy header strip (Next pickups). */
+.panel-headed { overflow: hidden; }
+.panel-head {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -920,22 +893,6 @@ onMounted(() => {
   font-weight: 600;
   color: #fff;
 }
-.overview-row { padding: 0.5rem 0.25rem; }
-.overview-row + .overview-row { border-top: 1px solid var(--line); }
-.overview-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--tile);
-  overflow: hidden;
-}
-.overview-bar span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-}
-.bar-pending { background: var(--amber); }
-.bar-rescheduled { background: var(--aqua); }
-.bar-accepted { background: #23804a; }
 
 .pickup-list {
   margin: 0;
