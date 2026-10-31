@@ -7,6 +7,15 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: function () { return !this.googleId } },
     googleId: { type: String }, 
+    // Google Calendar permission; the token is never sent to the browser.
+    googleCalendar: {
+      refreshToken: { type: String, select: false },
+      email: { type: String, default: '' },
+      connectedAt: { type: Date, default: null },
+      state: { type: String, default: '', select: false },
+      stateExpires: { type: Date, default: null },
+      returnTo: { type: String, default: '' },
+    },
     role: { type: String, enum: ['buyer', 'seller'], default: 'buyer' },
     preferences: { type: [String], default: [] }, // buyer's favourite categories (used by FYP)
     preferredMrt: { type: String, default: '', trim: true },

@@ -12,6 +12,7 @@ import discoverRoutes from './routes/discover.js'
 import favouriteRoutes from './routes/favourites.js'
 import feedRoutes from './routes/feed.js'
 import orderRoutes from './routes/orders.js'
+import calendarRoutes from './routes/calendar.js'
 import reviewRoutes from './routes/reviews.js'
 import chatRoutes from './routes/chats.js'
 import notificationRoutes from './routes/notifications.js'
@@ -72,6 +73,7 @@ app.use('/discover', discoverRoutes)
 app.use('/favourites', favouriteRoutes)
 app.use('/feed', feedRoutes)
 app.use('/orders', orderRoutes)
+app.use('/calendar', calendarRoutes)
 app.use('/reviews', reviewRoutes)
 app.use('/chats', chatRoutes)
 app.use('/notifications', notificationRoutes)
