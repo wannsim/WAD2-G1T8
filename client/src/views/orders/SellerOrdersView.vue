@@ -7,6 +7,7 @@ import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
+import { calendarStatus, connectLink, disconnectCalendar } from './calendarApi.js'
 
 // Owner: Basile - seller's order dashboard: accept / decline / propose new time / complete
 const router = useRouter()
@@ -26,6 +27,56 @@ const proposeOpenId = ref('') // The order whose new-time input is open.
 const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
+const calendar = ref({ enabled: false, connected: false }) // Safe Calendar connection status.
+
+// Checks whether two dates have the same local calendar day.
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+// Counts active orders on each of the seven days starting today.
+const nextSevenDays = computed(() => {
+  const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const today = new Date()
+  const days = []
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i)
+    let count = 0
+    for (let j = 0; j < orders.value.length; j++) {
+      const order = orders.value[j]
+      if (['pending', 'rescheduled', 'accepted'].includes(order.status) && sameDay(new Date(order.requestedTime), day)) count++
+    }
+    days.push({ label: names[day.getDay()], count, isToday: i === 0 })
+  }
+  return days
+})
+
+// Finds the largest daily count, keeping the bar-height divisor above zero.
+const maxCount = computed(() => {
+  let largest = 1
+  for (let i = 0; i < nextSevenDays.value.length; i++) {
+    if (nextSevenDays.value[i].count > largest) largest = nextSevenDays.value[i].count
+  }
+  return largest
+})
+
+// Totals the active orders shown in the seven daily bars.
+const upcomingTotal = computed(() => {
+  let total = 0
+  for (let i = 0; i < nextSevenDays.value.length; i++) total += nextSevenDays.value[i].count
+  return total
+})
+
+// Disconnects Calendar and reloads its status, using the existing refresh busy flag.
+async function disconnectGoogleCalendar() {
+  if (refreshing.value) return
+  refreshing.value = true
+  error.value = ''
+  const result = await disconnectCalendar(currentUser.value._id)
+  if (result) calendar.value = await calendarStatus(currentUser.value._id)
+  else error.value = 'Could not disconnect Google Calendar. Please try again.'
+  refreshing.value = false
+}
 
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
@@ -135,11 +186,14 @@ const totalActive = computed(() => {
   return count
 })
 
-// Returns up to five accepted orders whose pickup time has not passed, soonest first.
+// Up to five pickups: overdue ones first, then the next upcoming ones.
 const nextPickups = computed(() => {
   const list = []
-  for (let i = 0; i < upcoming.value.length && list.length < 5; i++) { // Stop once five are found.
-    if (!isOverdue(upcoming.value[i])) list.push(upcoming.value[i]) // The server already sorts soonest first.
+  for (let i = 0; i < upcoming.value.length && list.length < 5; i++) {
+    if (isOverdue(upcoming.value[i])) list.push(upcoming.value[i])
+  }
+  for (let i = 0; i < upcoming.value.length && list.length < 5; i++) {
+    if (!isOverdue(upcoming.value[i])) list.push(upcoming.value[i])
   }
   return list
 })
@@ -241,6 +295,7 @@ async function refreshOrders() {
   refreshing.value = true
   error.value = ''
   await loadOrders()
+  calendar.value = await calendarStatus(currentUser.value._id)
   refreshing.value = false
 }
 
@@ -296,7 +351,7 @@ async function updateStatus(order, status, reason = '') {
   error.value = ''
   busyId.value = order._id
   try {
-    await axios.put(`${API_URL}/orders/${order._id}/status`, {
+    const response = await axios.put(`${API_URL}/orders/${order._id}/status`, {
       status,
       userId: currentUser.value._id,
       proposedTime: proposals.value[order._id],
@@ -307,6 +362,11 @@ async function updateStatus(order, status, reason = '') {
     if (status === 'rescheduled') message.value = 'New time sent to the buyer.' // Explain the proposed time.
     if (status === 'completed') message.value = 'Order marked as completed.' // Explain the completed order.
     if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the cancelled order.
+    if (response.data.calendar) {
+      if (response.data.calendar.seller === 'added') message.value += ' Added to your Google Calendar.'
+      if (response.data.calendar.seller === 'removed') message.value += ' Removed from your Google Calendar.'
+      if (response.data.calendar.seller === 'failed') message.value += ' Your Google Calendar could not be updated.'
+    }
     clearConfirm()
     closeProposal()
     busyId.value = ''
@@ -337,7 +397,7 @@ async function proposeTime(order) {
 }
 
 // Sends logged-out users to login and buyers to their own orders before loading.
-onMounted(() => {
+onMounted(async () => {
   if (!currentUser.value) {
     router.push('/login')
     return
@@ -346,7 +406,8 @@ onMounted(() => {
     router.push('/orders')
     return
   }
-  loadOrders()
+  await loadOrders()
+  calendar.value = await calendarStatus(currentUser.value._id)
 })
 </script>
 
@@ -547,9 +608,12 @@ onMounted(() => {
             <div class="p-3 p-md-4">
               <ul v-if="nextPickups.length > 0" class="pickup-list">
                 <li v-for="p in nextPickups" :key="p._id" data-testid="next-pickup-item">
-                  <span class="pickup-date">{{ formatDateTime(p.requestedTime) }}</span>
-                  <span class="fw-semibold text-break">{{ p.product ? p.product.name : 'Product removed' }}</span>
+                  <span class="pickup-date" :class="{ 'pickup-overdue': isOverdue(p) }">{{ formatDateTime(p.requestedTime) }}</span>
+                  <span class="fw-semibold text-break">{{ p.product ? p.product.name : 'Product removed' }} <span v-if="isOverdue(p)" class="status-pill pill-overdue" data-testid="next-pickup-overdue">Overdue</span></span>
                   <span class="small text-muted text-break">{{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(p.fulfilment) }}</span>
+                  <div v-if="isOverdue(p) && p.buyer" class="d-flex flex-wrap gap-2 mt-1">
+                    <button type="button" class="btn pill-btn btn-text" :disabled="chatBusyId !== ''" @click="messageBuyer(p)" data-testid="next-pickup-message">Message buyer</button>
+                  </div>
                 </li>
               </ul>
               <div v-else class="empty-pickups">
@@ -560,6 +624,30 @@ onMounted(() => {
                 <p class="small text-muted mb-0">Accepted orders will appear here.</p>
               </div>
             </div>
+          </section>
+          <section v-if="calendar.enabled" class="panel p-3 p-md-4" data-testid="next-seven-days" aria-labelledby="seven-days-title">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+              <h3 id="seven-days-title" class="panel-title mb-0">Next 7 days</h3>
+              <RouterLink v-if="calendar.connected" to="/seller/calendar" data-testid="open-calendar">Open calendar</RouterLink>
+            </div>
+            <template v-if="calendar.connected">
+              <p class="small text-body-secondary">{{ upcomingTotal }} orders coming up &middot; synced with Google Calendar</p>
+              <div class="calendar-bars">
+                <div v-for="day in nextSevenDays" :key="day.label" class="calendar-day" :class="{ 'fw-bold': day.isToday }">
+                  <span>{{ day.count }}</span>
+                  <div class="calendar-bar-track" aria-hidden="true">
+                    <div class="calendar-bar" :class="{ 'calendar-bar-empty': day.count === 0 }" :style="{ height: day.count === 0 ? '2px' : (day.count / maxCount * 100) + '%' }"></div>
+                  </div>
+                  <span>{{ day.label }}</span>
+                </div>
+              </div>
+              <button type="button" class="btn btn-light btn-sm mt-3" :disabled="refreshing" @click="disconnectGoogleCalendar" data-testid="calendar-disconnect">{{ refreshing ? 'Please wait…' : 'Disconnect Google Calendar' }}</button>
+            </template>
+            <p v-else-if="calendar.needsGoogleSignIn" class="small text-body-secondary mb-0">This feature needs a Google account. Sign in with Google to use it.</p>
+            <template v-else>
+              <p class="small text-body-secondary">Connect Google Calendar to see your week here and keep your pickups in your calendar.</p>
+              <a :href="connectLink(currentUser._id, '/seller/orders')" data-testid="calendar-connect">Connect Google Calendar</a>
+            </template>
           </section>
         </div>
       </div>
@@ -899,6 +987,9 @@ onMounted(() => {
   font-weight: 600;
   color: var(--ocean);
 }
+/* Overdue pickup warnings and keyboard focus. */
+.pickup-date.pickup-overdue { color: #b8312f; }
+.pickup-list .btn-text:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
 .empty-pickups {
   padding: 1rem 0 0.5rem;
   text-align: center;
@@ -915,6 +1006,13 @@ onMounted(() => {
   background: var(--aqua-soft);
   color: var(--ocean);
 }
+
+/* Seven navy bars share the available panel width. */
+.calendar-bars { display: flex; gap: 0.4rem; }
+.calendar-day { flex: 1; min-width: 0; text-align: center; font-size: 0.8rem; }
+.calendar-bar-track { height: 72px; display: flex; align-items: flex-end; margin: 0.35rem 0; }
+.calendar-bar { width: 100%; background: var(--navy); border-radius: 0.2rem 0.2rem 0 0; }
+.calendar-bar-empty { background: var(--line); }
 
 /* ---------- smaller screens ---------- */
 @media (max-width: 991.98px) {

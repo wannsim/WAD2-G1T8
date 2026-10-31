@@ -7,6 +7,7 @@ import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
+import { calendarStatus, connectLink, disconnectCalendar } from './calendarApi.js'
 
 // Owner: Basile - buyer's order dashboard
 const router = useRouter()
@@ -24,6 +25,18 @@ const brokenImages = ref({})
 const openDetails = ref({}) // Which order cards show their details.
 const searchText = ref('')
 const fulfilmentFilter = ref('all') // Filter: 'all', 'pickup' or 'delivery'
+const calendar = ref({ enabled: false, connected: false }) // Safe Calendar connection status.
+
+// Disconnects Calendar and reloads its status, using the existing refresh busy flag.
+async function disconnectGoogleCalendar() {
+  if (refreshing.value) return
+  refreshing.value = true
+  error.value = ''
+  const result = await disconnectCalendar(currentUser.value._id)
+  if (result) calendar.value = await calendarStatus(currentUser.value._id)
+  else error.value = 'Could not disconnect Google Calendar. Please try again.'
+  refreshing.value = false
+}
 
 // Sets the colour of each order status tag.
 const STATUS_BADGE = {
@@ -189,6 +202,7 @@ async function refreshOrders() {
   refreshing.value = true
   error.value = ''
   await loadOrders()
+  calendar.value = await calendarStatus(currentUser.value._id)
   refreshing.value = false
 }
 
@@ -217,9 +231,14 @@ async function updateStatus(order, status, reason = '') {
   error.value = ''
   busyId.value = order._id
   try {
-    await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id, reason })
+    const response = await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id, reason })
     if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the successful cancellation.
     if (status === 'accepted') message.value = 'New time accepted.' // Explain the accepted proposal.
+    if (response.data.calendar) {
+      if (response.data.calendar.buyer === 'added') message.value += ' Added to your Google Calendar.'
+      if (response.data.calendar.buyer === 'removed') message.value += ' Removed from your Google Calendar.'
+      if (response.data.calendar.buyer === 'failed') message.value += ' Your Google Calendar could not be updated.'
+    }
     busyId.value = ''
     await loadOrders()
   } catch (err) {
@@ -230,7 +249,7 @@ async function updateStatus(order, status, reason = '') {
 }
 
 // Sends logged-out users to login and sellers to their dashboard before loading.
-onMounted(() => {
+onMounted(async () => {
   if (!currentUser.value) {
     router.push('/login')
     return
@@ -239,7 +258,8 @@ onMounted(() => {
     router.push('/seller/orders')
     return
   }
-  loadOrders()
+  await loadOrders()
+  calendar.value = await calendarStatus(currentUser.value._id)
 })
 </script>
 
@@ -255,6 +275,18 @@ onMounted(() => {
           </svg>
           {{ refreshing ? 'Refreshing…' : 'Refresh' }}
         </button>
+      </div>
+      <!-- Calendar connection stays available even before the first order. -->
+      <div v-if="calendar.enabled" class="buyer-calendar d-flex align-items-center flex-wrap gap-2 mb-3 text-break" data-testid="buyer-calendar">
+        <template v-if="calendar.connected">
+          <span>Google Calendar synced ({{ calendar.email }}). Accepted pickups are added automatically.</span>
+          <button type="button" class="btn btn-light btn-sm" :disabled="refreshing" @click="disconnectGoogleCalendar" data-testid="buyer-calendar-disconnect">{{ refreshing ? 'Please wait…' : 'Disconnect' }}</button>
+        </template>
+        <span v-else-if="calendar.needsGoogleSignIn">This feature needs a Google account. Sign in with Google to use it.</span>
+        <template v-else>
+          <span>Connect Google Calendar to add your accepted pickups automatically.</span>
+          <a :href="connectLink(currentUser._id, '/orders')" data-testid="buyer-calendar-connect">Connect Google Calendar</a>
+        </template>
       </div>
       <p v-if="loading" data-testid="buyer-orders-loading">
         <span class="spinner-border spinner-border-sm"></span> Loading…
@@ -378,6 +410,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* A plain connection line wraps on narrow screens. */
+.buyer-calendar { padding: 0.75rem 1rem; background: var(--surface); color: var(--ink-soft); font-size: 0.88rem; }
+
 /* ---------- tabs: underlined, the open one tinted ---------- */
 .order-tabs {
   display: flex;
