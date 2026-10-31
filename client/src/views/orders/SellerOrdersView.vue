@@ -27,16 +27,6 @@ const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
 
-// Explains each order status to the seller.
-const STATUS_HELP_SELLER = {
-  pending: 'Waiting for your reply.',
-  rescheduled: 'Waiting for the buyer to accept your new time.',
-  accepted: 'Accepted. Hand it over at the time shown.',
-  completed: 'Done.',
-  declined: 'You declined this order.',
-  cancelled: 'This order was cancelled.',
-}
-
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
   const groupedOrders = []
@@ -219,12 +209,12 @@ function timePassed(order) {
   return new Date(time).getTime() < new Date().getTime()
 }
 
-// Picks the one-line status explanation, including times that have passed.
+// Returns a warning when a time has passed; otherwise an empty string.
 function sellerHelp(order) {
   if (isOverdue(order)) return 'The pickup time has passed. Mark it completed or message the buyer.'
   if (order.status === 'pending' && timePassed(order)) return 'The pickup time has passed. Propose a new time or decline.'
   if (order.status === 'rescheduled' && timePassed(order)) return 'Your new time has passed. Message the buyer.'
-  return STATUS_HELP_SELLER[order.status]
+  return ''
 }
 
 // Loads the seller's shop and then its orders in the order returned by the server.
@@ -453,8 +443,8 @@ onMounted(() => {
 
               <div v-else class="d-flex flex-column gap-3" :data-testid="`group-${activeGroup}`">
                 <article v-for="o in currentList" :key="o._id" class="order-card" data-testid="order-row">
-                  <div class="d-flex gap-3 gap-md-4">
-                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="112" height="112"
+                  <div class="d-flex gap-3">
+                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="64" height="64"
                       class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                     <div class="order-text flex-grow-1">
                       <div class="d-flex justify-content-between align-items-start gap-2">
@@ -467,29 +457,22 @@ onMounted(() => {
                       </div>
 
                       <ul class="order-facts">
+                        <!-- buyer, quantity and time on one line -->
                         <li class="text-break">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.person" /></svg>
-                          {{ o.buyer ? o.buyer.name : 'Buyer removed' }}
-                        </li>
-                        <li data-testid="order-quantity-line">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.box" /></svg>
-                          Quantity: {{ o.quantity }}
-                        </li>
-                        <li>
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.time" /></svg>
-                          {{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}
+                          <span>{{ o.buyer ? o.buyer.name : 'Buyer removed' }} &middot; <span data-testid="order-quantity-line">Quantity: {{ o.quantity }}</span> &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</span>
                         </li>
                         <li v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="text-break" data-testid="order-delivery-to">
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.pin" /></svg>
                           <span>Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</span>
                         </li>
-                        <li class="text-break">
+                        <li v-if="o.customisation && o.customisation.trim()" class="text-break">
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.note" /></svg>
-                          Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}
+                          Note: {{ o.customisation }}
                         </li>
                       </ul>
 
-                      <p class="status-help" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
+                      <p v-if="sellerHelp(o)" class="status-help warning" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
                       <p v-if="o.status === 'rescheduled'" class="status-help proposal">Proposed time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></p>
                       <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="status-help reason" data-testid="order-reason">
                         <strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? "Buyer's reason" : 'Your reason' }}:</strong> {{ o.reason }}
@@ -733,27 +716,27 @@ onMounted(() => {
 
 /* ---------- order cards (same look as My orders) ---------- */
 .order-card {
-  padding: 1.4rem;
+  padding: 1rem 1.25rem;
   border: 1px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
 }
 .order-thumb {
-  width: 112px;
-  height: 112px;
-  border-radius: 1rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 0.8rem;
   object-fit: cover;
 }
 .order-text { min-width: 0; }
 .order-name {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--ink);
 }
 .order-price {
   flex-shrink: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--ink);
 }
@@ -783,7 +766,7 @@ onMounted(() => {
 .pill-overdue { background: #fbe4e3; color: #b8312f; }
 
 .order-facts {
-  margin: 0.9rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
 }
@@ -791,7 +774,7 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.25rem;
   color: var(--ink);
 }
 .order-facts svg {
@@ -800,12 +783,17 @@ onMounted(() => {
   color: var(--ink-soft);
 }
 .status-help {
-  margin: 0.5rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0.6rem 0.9rem;
   border-radius: 0.8rem;
   background: var(--surface-soft);
   font-size: 0.9rem;
   color: var(--ink-soft);
+}
+/* Passed times need a clear warning. */
+.status-help.warning {
+  background: rgba(var(--rose-rgb), 0.08);
+  color: #b8312f;
 }
 .status-help.proposal {
   background: var(--aqua-soft);
@@ -822,8 +810,8 @@ onMounted(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
-  margin-top: 1.1rem;
-  padding-top: 1.1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--line);
 }
 .pill-btn {
@@ -934,8 +922,8 @@ onMounted(() => {
 }
 @media (max-width: 575.98px) {
   .stat-grid { grid-template-columns: 1fr; }
-  .order-card { padding: 1.1rem; }
-  .order-thumb { width: 72px; height: 72px; }
-  .order-price { font-size: 1.2rem; }
+  .order-card { padding: 0.9rem; }
+  .order-thumb { width: 56px; height: 56px; }
+  .order-price { font-size: 1.1rem; }
 }
 </style>
