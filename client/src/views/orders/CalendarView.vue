@@ -40,7 +40,9 @@ const chatError = ref('')
 const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const KIND_LABELS = { 'needs-reply': 'Needs reply', 'waiting-buyer': 'You proposed', accepted: 'Accepted', overdue: 'Overdue', done: 'Done' }
+const KIND_LABELS = { 'needs-reply': 'Needs reply', 'waiting-buyer': 'Waiting on buyer', accepted: 'Accepted', overdue: 'Overdue', done: 'Done' }
+// Full day names for the day panel's title, e.g. "Sunday 2 Nov".
+const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const LEGEND = ['needs-reply', 'waiting-buyer', 'accepted', 'overdue', 'done']
 
 // Returns Monday at midnight for the date's local week.
@@ -100,13 +102,25 @@ const days = computed(() => {
   const start = weekStart.value
   for (let i = 0; i < 7; i++) {
     const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
-    list.push({ date, label: DAY_NAMES[date.getDay()], number: date.getDate(), isToday: sameDay(date, new Date()) })
+    list.push({ date, label: DAY_NAMES[date.getDay()], number: date.getDate(), month: MONTH_NAMES[date.getMonth()], isToday: sameDay(date, new Date()) })
   }
   return list
 })
 
-// Describes the Monday-to-Sunday range above the grid.
-const weekRange = computed(() => `${dateLabel(days.value[0].date)} – ${dateLabel(days.value[6].date)}`)
+// Short Monday-to-Sunday range above the grid, e.g. "27 Oct – 2 Nov 2026".
+const weekRange = computed(() => {
+  const first = days.value[0].date
+  const last = days.value[6].date
+  return `${first.getDate()} ${MONTH_NAMES[first.getMonth()]} – ${last.getDate()} ${MONTH_NAMES[last.getMonth()]} ${last.getFullYear()}`
+})
+
+// Title of the day panel: "Sunday 2 Nov", or "Today, Saturday 1 Nov" for today.
+function panelTitle(value) {
+  const date = new Date(value)
+  const title = `${FULL_DAY_NAMES[date.getDay()]} ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`
+  if (sameDay(date, new Date())) return `Today, ${title}`
+  return title
+}
 
 // Checks accepted orders for a passed pickup time, copied from SellerOrdersView.vue.
 function isOverdue(order) {
@@ -463,10 +477,10 @@ onMounted(async () => {
           <p v-if="calendar.connected" class="small text-body-secondary mb-0">Google Calendar synced</p>
         </div>
         <div class="d-flex align-items-center flex-wrap gap-2">
-          <button type="button" class="btn btn-light" aria-label="Previous week" @click="prevWeek" data-testid="calendar-prev">‹</button>
-          <span class="small">{{ weekRange }}</span>
-          <button type="button" class="btn btn-light" aria-label="Next week" @click="nextWeek" data-testid="calendar-next">›</button>
-          <button type="button" class="btn btn-light" @click="thisWeek" data-testid="calendar-today">Today</button>
+          <button type="button" class="btn btn-act-outline week-arrow" aria-label="Previous week" @click="prevWeek" data-testid="calendar-prev">‹</button>
+          <span class="week-range">{{ weekRange }}</span>
+          <button type="button" class="btn btn-act-outline week-arrow" aria-label="Next week" @click="nextWeek" data-testid="calendar-next">›</button>
+          <button type="button" class="btn btn-act-outline" @click="thisWeek" data-testid="calendar-today">Today</button>
         </div>
       </div>
       <p v-if="loading" data-testid="seller-orders-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading…</p>
@@ -490,7 +504,7 @@ onMounted(async () => {
           <div class="calendar-scroll">
             <div class="calendar-grid" data-testid="calendar-grid">
               <div class="calendar-corner">Time</div>
-              <button v-for="(day, index) in days" :key="day.number" type="button" class="calendar-heading" :class="{ 'is-today': day.isToday, 'selected-day': index === selectedDay }" :style="{ gridColumn: index + 2, gridRow: 1 }" :aria-pressed="index === selectedDay" :aria-label="`Show orders on ${dateLabel(day.date)}`" @click="selectDay(index)" data-testid="calendar-day-select">{{ day.label }} {{ day.number }}</button>
+              <button v-for="(day, index) in days" :key="day.number" type="button" class="calendar-heading" :class="{ 'is-today': day.isToday, 'selected-day': index === selectedDay }" :style="{ gridColumn: index + 2, gridRow: 1 }" :aria-pressed="index === selectedDay" :aria-label="`Show orders on ${dateLabel(day.date)}`" @click="selectDay(index)" data-testid="calendar-day-select"><span class="heading-day">{{ day.isToday ? 'Today' : day.label }}</span><span class="heading-date">{{ day.number }} {{ day.month }}</span></button>
               <div v-for="(hour, index) in hours" :key="hour" class="calendar-hour" :style="{ gridColumn: 1, gridRow: index + 2 }">{{ hourLabel(hour) }}</div>
               <div v-for="slot in gridSlots" :key="slot.key" class="calendar-slot" :class="{ 'selected-column': slot.dayIndex === selectedDay }" :style="{ gridColumn: slot.dayIndex + 2, gridRow: slot.row }">
                 <div v-for="event in slot.busy" :key="event.id" class="calendar-busy calendar-block" data-testid="calendar-busy">Busy in Google Calendar<span>{{ event.time }}</span></div>
@@ -502,8 +516,8 @@ onMounted(async () => {
           </div>
           <section class="day-panel" data-testid="calendar-day" aria-labelledby="calendar-day-title">
             <div class="day-head">
-              <h3 id="calendar-day-title">Orders on {{ dateLabel(days[panelDay].date) }}</h3>
-              <p class="mb-0 small">{{ dayOrders.length }} orders</p>
+              <h3 id="calendar-day-title">{{ panelTitle(days[panelDay].date) }}</h3>
+              <p class="day-count">{{ dayOrders.length }} {{ dayOrders.length === 1 ? 'order' : 'orders' }}</p>
             </div>
             <div class="day-body">
               <p v-if="dayOrders.length === 0" class="text-body-secondary">No orders on this day.</p>
@@ -521,24 +535,24 @@ onMounted(async () => {
                 <p v-if="o.status === 'rescheduled'" class="small text-body-secondary">Proposed time: {{ formatDateTime(o.proposedTime) }}</p>
                 <div class="calendar-actions">
                   <template v-if="o.status === 'pending'">
-                    <button type="button" class="btn btn-navy" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
-                    <button type="button" class="btn btn-outline-brand" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
+                    <button type="button" class="btn btn-act-primary" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
+                    <button type="button" class="btn btn-act-outline" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
                   </template>
-                  <button v-else-if="o.status === 'accepted'" type="button" class="btn btn-navy action-wide" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                  <button v-if="o.buyer" type="button" class="btn btn-outline-brand" :class="{ 'action-wide': o.status === 'rescheduled' || o.status === 'completed' }" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                  <button v-if="o.status === 'pending'" type="button" class="btn btn-outline-cancel" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">Decline</button>
-                  <button v-if="o.status === 'accepted'" type="button" class="btn btn-outline-cancel" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">Cancel order</button>
+                  <button v-else-if="o.status === 'accepted'" type="button" class="btn btn-act-primary action-wide" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">Mark completed</button>
+                  <button v-if="o.buyer" type="button" class="btn btn-act-outline" :class="{ 'action-wide': o.status === 'rescheduled' || o.status === 'completed' }" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                  <button v-if="o.status === 'pending'" type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">Decline</button>
+                  <button v-if="o.status === 'accepted'" type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">Cancel order</button>
                 </div>
                 <div v-if="proposeOpenId === o._id" class="day-inline">
                   <label class="form-label small" :for="'calendar-proposed-' + o._id">New date and time</label>
                   <input type="datetime-local" class="form-control" :id="'calendar-proposed-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
-                  <button type="button" class="btn btn-navy mt-2" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
+                  <button type="button" class="btn btn-act-primary mt-2" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
                 </div>
                 <div v-if="confirmId === o._id && confirmStatus === 'completed'" class="day-inline">
                   <p class="small">Mark this order as completed?</p>
                   <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-navy" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
-                    <button type="button" class="btn btn-outline-brand" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                    <button type="button" class="btn btn-act-primary" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
+                    <button type="button" class="btn btn-act-outline" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                   </div>
                 </div>
                 <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Sending…</p>
@@ -652,8 +666,10 @@ onMounted(async () => {
 .calendar-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
 .calendar-grid { display: grid; grid-template-columns: 3rem repeat(7, minmax(5rem, 1fr)); grid-template-rows: auto repeat(14, minmax(3.5rem, auto)); min-width: 38rem; }
 .calendar-corner, .calendar-heading, .calendar-hour { padding: 0.65rem 0.35rem; color: var(--ink-soft); font-size: 0.8rem; }
-.calendar-heading { text-align: center; border-bottom: 1px solid var(--line); background: var(--surface-soft); font-weight: 600; }
-.calendar-heading.is-today { color: var(--navy); font-weight: 700; }
+/* Day headers: weekday (or "Today") on top, date with month below. */
+.calendar-heading { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; border-bottom: 1px solid var(--line); background: #f6f9fd; color: #13284b; }
+.heading-day { font-size: 0.75rem; font-weight: 500; }
+.heading-date { font-size: 0.95rem; font-weight: 700; }
 .calendar-slot { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.3rem; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .calendar-block { width: 100%; min-width: 0; padding: 0.45rem; border: 1px solid currentColor; border-radius: 0.5rem; font-size: 0.75rem; text-align: left; overflow-wrap: anywhere; }
 .calendar-block span { display: block; margin-top: 0.15rem; }
@@ -675,15 +691,22 @@ onMounted(async () => {
 /* The selected day tints its column; only matching order ids receive an outline. */
 .calendar-heading { border: 0; border-bottom: 1px solid var(--line); }
 .calendar-heading:hover { background: var(--ocean-soft); color: var(--navy); }
-.calendar-heading.selected-day { background: var(--navy); color: #fff; }
+.calendar-heading.selected-day { background: #13284b; color: #fff; }
+/* White set on both lines too, so nothing can turn them navy on the navy background. */
+.calendar-heading.selected-day .heading-day, .calendar-heading.selected-day .heading-date { color: #fff; }
 .calendar-heading:focus-visible { outline: 2px solid var(--ocean); outline-offset: -3px; }
 .calendar-slot.selected-column { background: var(--surface-soft); }
 .calendar-event.is-highlighted, .calendar-day-order.is-highlighted, .calendar-day-order:focus-visible { outline: 2px solid var(--navy); outline-offset: 1px; }
 
 /* The day panel sits below the grid on phones and beside it on larger screens. */
 .day-panel { min-width: 0; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); overflow: hidden; }
-.day-head { padding: 1rem; background: var(--navy); color: #fff; }
-.day-head h3 { margin: 0 0 0.35rem; font-size: 1.1rem; }
+/* Day panel header: the white colour is set on the h3 itself, because main.css makes every heading navy. */
+.day-head { padding: 14px 18px; background: #13284b; color: #fff; }
+.day-head h3 { margin: 0 0 0.2rem; font-size: 1.15rem; font-weight: 700; color: #fff; }
+.day-count { margin: 0; font-size: 0.85rem; color: rgba(255, 255, 255, 0.85); }
+/* Week controls: bordered square arrows and a bold week range. */
+.week-arrow { width: 38px; padding: 0; font-size: 1.1rem; }
+.week-range { font-size: 0.95rem; font-weight: 600; color: #13284b; }
 .day-body { padding: 1rem; }
 .calendar-day-order { padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--line); border-radius: 0.8rem; }
 .day-order-name { min-width: 0; }
@@ -718,45 +741,20 @@ onMounted(async () => {
 .pill-declined,
 .pill-cancelled,
 .pill-overdue { background: #fbe4e3; color: #b8312f; }
-.btn-navy {
-  border: 1.5px solid var(--navy);
-  background: var(--navy);
-  color: #fff;
-}
-.btn-navy:hover,
-.btn-navy:focus-visible {
-  border-color: var(--ocean-dark);
-  background: var(--ocean-dark);
-  color: #fff;
-}
-.btn-outline-brand {
-  border: 1.5px solid var(--ocean);
-  background: var(--surface);
-  color: var(--ocean-dark);
-}
-.btn-outline-brand:hover,
-.btn-outline-brand:focus-visible {
-  border-color: var(--ocean-dark);
-  background: var(--ocean-soft);
-  color: var(--ocean-dark);
-}
-.btn-outline-cancel {
-  border: 1.5px solid var(--rose);
-  background: var(--surface);
-  color: var(--rose);
-}
-.btn-outline-cancel:hover,
-.btn-outline-cancel:focus-visible {
-  border-color: var(--rose);
-  background: var(--bs-danger-bg-subtle);
-  color: var(--bs-danger-text-emphasis);
-}
+/* One button set for every order screen (same values as SellerOrdersView.vue and BuyerOrdersView.vue). */
+.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
+.btn.btn-act-primary { background: #13284b; border-color: #13284b; color: #fff; }
+.btn.btn-act-outline { background: #fff; border-color: #c9d5e8; color: #13284b; }
+.btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
+.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e8f0fa; border-color: #24498a; color: #13284b; }
+.btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
+.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #24498a; outline-offset: 2px; }
+.btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
 
-/* Each action row has two equal bordered buttons; wide actions span both columns. */
-.calendar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+/* Each action row has two equal bordered buttons under a divider; wide actions span both columns. */
+.calendar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.25rem; padding-top: 10px; border-top: 1px solid var(--line); }
 .calendar-actions .action-wide { grid-column: 1 / -1; }
-.calendar-day-order .btn { min-width: 0; height: 3rem; padding: 0.4rem 0.5rem; border-width: 1.5px; border-style: solid; border-radius: 0.6rem; font-size: 0.85rem; line-height: 1.15; }
-.calendar-day-order .btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.calendar-day-order .btn { min-width: 0; }
 .day-inline { padding-top: 0.75rem; margin-top: 0.75rem; border-top: 1px solid var(--line); }
 @media (min-width: 992px) { .calendar-workspace { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; } }
 
