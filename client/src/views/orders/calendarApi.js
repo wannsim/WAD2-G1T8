@@ -11,9 +11,16 @@ export async function calendarStatus(userId) {
   }
 }
 
-// Builds a plain link so the server can redirect the user to Google.
-export function connectLink(userId, returnTo) {
-  return `${API_URL}/calendar/connect/${userId}?returnTo=${encodeURIComponent(returnTo)}`
+// Requests consent after the server checks Homly ownership; returns only a URL or message.
+export async function startCalendarConnect(userId, password, returnTo) {
+  try {
+    const response = await axios.post(`${API_URL}/calendar/connect-start`, { userId, password, returnTo })
+    if (response.data && response.data.url) return { url: response.data.url }
+    return { error: 'Could not connect Google Calendar. Please try again.' }
+  } catch (err) {
+    if (err.response && err.response.data && err.response.data.message) return { error: err.response.data.message }
+    return { error: 'Could not connect Google Calendar. Please try again.' }
+  }
 }
 
 // Disconnects Calendar, returning null when the request fails.

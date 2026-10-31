@@ -7,7 +7,7 @@ import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
-import { calendarStatus, connectLink, disconnectCalendar } from './calendarApi.js'
+import { calendarStatus, startCalendarConnect, disconnectCalendar } from './calendarApi.js'
 
 // Owner: Basile - seller's order dashboard: accept / decline / propose new time / complete
 const router = useRouter()
@@ -28,6 +28,43 @@ const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
 const calendar = ref({ enabled: false, connected: false }) // Safe Calendar connection status.
+const calendarPasswordOpen = ref(false) // Whether the ownership-check form is open.
+const calendarPassword = ref('') // Cleared after every connection attempt or cancellation.
+const calendarConnectBusy = ref(false) // Prevents duplicate connection requests.
+const calendarConnectError = ref('') // Safe connection error text from the server.
+
+// Opens the password check when needed, otherwise starts Google consent directly.
+async function connectGoogleCalendar() {
+  if (calendarConnectBusy.value) return
+  calendarConnectError.value = ''
+  if (calendar.value.needsPassword) calendarPasswordOpen.value = true
+  else await submitCalendarConnect()
+}
+
+// Sends the ownership proof once, clears it, then redirects or shows the safe error.
+async function submitCalendarConnect() {
+  if (calendarConnectBusy.value) return
+  if (calendar.value.needsPassword && !calendarPassword.value) return
+  calendarConnectBusy.value = true
+  calendarConnectError.value = ''
+  const result = await startCalendarConnect(currentUser.value._id, calendarPassword.value, '/seller/orders')
+  calendarPassword.value = ''
+  calendarConnectBusy.value = false
+  if (result.url) {
+    calendarPasswordOpen.value = false
+    window.location.href = result.url
+  } else {
+    calendarConnectError.value = result.error
+  }
+}
+
+// Closes the ownership form and removes its password and error text.
+function cancelCalendarConnect() {
+  if (calendarConnectBusy.value) return
+  calendarPasswordOpen.value = false
+  calendarPassword.value = ''
+  calendarConnectError.value = ''
+}
 
 // Checks whether two dates have the same local calendar day.
 function sameDay(a, b) {
@@ -625,29 +662,38 @@ onMounted(async () => {
               </div>
             </div>
           </section>
-          <section v-if="calendar.enabled" class="panel p-3 p-md-4" data-testid="next-seven-days" aria-labelledby="seven-days-title">
+          <section class="panel next-seven-panel" data-testid="next-seven-days" aria-labelledby="seven-days-title">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-              <h3 id="seven-days-title" class="panel-title mb-0">Next 7 days</h3>
-              <RouterLink v-if="calendar.connected" to="/seller/calendar" data-testid="open-calendar">Open calendar</RouterLink>
+              <h3 id="seven-days-title" class="calendar-panel-title">Next 7 days</h3>
+              <RouterLink class="calendar-open" to="/seller/calendar" data-testid="open-calendar">Open calendar</RouterLink>
             </div>
-            <template v-if="calendar.connected">
-              <p class="small text-body-secondary">{{ upcomingTotal }} orders coming up &middot; synced with Google Calendar</p>
-              <div class="calendar-bars">
-                <div v-for="day in nextSevenDays" :key="day.label" class="calendar-day" :class="{ 'fw-bold': day.isToday }">
-                  <span>{{ day.count }}</span>
-                  <div class="calendar-bar-track" aria-hidden="true">
-                    <div class="calendar-bar" :class="{ 'calendar-bar-empty': day.count === 0 }" :style="{ height: day.count === 0 ? '2px' : (day.count / maxCount * 100) + '%' }"></div>
-                  </div>
-                  <span>{{ day.label }}</span>
+            <p class="calendar-summary">{{ upcomingTotal }} orders coming up<span v-if="calendar.connected"> &middot; synced with Google Calendar</span></p>
+            <div class="calendar-bars">
+              <div v-for="day in nextSevenDays" :key="day.label" class="calendar-day" :class="{ 'fw-bold': day.isToday }">
+                <span>{{ day.count }}</span>
+                <div class="calendar-bar-track" aria-hidden="true">
+                  <div class="calendar-bar" :class="{ 'calendar-bar-empty': day.count === 0 }" :style="{ height: day.count === 0 ? '2px' : (day.count / maxCount * 100) + '%' }"></div>
+                </div>
+                <span>{{ day.label }}</span>
+              </div>
+            </div>
+            <div v-if="calendar.enabled" class="calendar-google-row">
+              <div v-if="calendar.connected" class="d-flex align-items-center flex-wrap gap-2">
+                <span class="calendar-google-status text-break">Synced with {{ calendar.email }}</span>
+                <button type="button" class="btn btn-act-outline" :disabled="refreshing" @click="disconnectGoogleCalendar" data-testid="calendar-disconnect">{{ refreshing ? 'Please wait…' : 'Disconnect' }}</button>
+              </div>
+              <button v-else type="button" class="btn btn-act-primary" :disabled="calendarConnectBusy" @click="connectGoogleCalendar" data-testid="calendar-connect">Connect Google Calendar</button>
+              <div v-if="!calendar.connected && calendarPasswordOpen" class="calendar-password-box" data-testid="calendar-password-box">
+                <label for="seller-calendar-password" class="form-label">Enter your Homly Hauls password to connect Google Calendar</label>
+                <input id="seller-calendar-password" type="password" autocomplete="current-password" class="form-control" v-model="calendarPassword" :disabled="calendarConnectBusy" data-testid="calendar-password" />
+                <p v-if="calendarConnectError" class="calendar-connect-error" role="alert" data-testid="calendar-connect-error">{{ calendarConnectError }}</p>
+                <div class="calendar-password-actions">
+                  <button type="button" class="btn btn-act-primary" :disabled="calendarConnectBusy || !calendarPassword" @click="submitCalendarConnect" data-testid="calendar-password-continue">Continue</button>
+                  <button type="button" class="btn btn-act-outline" :disabled="calendarConnectBusy" @click="cancelCalendarConnect" data-testid="calendar-password-cancel">Cancel</button>
                 </div>
               </div>
-              <button type="button" class="btn btn-light btn-sm mt-3" :disabled="refreshing" @click="disconnectGoogleCalendar" data-testid="calendar-disconnect">{{ refreshing ? 'Please wait…' : 'Disconnect Google Calendar' }}</button>
-            </template>
-            <p v-else-if="calendar.needsGoogleSignIn" class="small text-body-secondary mb-0">This feature needs a Google account. Sign in with Google to use it.</p>
-            <template v-else>
-              <p class="small text-body-secondary">Connect Google Calendar to see your week here and keep your pickups in your calendar.</p>
-              <a :href="connectLink(currentUser._id, '/seller/orders')" data-testid="calendar-connect">Connect Google Calendar</a>
-            </template>
+              <p v-else-if="!calendar.connected && calendarConnectError" class="calendar-connect-error" role="alert" data-testid="calendar-connect-error">{{ calendarConnectError }}</p>
+            </div>
           </section>
         </div>
       </div>
@@ -1013,6 +1059,30 @@ onMounted(async () => {
 .calendar-bar-track { height: 72px; display: flex; align-items: flex-end; margin: 0.35rem 0; }
 .calendar-bar { width: 100%; background: var(--navy); border-radius: 0.2rem 0.2rem 0 0; }
 .calendar-bar-empty { background: var(--line); }
+
+/* Calendar connection controls use the shared navy, outlined and danger button set. */
+.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
+.btn.btn-act-primary { background: #13284b; border-color: #13284b; color: #fff; }
+.btn.btn-act-outline { background: #fff; border-color: #c9d5e8; color: #13284b; }
+.btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
+.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e8f0fa; border-color: #24498a; color: #13284b; }
+.btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
+.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #24498a; outline-offset: 2px; }
+.btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
+
+/* Own-order bars stay visible; the optional Google row has space around its actions. */
+.next-seven-panel { padding: 1rem 1rem 1.25rem; }
+.calendar-panel-title { margin: 0; color: #13284b; font-size: 1.15rem; font-weight: 700; }
+.calendar-open { color: #24498a; font-weight: 600; }
+.calendar-summary { margin-bottom: 1rem; color: #5a6a88; font-size: 0.85rem; }
+.calendar-google-row { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e3e9f2; }
+.calendar-google-status { color: #46577a; font-size: 0.85rem; }
+
+/* Ownership inputs reuse existing form styles and are never kept after an attempt. */
+.calendar-password-box { margin-top: 1rem; background: #fff; border: 0; }
+.calendar-connect-error { margin: 0.5rem 0 0; color: #b8312f; font-size: 13.5px; }
+.calendar-password-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+@media (min-width: 768px) { .next-seven-panel { padding: 1.5rem; } }
 
 /* ---------- smaller screens ---------- */
 @media (max-width: 991.98px) {

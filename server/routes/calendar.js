@@ -1,4 +1,5 @@
 import express from 'express'
+import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import { calendarEnabled, startConnect, finishConnect, calendarStatus, disconnect, listEvents } from '../utils/googleCalendar.js'
 
@@ -12,16 +13,21 @@ function allowedReturnTo(page, role = 'seller') {
   return '/orders'
 }
 
-// GET /calendar/connect/:userId starts consent or returns to an allowed client page.
-router.get('/connect/:userId', async (req, res) => {
+// POST /calendar/connect-start checks Homly ownership before returning Google's consent link.
+router.post('/connect-start', async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId)
+    if (!calendarEnabled()) return res.status(400).json({ message: 'Google Calendar is not available right now.' })
+    const { userId, password, returnTo } = req.body
+    const user = await User.findById(userId).select('+password')
     if (!user) return res.status(404).json({ message: 'User not found.' })
-    const returnTo = allowedReturnTo(req.query.returnTo, user.role)
-    const back = (process.env.CLIENT_URL || 'http://localhost:5173') + returnTo
-    if (!calendarEnabled() || !user.googleId) return res.redirect(back)
-    const url = await startConnect(user, returnTo)
-    return res.redirect(url || back)
+    if (user.password) {
+      if (typeof password !== 'string' || !password || !await bcrypt.compare(password, user.password)) {
+        return res.status(401).json({ message: 'Wrong password. Please try again.' })
+      }
+    }
+    const url = await startConnect(user, allowedReturnTo(returnTo, user.role))
+    if (!url) return res.status(500).json({ message: 'Could not connect Google Calendar. Please try again.' })
+    res.json({ url })
   } catch (err) {
     res.status(500).json({ message: 'Could not connect Google Calendar. Please try again.' })
   }

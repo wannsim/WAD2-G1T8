@@ -29,11 +29,11 @@ export function newClient() {
   }
 }
 
-// Saves a ten-minute state and returns the Google consent link.
+// Saves a ten-minute state after the route has checked Homly ownership.
 export async function startConnect(user, returnTo) {
   try {
     const client = newClient()
-    if (!client || !user || !user.googleId) return '' // Only Google accounts may connect.
+    if (!client || !user) return ''
     let page = '/orders'
     if (user.role === 'seller') page = '/seller/orders'
     if (RETURN_PAGES.includes(returnTo)) page = returnTo
@@ -48,13 +48,13 @@ export async function startConnect(user, returnTo) {
   }
 }
 
-// Checks the saved state and Google account, then saves Calendar permission.
+// Verifies Google; only accounts without a Homly password must match their Google sign-in.
 export async function finishConnect(code, state) {
   let returnTo = '/seller/orders'
   try {
     if (!calendarEnabled()) return { ok: false, returnTo, reason: 'failed' }
     if (typeof state !== 'string' || !state) return { ok: false, returnTo, reason: 'expired' }
-    const user = await User.findOne({ 'googleCalendar.state': state }).select('+googleCalendar.state +googleCalendar.refreshToken')
+    const user = await User.findOne({ 'googleCalendar.state': state }).select('+googleCalendar.state +googleCalendar.refreshToken +password')
     if (!user || !user.googleCalendar) return { ok: false, returnTo, reason: 'expired' }
     if (user.role !== 'seller') returnTo = '/orders'
     if (RETURN_PAGES.includes(user.googleCalendar.returnTo)) returnTo = user.googleCalendar.returnTo
@@ -64,7 +64,6 @@ export async function finishConnect(code, state) {
     user.googleCalendar.returnTo = ''
     await user.save() // Clear the saved state before exchanging the code.
     if (!validState) return { ok: false, returnTo, reason: 'expired' }
-    if (!user.googleId) return { ok: false, returnTo, reason: 'not-google-user' }
     const client = newClient()
     if (!client || typeof code !== 'string' || !code) return { ok: false, returnTo, reason: 'failed' }
     const response = await client.getToken(code)
@@ -72,7 +71,8 @@ export async function finishConnect(code, state) {
     if (!tokens || !tokens.id_token) return { ok: false, returnTo, reason: 'failed' }
     const ticket = await client.verifyIdToken({ idToken: tokens.id_token, audience: process.env.GOOGLE_CALENDAR_CLIENT_ID })
     const payload = ticket.getPayload()
-    if (!payload || !payload.sub || String(payload.sub) !== String(user.googleId)) return { ok: false, returnTo, reason: 'wrong-account' }
+    if (!payload || !payload.sub) return { ok: false, returnTo, reason: 'wrong-account' }
+    if (!user.password && (!user.googleId || String(payload.sub) !== String(user.googleId))) return { ok: false, returnTo, reason: 'wrong-account' }
     if (tokens.refresh_token) user.googleCalendar.refreshToken = tokens.refresh_token
     if (!user.googleCalendar.refreshToken) return { ok: false, returnTo, reason: 'failed' }
     user.googleCalendar.email = payload.email || ''
@@ -199,16 +199,18 @@ export async function disconnect(userId) {
   }
 }
 
-// Returns safe connection information without loading or exposing a token.
+// Returns safe connection information and whether connecting requires a Homly password.
 export function calendarStatus(user) {
   const enabled = calendarEnabled()
   let connected = false
   let email = ''
-  if (enabled && user && user.googleId && user.googleCalendar && user.googleCalendar.connectedAt) {
+  if (enabled && user && user.googleCalendar && user.googleCalendar.connectedAt) {
     connected = true
     email = user.googleCalendar.email || ''
   }
-  return { enabled, connected, email, needsGoogleSignIn: !user || !user.googleId }
+  let needsPassword = false
+  if (user && user.password) needsPassword = true
+  return { enabled, connected, email, needsPassword }
 }
 
 // Adds or removes each side's event after an order change, without failing the order.
