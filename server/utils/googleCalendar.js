@@ -1,6 +1,8 @@
 import { OAuth2Client } from 'google-auth-library'
 import { randomBytes } from 'crypto'
 import User from '../models/User.js'
+import Shop from '../models/Shop.js'
+import Product from '../models/Product.js'
 
 // Handles Google Calendar permission and events; logs fixed messages, never secrets.
 const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
@@ -207,4 +209,90 @@ export function calendarStatus(user) {
     email = user.googleCalendar.email || ''
   }
   return { enabled, connected, email, needsGoogleSignIn: !user || !user.googleId }
+}
+
+// Adds or removes each side's event after an order change, without failing the order.
+export async function syncOrderCalendars(order, previousStatus) {
+  const result = { seller: 'none', buyer: 'none' }
+  const accepting = order.status === 'accepted' && ['pending', 'rescheduled'].includes(previousStatus)
+  const cancelling = order.status === 'cancelled' && previousStatus === 'accepted'
+  if (!accepting && !cancelling) return result
+  const sides = [{ key: 'seller', field: 'sellerEventId' }, { key: 'buyer', field: 'buyerEventId' }]
+  let changed = false
+  for (let i = 0; i < sides.length; i++) {
+    const side = sides[i]
+    if (accepting && order[side.field]) continue // Do not add an event twice.
+    if (cancelling && !order[side.field]) continue
+    try {
+      let shop = null
+      if (accepting || side.key === 'seller') shop = await Shop.findById(order.shop)
+      let userId = order.buyer
+      if (side.key === 'seller') {
+        if (!shop || !shop.owner) {
+          result.seller = 'failed'
+          continue
+        }
+        userId = shop.owner
+      }
+      if (accepting) {
+        const user = await User.findById(userId)
+        if (!calendarStatus(user).connected) {
+          result[side.key] = 'not-connected'
+          continue
+        }
+        const product = await Product.findById(order.product)
+        let buyer = user
+        if (side.key === 'seller') buyer = await User.findById(order.buyer)
+        if (!shop || !product || !buyer) {
+          result[side.key] = 'failed'
+          continue
+        }
+        let kind = 'Pickup'
+        let location = `${shop.address || ''} ${shop.postalCode || ''}`.trim()
+        if (order.fulfilment === 'delivery') {
+          kind = 'Delivery'
+          location = `${order.deliveryAddress || ''} ${order.deliveryUnit || ''} ${order.deliveryPostalCode || ''}`.trim()
+        }
+        let otherName = shop.name
+        if (side.key === 'seller') otherName = buyer.name
+        let description = 'Homly Hauls order'
+        if (order.customisation && order.customisation.trim()) description += `\n${order.customisation}`
+        const eventId = await addEvent(userId, {
+          orderId: order._id,
+          summary: `${kind}: ${product.name} × ${order.quantity} (${otherName})`,
+          description,
+          location,
+          start: order.requestedTime,
+          minutes: 30,
+        })
+        if (!eventId) {
+          result[side.key] = 'failed'
+          continue
+        }
+        order[side.field] = eventId
+        result[side.key] = 'added'
+      } else {
+        if (!await deleteEvent(userId, order[side.field])) {
+          result[side.key] = 'failed'
+          continue // Keep the id when Google could not delete its event.
+        }
+        order[side.field] = ''
+        result[side.key] = 'removed'
+      }
+      changed = true
+    } catch (err) {
+      result[side.key] = 'failed'
+    }
+  }
+  if (changed) {
+    try {
+      await order.save()
+    } catch (err) {
+      for (let i = 0; i < sides.length; i++) {
+        const key = sides[i].key
+        if (result[key] === 'added' || result[key] === 'removed') result[key] = 'failed'
+      }
+    }
+  }
+  return result
 }

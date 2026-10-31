@@ -8,6 +8,7 @@ import User from '../models/User.js'
 import { updateShopStats } from '../utils/trust.js'
 import { notify } from '../utils/notify.js'
 import { formatDateTime } from '../utils/format.js'
+import { syncOrderCalendars } from '../utils/googleCalendar.js'
 
 // what the buyer is told when the seller changes their order
 const BUYER_UPDATE = {
@@ -355,9 +356,12 @@ router.put('/:id/status', async (req, res) => {
     if (status === 'cancelled') order.cancelledBy = actor // Record who cancelled using the checked actor.
     if (NEEDS_REASON.includes(status)) order.reason = reason
 
+    const previousStatus = order.status
     order.status = status
     await order.save()
     await updateShopStats(order.shop) // keep seller stats up to date
+    // Calendar failures do not undo the saved order change.
+    const calendar = await syncOrderCalendars(order, previousStatus)
 
     if (actor === 'seller') {
       // tell the buyer; when completed, also remind them they can leave a review
@@ -431,7 +435,7 @@ router.put('/:id/status', async (req, res) => {
         console.error('Could not send the confirmation notification:', err.message)
       }
     }
-    res.json(order)
+    res.json({ ...order.toObject(), calendar })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
