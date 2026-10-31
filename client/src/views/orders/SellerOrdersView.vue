@@ -22,6 +22,7 @@ const message = ref('')
 const busyId = ref('')
 const confirmId = ref('')
 const confirmStatus = ref('')
+const confirmPlace = ref('') // Where the confirmation opened: 'list' (order cards) or 'pickups' (Next pickups).
 const reasonModal = ref(null) // pop-up asking why the seller is declining / cancelling
 const proposeOpenId = ref('') // The order whose new-time input is open.
 const chatBusyId = ref('')
@@ -339,10 +340,12 @@ async function refreshOrders() {
 // A new notification from the server reloads this list, so reload the orders too.
 watch(notifications, () => { loadOrders() })
 
-// Stores the order and action that need the seller's confirmation.
-function askConfirm(order, status) {
+// Stores the order, action and place that need the seller's confirmation.
+// The same order can show in the list and in Next pickups, so the place keeps the question where it was clicked.
+function askConfirm(order, status, place = 'list') {
   confirmId.value = order._id
   confirmStatus.value = status
+  confirmPlace.value = place
   proposeOpenId.value = ''
 }
 
@@ -363,6 +366,7 @@ async function askReason(order, status) {
 function clearConfirm() {
   confirmId.value = ''
   confirmStatus.value = ''
+  confirmPlace.value = ''
 }
 
 // Opens or closes the new-time input for one order.
@@ -582,31 +586,31 @@ onMounted(async () => {
                   <div class="order-actions">
                     <!-- needs reply: accept / propose / message / decline -->
                     <template v-if="o.status === 'pending'">
-                      <button class="btn pill-btn btn-navy" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">
+                      <button class="btn btn-act-primary" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg>
                         Accept
                       </button>
-                      <button class="btn pill-btn btn-outline-brand" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">
+                      <button class="btn btn-act-outline" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.calendar" /></svg>
                         Propose new time
                       </button>
                     </template>
                     <!-- accepted: complete / cancel -->
                     <template v-else-if="o.status === 'accepted'">
-                      <button class="btn pill-btn btn-navy" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">
+                      <button class="btn btn-act-primary" :disabled="busyId !== ''" @click="askConfirm(o, 'completed', 'list')" data-testid="order-complete">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg>
                         Mark completed
                       </button>
                     </template>
-                    <button v-if="o.buyer" class="btn pill-btn btn-text" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">
+                    <button v-if="o.buyer" class="btn btn-act-outline" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.808-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105" /></svg>
                       Message buyer
                     </button>
-                    <button v-if="o.status === 'pending'" class="btn pill-btn btn-outline-cancel ms-md-auto" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">
+                    <button v-if="o.status === 'pending'" class="btn btn-act-danger ms-md-auto" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" /></svg>
                       Decline
                     </button>
-                    <button v-if="o.status === 'accepted'" class="btn pill-btn btn-outline-cancel ms-md-auto" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">
+                    <button v-if="o.status === 'accepted'" class="btn btn-act-danger ms-md-auto" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" /></svg>
                       Cancel
                     </button>
@@ -617,15 +621,15 @@ onMounted(async () => {
                     <label class="form-label small mb-1" :for="'proposed-time-' + o._id">New date and time</label>
                     <div class="d-flex flex-wrap gap-2">
                       <input type="datetime-local" class="form-control w-auto" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
-                      <button class="btn pill-btn btn-navy" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
+                      <button class="btn btn-act-primary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
                     </div>
                   </div>
                   <!-- confirm completed -->
-                  <div v-if="confirmId === o._id && confirmStatus === 'completed'" class="inline-box">
+                  <div v-if="confirmId === o._id && confirmStatus === 'completed' && confirmPlace === 'list'" class="inline-box">
                     <p class="mb-2">Mark this order as completed?</p>
                     <div class="d-flex flex-wrap gap-2">
-                      <button class="btn pill-btn btn-navy" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
-                      <button class="btn pill-btn btn-outline-brand" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                      <button class="btn btn-act-primary" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
+                      <button class="btn btn-act-outline" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
                     </div>
                   </div>
                   <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
@@ -644,13 +648,30 @@ onMounted(async () => {
             </h3>
             <div class="p-3 p-md-4">
               <ul v-if="nextPickups.length > 0" class="pickup-list">
-                <li v-for="p in nextPickups" :key="p._id" data-testid="next-pickup-item">
-                  <span class="pickup-date" :class="{ 'pickup-overdue': isOverdue(p) }">{{ formatDateTime(p.requestedTime) }}</span>
-                  <span class="fw-semibold text-break">{{ p.product ? p.product.name : 'Product removed' }} <span v-if="isOverdue(p)" class="status-pill pill-overdue" data-testid="next-pickup-overdue">Overdue</span></span>
-                  <span class="small text-muted text-break">{{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(p.fulfilment) }}</span>
-                  <div v-if="isOverdue(p) && p.buyer" class="d-flex flex-wrap gap-2 mt-1">
-                    <button type="button" class="btn pill-btn btn-text" :disabled="chatBusyId !== ''" @click="messageBuyer(p)" data-testid="next-pickup-message">Message buyer</button>
+                <!-- each pickup uses the same card as a day's order on the calendar page -->
+                <li v-for="p in nextPickups" :key="p._id" class="pickup-card" data-testid="next-pickup-item">
+                  <div class="pickup-top">
+                    <div class="d-flex flex-wrap align-items-center gap-2 order-text">
+                      <span class="pickup-name text-break">{{ p.product ? p.product.name : 'Product removed' }}</span>
+                      <span v-if="isOverdue(p)" class="status-pill pill-overdue" data-testid="next-pickup-overdue">Overdue</span>
+                      <span v-else class="status-pill pill-accepted">Accepted</span>
+                    </div>
+                    <span class="pickup-price">{{ formatPrice(p.totalPrice) }}</span>
                   </div>
+                  <p class="pickup-meta text-break">{{ formatDateTime(p.requestedTime) }} &middot; {{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; Quantity: {{ p.quantity }} &middot; {{ capitalize(p.fulfilment) }}</p>
+                  <p v-if="isOverdue(p)" class="pickup-warning">The pickup time has passed. Mark it completed or message the buyer.</p>
+                  <!-- Mark completed asks here, not in the list, because this is where it was clicked -->
+                  <div v-if="confirmId === p._id && confirmStatus === 'completed' && confirmPlace === 'pickups'" class="pickup-actions">
+                    <p class="full mb-0">Mark this order as completed?</p>
+                    <button type="button" class="btn btn-act-primary" :disabled="busyId !== ''" @click="updateStatus(p, 'completed')" data-testid="next-pickup-confirm-yes">Yes, completed</button>
+                    <button type="button" class="btn btn-act-outline" :disabled="busyId !== ''" @click="clearConfirm" data-testid="next-pickup-confirm-no">Keep order</button>
+                  </div>
+                  <div v-else class="pickup-actions">
+                    <button type="button" class="btn btn-act-primary full" :disabled="busyId !== ''" @click="askConfirm(p, 'completed', 'pickups')" data-testid="next-pickup-complete">Mark completed</button>
+                    <button v-if="p.buyer" type="button" class="btn btn-act-outline" :disabled="chatBusyId !== ''" @click="messageBuyer(p)" data-testid="next-pickup-message">Message buyer</button>
+                    <button type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(p, 'cancelled')" data-testid="next-pickup-cancel">Cancel order</button>
+                  </div>
+                  <p v-if="busyId === p._id" class="small text-body-secondary mb-0"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
                 </li>
               </ul>
               <div v-else class="empty-pickups">
@@ -850,7 +871,7 @@ onMounted(async () => {
 
 /* ---------- order cards (same look as My orders) ---------- */
 .order-card {
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.25rem 1.25rem;
   border: 1px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
@@ -939,62 +960,18 @@ onMounted(async () => {
   overflow-wrap: anywhere;
 }
 
+/* Room around the buttons: tall bordered buttons need more space than plain text did. */
 .order-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--line);
 }
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 1.3rem;
-  border-radius: 999px;
-  font-weight: 600;
-}
-.btn-navy {
-  border: 1.5px solid var(--navy);
-  background: var(--navy);
-  color: #fff;
-}
-.btn-navy:hover,
-.btn-navy:focus-visible {
-  border-color: var(--ocean-dark);
-  background: var(--ocean-dark);
-  color: #fff;
-}
-.btn-outline-brand {
-  border: 1.5px solid var(--ocean);
-  background: var(--surface);
-  color: var(--ocean-dark);
-}
-.btn-outline-brand:hover,
-.btn-outline-brand:focus-visible {
-  border-color: var(--ocean-dark);
-  background: var(--ocean-soft);
-  color: var(--ocean-dark);
-}
-.btn-text {
-  border: 0;
-  background: none;
-  color: var(--navy);
-}
-.btn-text:hover { background: var(--ocean-soft); color: var(--navy); }
-.btn-outline-cancel {
-  border: 1.5px solid var(--rose);
-  background: var(--surface);
-  color: var(--rose);
-}
-.btn-outline-cancel:hover,
-.btn-outline-cancel:focus-visible {
-  border-color: var(--rose);
-  background: var(--bs-danger-bg-subtle);
-  color: var(--bs-danger-text-emphasis);
-}
+/* Space between a button's icon and its label. */
+.order-actions .btn { gap: 0.4rem; }
 .inline-box {
   margin-top: 0.9rem;
   padding: 0.9rem 1rem;
@@ -1021,21 +998,32 @@ onMounted(async () => {
   padding: 0;
   list-style: none;
 }
-.pickup-list li {
+/* Next pickups: one card per pickup, the same card as a day's order on the calendar page. */
+.pickup-card {
   display: flex;
   flex-direction: column;
-  padding: 0.65rem 0;
-  border-top: 1px solid var(--line);
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid #e3e9f2;
+  border-radius: 16px;
 }
-.pickup-list li:first-child { border-top: 0; padding-top: 0; }
-.pickup-date {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ocean);
+.pickup-card:last-child { margin-bottom: 0; }
+.pickup-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.pickup-name { font-size: 15px; font-weight: 700; color: #13284b; }
+.pickup-price { flex-shrink: 0; font-size: 15px; font-weight: 700; color: #13284b; }
+.pickup-meta { margin: 0; font-size: 13px; color: #46577a; }
+.pickup-warning { margin: 0; font-size: 12.5px; font-weight: 500; color: #b8312f; }
+/* Two buttons per row; "full" makes one button (or line) take the whole row. */
+.pickup-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #e3e9f2;
 }
-/* Overdue pickup warnings and keyboard focus. */
-.pickup-date.pickup-overdue { color: #b8312f; }
-.pickup-list .btn-text:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.pickup-actions .full { grid-column: 1 / -1; }
 .empty-pickups {
   padding: 1rem 0 0.5rem;
   text-align: center;
@@ -1090,7 +1078,7 @@ onMounted(async () => {
 }
 @media (max-width: 575.98px) {
   .stat-grid { grid-template-columns: 1fr; }
-  .order-card { padding: 0.9rem; }
+  .order-card { padding: 0.9rem 0.9rem 1.25rem; }
   .order-thumb { width: 56px; height: 56px; }
   .order-price { font-size: 1.1rem; }
 }
