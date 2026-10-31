@@ -14,25 +14,16 @@ const orders = ref([])
 const loading = ref(true)
 const refreshing = ref(false)
 const error = ref('')
-const activeTab = ref('pending')
+const activeTab = ref('upcoming') // The Accepted tab opens first.
 const message = ref('')
 const busyId = ref('')
 const reasonModal = ref(null) // pop-up asking why the buyer is cancelling
 const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
+const openDetails = ref({}) // Which order cards show their details.
 const searchText = ref('')
 const fulfilmentFilter = ref('all') // Filter: 'all', 'pickup' or 'delivery'
-
-// Explains each order status to the buyer.
-const STATUS_HELP = {
-  pending: 'Waiting for the seller to reply.',
-  rescheduled: 'The seller suggested a new time. Accept it or cancel.',
-  accepted: 'Accepted by the seller. Collect it at the time shown.',
-  completed: 'Done. You can leave a review.',
-  declined: 'The seller could not take this order.',
-  cancelled: 'This order was cancelled.',
-}
 
 // Sets the colour of each order status tag.
 const STATUS_BADGE = {
@@ -124,6 +115,11 @@ const searchedOrders = computed(() => {
   return matchingOrders
 })
 
+// Opens or closes the details for this order.
+function toggleDetails(order) {
+  openDetails.value[order._id] = !openDetails.value[order._id]
+}
+
 // Returns the first product photo or the placeholder when it is unavailable.
 function imageFor(order) {
   if (!order.product) return '/placeholder.svg' // A deleted product has no photo.
@@ -143,11 +139,11 @@ function timePassed(order) {
   return new Date(time).getTime() < new Date().getTime()
 }
 
-// Picks the one-line status explanation, including times that have passed.
+// Returns a message only when the buyer needs to act; otherwise an empty string.
 function buyerHelp(order) {
   if (isOverdue(order)) return 'The pickup time has passed. Message the seller if you still need it.'
   if (order.status === 'rescheduled' && timePassed(order)) return 'This new time has passed. Message the seller for another time.'
-  return STATUS_HELP[order.status]
+  return ''
 }
 
 // Uses the server's error message, or a general message if none is available.
@@ -275,10 +271,10 @@ onMounted(() => {
 
         <!-- tabs: underlined, the open one is tinted -->
         <ul class="order-tabs" data-testid="buyer-orders-tabs">
-          <li><button class="order-tab" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button></li>
           <li><button class="order-tab" :class="{ active: activeTab === 'upcoming' }" @click="activeTab = 'upcoming'" data-testid="tab-upcoming">Accepted ({{ upcomingOrders.length }})</button></li>
-          <li><button class="order-tab" :class="{ active: activeTab === 'completed' }" @click="activeTab = 'completed'" data-testid="tab-completed">Completed ({{ completedOrders.length }})</button></li>
+          <li><button class="order-tab" :class="{ active: activeTab === 'pending' }" @click="activeTab = 'pending'" data-testid="tab-pending">Pending ({{ pendingOrders.length }})</button></li>
           <li><button class="order-tab" :class="{ active: activeTab === 'past' }" @click="activeTab = 'past'" data-testid="tab-past">Declined &amp; cancelled ({{ pastOrders.length }})</button></li>
+          <li><button class="order-tab" :class="{ active: activeTab === 'completed' }" @click="activeTab = 'completed'" data-testid="tab-completed">Completed ({{ completedOrders.length }})</button></li>
         </ul>
 
         <!-- search + filter -->
@@ -312,73 +308,64 @@ onMounted(() => {
         <p v-else-if="searchedOrders.length === 0" class="text-muted" data-testid="order-search-empty">No orders match your search. Clear the search to see all orders.</p>
 
         <!-- each card is only as tall as its own content -->
-        <div v-else class="list-grid order-list mb-4">
+        <div v-else class="order-list mb-4">
           <div v-for="o in searchedOrders" :key="o._id">
             <div class="order-card" data-testid="order-row">
-              <div class="d-flex gap-4 order-top">
-                <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="112" height="112" class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
-                <div class="order-text flex-grow-1">
-                  <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div class="order-text">
-                      <h5 class="order-name text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                      <p class="order-shop text-break">{{ o.shop ? o.shop.name : 'Shop removed' }}</p>
-                    </div>
-                    <!-- soft status pill with a dot -->
+              <div class="order-top">
+                <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="56" height="56" class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                <div class="order-text">
+                  <div class="d-flex align-items-center flex-wrap gap-2">
+                    <h5 class="order-name text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
                     <span v-if="!isOverdue(o)" class="status-pill flex-shrink-0" :class="`pill-${o.status}`" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     <span v-if="isOverdue(o)" class="status-pill pill-overdue flex-shrink-0" data-testid="order-overdue">Overdue</span>
                   </div>
-
-                  <ul class="order-facts">
-                    <li data-testid="order-quantity-line">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z" /></svg>
-                      Quantity: {{ o.quantity }}
-                    </li>
-                    <li>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" /></svg>
-                      {{ capitalize(o.fulfilment) }}: {{ formatDateTime(o.requestedTime) }}
-                    </li>
-                    <li class="text-break">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" /><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" /></svg>
-                      Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}
-                    </li>
-                    <li v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="text-break" data-testid="order-delivery-details">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10" /><path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6" /></svg>
-                      <span>Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</span>
-                    </li>
-                    <!-- The server enforces privacy; this check only decides what to display. -->
-                    <li v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="text-break" data-testid="order-pickup-details">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.960-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10" /><path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6" /></svg>
-                      <span>Pickup at: <span v-if="o.pickupAddress" data-testid="order-pickup-address">{{ o.pickupAddress }}</span><span v-if="o.pickupPostalCode">{{ o.pickupAddress ? ', ' : '' }}Singapore {{ o.pickupPostalCode }}</span><span v-if="!o.pickupAddress && !o.pickupPostalCode">the seller has not added an address yet.</span><span v-if="o.shop && o.shop.nearestMrt"> &middot; Nearest MRT: {{ o.shop.nearestMrt }}</span></span>
-                    </li>
-                  </ul>
-
-                  <!-- what happens next, in a tinted box -->
-                  <p class="status-help" data-testid="order-status-help">
+                  <p class="order-shop text-break">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
+                  <p v-if="buyerHelp(o)" class="status-help" data-testid="order-status-help">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z" /><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0" /></svg>
                     <span>{{ buyerHelp(o) }}</span>
+                  </p>
+                  <p v-if="o.status === 'rescheduled'" class="status-help proposal" data-testid="order-proposal">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" /></svg>
+                    <span>Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong>. Accept it or cancel.</span>
                   </p>
                   <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="status-help reason" data-testid="order-reason">
                     <span><strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? 'Your reason' : "Seller's reason" }}:</strong> {{ o.reason }}</span>
                   </p>
-                  <p v-if="o.status === 'rescheduled'" class="status-help proposal" data-testid="order-proposal">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" /></svg>
-                    <span>Seller suggests a new time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></span>
-                  </p>
+                </div>
+                <div class="order-footer">
+                  <span class="order-price" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button v-if="o.status === 'rescheduled'" class="btn btn-brand pill-btn" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
+                    <button v-if="canCancel(o)" class="btn btn-outline-cancel pill-btn" :disabled="busyId !== ''" @click="askCancel(o)" data-testid="order-cancel">Cancel order</button>
+                    <template v-if="o.status === 'completed'">
+                      <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-outline-brand pill-btn" data-testid="order-review-link">Leave a review</RouterLink>
+                      <span v-else class="status-pill pill-reviewed align-self-center" data-testid="order-reviewed">Reviewed</span>
+                    </template>
+                    <button v-if="o.shop" class="btn btn-brand pill-btn" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
+                  </div>
                 </div>
               </div>
-
-              <!-- action buttons on the left, price on the right -->
-              <div class="order-footer">
-                <div class="d-flex flex-wrap gap-2">
-                  <button v-if="o.status === 'rescheduled'" class="btn btn-brand pill-btn" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept-proposal">Accept new time</button>
-                  <button v-if="canCancel(o)" class="btn btn-outline-cancel pill-btn" :disabled="busyId !== ''" @click="askCancel(o)" data-testid="order-cancel">Cancel order</button>
-                  <template v-if="o.status === 'completed'">
-                    <RouterLink v-if="!o.reviewed" :to="`/review/${o._id}`" class="btn btn-outline-brand pill-btn" data-testid="order-review-link">Leave a review</RouterLink>
-                    <span v-else class="status-pill pill-reviewed align-self-center" data-testid="order-reviewed">Reviewed</span>
-                  </template>
-                  <button v-if="o.shop" class="btn btn-brand pill-btn" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
-                </div>
-                <span class="order-price" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
+              <button type="button" class="btn btn-link order-details-toggle" :aria-expanded="openDetails[o._id] === true" @click="toggleDetails(o)" data-testid="order-details-toggle">{{ openDetails[o._id] ? 'View less' : 'View more' }}</button>
+              <div v-if="openDetails[o._id]" class="order-details" data-testid="order-details">
+                <ul class="order-facts">
+                  <li data-testid="order-quantity-line">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z" /></svg>
+                    Quantity: {{ o.quantity }}
+                  </li>
+                  <li v-if="o.customisation && o.customisation.trim()" class="text-break">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" /><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" /></svg>
+                    Note: {{ o.customisation }}
+                  </li>
+                  <li v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="text-break" data-testid="order-delivery-details">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10" /><path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6" /></svg>
+                    <span>Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</span>
+                  </li>
+                  <!-- The server enforces privacy; this check only decides what to display. -->
+                  <li v-if="o.fulfilment === 'pickup' && (o.status === 'accepted' || o.status === 'completed')" class="text-break" data-testid="order-pickup-details">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.960-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10" /><path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6" /></svg>
+                    <span>Pickup at: <span v-if="o.pickupAddress" data-testid="order-pickup-address">{{ o.pickupAddress }}</span><span v-if="o.pickupPostalCode">{{ o.pickupAddress ? ', ' : '' }}Singapore {{ o.pickupPostalCode }}</span><span v-if="!o.pickupAddress && !o.pickupPostalCode">the seller has not added an address yet.</span><span v-if="o.shop && o.shop.nearestMrt"> &middot; Nearest MRT: {{ o.shop.nearestMrt }}</span></span>
+                  </li>
+                </ul>
               </div>
               <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
             </div>
@@ -449,30 +436,39 @@ onMounted(() => {
   background-color: var(--surface);
 }
 
-/* ---------- order cards ---------- */
+/* Thin row */
 .order-card {
-  padding: 1.6rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--line);
-  border-radius: 1.25rem;
+  border-radius: 1.1rem;
   background: var(--surface);
 }
+.order-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
 .order-thumb {
-  width: 112px;
-  height: 112px;
-  border-radius: 1rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 0.8rem;
   object-fit: cover;
 }
 .order-text {
+  flex: 1 1 260px;
   min-width: 0;
 }
 .order-name {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
+  max-width: 100%;
+  margin: 0;
+  font-size: 1.02rem;
   font-weight: 700;
   color: var(--ink);
 }
 .order-shop {
-  margin: 0;
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
   color: var(--ink-soft);
 }
 
@@ -503,9 +499,21 @@ onMounted(() => {
 .pill-overdue { background: #fbe4e3; color: #b8312f; }
 .pill-reviewed { background: var(--tile); color: var(--muted); }
 
-/* quantity / time / note with an icon each */
+/* View more details */
+.order-details-toggle {
+  min-height: 44px;
+  margin-left: 68px;
+  padding: 0.35rem 0;
+  font-size: 0.88rem;
+}
+.order-details {
+  margin: 0.25rem 0 0 68px;
+  padding: 0.75rem;
+  border-radius: 0.8rem;
+  background: var(--tile);
+}
 .order-facts {
-  margin: 1rem 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -522,40 +530,44 @@ onMounted(() => {
   color: var(--ink-soft);
 }
 
-/* "Waiting for the seller to reply." etc. */
+/* Action lines stay visible above the details */
 .status-help {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  margin: 0.6rem 0 0;
-  padding: 0.75rem 1rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
   border-radius: 0.8rem;
-  background: var(--surface-soft);
   font-size: 0.9rem;
-  color: var(--ink-soft);
+  color: var(--rose);
 }
 .status-help svg {
   flex-shrink: 0;
   margin-top: 0.15rem;
 }
 .status-help.proposal {
-  background: var(--aqua-soft);
-  color: var(--ink);
+  color: var(--aqua-dark);
 }
 /* why the order was declined / cancelled */
 .status-help.reason {
+  padding: 0.75rem 1rem;
   background: rgba(var(--rose-rgb), 0.08);
   color: var(--ink);
   overflow-wrap: anywhere;
 }
 
+/* Price and buttons on the right */
 .order-footer {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 100%;
+  margin-left: auto;
+  gap: 0.5rem;
+}
+.order-footer > .d-flex {
+  justify-content: flex-end;
+  max-width: 100%;
 }
 .pill-btn {
   padding: 0.55rem 1.4rem;
@@ -586,29 +598,33 @@ onMounted(() => {
   color: var(--bs-danger-text-emphasis);
 }
 .order-price {
-  margin-left: auto;
-  font-size: 1.6rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--ink);
 }
 
-/* each row is only as tall as its own cards (the team grid makes every row equal) */
+/* One thin order per row */
 .order-list {
-  grid-auto-rows: auto;
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-/* phones: smaller photo, so the text has room */
+/* Phones: price and buttons below the text */
 @media (max-width: 575.98px) {
-  .order-card {
-    padding: 1.1rem;
-  }
   .order-thumb {
-    width: 72px;
-    height: 72px;
+    width: 48px;
+    height: 48px;
   }
-  .order-top {
-    gap: 1rem !important;
+  .order-text {
+    flex-basis: calc(100% - 60px);
+  }
+  .order-footer {
+    flex-basis: 100%;
+  }
+  .order-details-toggle,
+  .order-details {
+    margin-left: 0;
   }
 }
 </style>
