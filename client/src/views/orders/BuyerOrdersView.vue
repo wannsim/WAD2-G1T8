@@ -391,23 +391,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ---------- header ---------- */
-.soft-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.3rem;
-  border: 0;
-  border-radius: 0.9rem;
-  background: var(--ocean-soft);
-  font-weight: 600;
-  color: var(--navy);
-}
-.soft-btn:hover {
-  background: var(--tile-hover);
-  color: var(--navy);
-}
-
 /* ---------- tabs: underlined, the open one tinted ---------- */
 .order-tabs {
   display: flex;

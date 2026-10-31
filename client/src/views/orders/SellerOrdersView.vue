@@ -1,12 +1,10 @@
 <script setup>
-import SearchBox from '@/components/SearchBox.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
-import { ORDER_STATUS_BADGE } from '@/utils/constants'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
 
@@ -17,7 +15,6 @@ const proposals = ref({}) // { orderId: 'new datetime' } - one input per order
 const loading = ref(true)
 const refreshing = ref(false)
 const error = ref('')
-const showDone = ref(true)
 const activeGroup = ref('needs-reply')
 const shop = ref(null)
 const message = ref('')
@@ -38,16 +35,6 @@ const STATUS_HELP_SELLER = {
   completed: 'Done.',
   declined: 'You declined this order.',
   cancelled: 'This order was cancelled.',
-}
-
-// Sets the colour of each order status tag.
-const STATUS_BADGE = {
-  pending: 'status-pending',
-  accepted: 'status-accepted',
-  declined: 'status-declined',
-  rescheduled: 'status-rescheduled',
-  completed: 'bg-success status-completed',
-  cancelled: 'status-cancelled',
 }
 
 // Groups pending orders that need the seller's reply.
@@ -105,27 +92,39 @@ const shown = computed(() => ({
   done: done.value.filter(matchesSearch),
 }))
 const shownCount = computed(() => Object.values(shown.value).reduce((sum, list) => sum + list.length, 0))
-watch(search, (q) => {
-  if (q.trim()) showDone.value = true // matches in Done should be visible too
-})
 
 // Which done orders to show: 'all', 'completed', 'declined' or 'cancelled'.
 const doneStatus = ref('all')
-// Order of the done list: 'newest' or 'oldest' pickup first.
-const doneSort = ref('newest')
+// Order of every list: 'newest' or 'oldest' pickup first.
+const sortOrder = ref('newest')
 
-// Done orders after the status filter, newest or oldest pickup first.
-const doneList = computed(() => {
-  const filtered = []
-  for (let i = 0; i < shown.value.done.length; i++) {
-    const order = shown.value.done[i]
-    if (doneStatus.value === 'all' || order.status === doneStatus.value) filtered.push(order) // Keep orders with the chosen status.
-  }
-  if (doneSort.value === 'oldest') return filtered // The server already sends the oldest pickup first.
-  const newestFirst = []
-  for (let i = filtered.length - 1; i >= 0; i--) newestFirst.push(filtered[i]) // Walk backwards for newest first.
-  return newestFirst
+// The open tab's orders, after the search, the Done status filter and the sort.
+const TABS = [
+  { key: 'needs-reply', label: 'Needs reply', list: 'needsReply' },
+  { key: 'waiting-buyer', label: 'Waiting on buyer', list: 'waitingOnBuyer' },
+  { key: 'upcoming', label: 'Accepted', list: 'upcoming' },
+  { key: 'done', label: 'Done', list: 'done' },
+]
+const currentList = computed(() => {
+  const tab = TABS.find((t) => t.key === activeGroup.value)
+  let list = shown.value[tab.list]
+  if (tab.key === 'done' && doneStatus.value !== 'all') list = list.filter((o) => o.status === doneStatus.value)
+  // The server sends the oldest pickup first; reverse it for newest first.
+  return sortOrder.value === 'oldest' ? list : [...list].reverse()
 })
+const EMPTY_TEXT = {
+  'needs-reply': 'No orders waiting for your reply.',
+  'waiting-buyer': 'No new times waiting on the buyer.',
+  upcoming: 'No accepted orders yet.',
+  done: 'No completed, declined or cancelled orders yet.',
+}
+
+// the four tiles at the top: the arrow opens the matching tab
+const ordersPanel = ref(null)
+function openGroup(key) {
+  activeGroup.value = key
+  ordersPanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 // Counts accepted orders whose pickup time has passed.
 const overdueCount = computed(() => {
@@ -169,6 +168,27 @@ const nextPickups = computed(() => {
   }
   return list
 })
+
+// bootstrap-icons paths (16x16)
+const ICONS = {
+  chat: 'M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0m4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m-9.083 4.725a.5.5 0 0 0-.512-.45c-.416.022-.81.06-1.163.11A6.95 6.95 0 0 0 2.65 12.4C1.05 11.04 0 9.13 0 7c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7c-1.264 0-2.46-.256-3.524-.71a.5.5 0 0 0-.32-.026c-.67.183-1.54.36-2.556.408l-.006.001a.5.5 0 0 1-.466-.668c.243-.66.432-1.31.543-1.963z',
+  bag: 'M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4z',
+  clock: 'M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z',
+  check: 'M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z',
+  calendar: 'M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z',
+  person: 'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z',
+  box: 'M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z',
+  time: 'M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71zM8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0',
+  note: 'M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2',
+  pin: 'M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+  chart: 'M4 11H2v3h2zm5-4H7v7h2zm5-5v12h-2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1z',
+}
+const statTiles = computed(() => [
+  { key: 'needs', tone: 'amber', icon: ICONS.chat, label: 'Needs reply', value: needsReply.value.length, hint: 'Waiting for your answer', group: 'needs-reply', testid: 'stat-needs-reply' },
+  { key: 'accepted', tone: 'blue', icon: ICONS.bag, label: 'Accepted', value: upcoming.value.length, hint: 'Pickups coming up', group: 'upcoming', testid: 'stat-upcoming' },
+  { key: 'overdue', tone: 'rose', icon: ICONS.clock, label: 'Overdue', value: overdueCount.value, hint: 'Pickup time has passed', group: 'upcoming', testid: 'stat-overdue' },
+  { key: 'active', tone: 'green', icon: ICONS.check, label: 'Total active', value: totalActive.value, hint: 'Not completed yet', group: 'needs-reply', testid: 'stat-total-active' },
+])
 
 // Returns the first product photo or the placeholder when it is unavailable.
 function imageFor(order) {
@@ -357,330 +377,608 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <h2 class="page-title">Order dashboard</h2>
-        <button class="btn btn-outline-secondary" :disabled="refreshing" @click="refreshOrders" data-testid="seller-orders-refresh">
-          {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+  <div>
+    <!-- ===== header ===== -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+      <div>
+        <h2 class="page-title mb-1">Order dashboard</h2>
+        <p class="text-muted mb-0">Manage your orders and keep track of buyer requests.</p>
+      </div>
+      <button class="btn soft-btn" :disabled="refreshing" @click="refreshOrders" data-testid="seller-orders-refresh">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
+          <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" />
+        </svg>
+        {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+
+    <p v-if="loading" data-testid="seller-orders-loading">
+      <span class="spinner-border spinner-border-sm"></span> Loading…
+    </p>
+    <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
+    <template v-else>
+      <!-- ===== the four numbers ===== -->
+      <div class="stat-grid mb-4" data-testid="seller-dashboard-stats">
+        <button v-for="t in statTiles" :key="t.key" type="button" class="stat-tile" :class="`tone-${t.tone}`"
+          :aria-label="`${t.label}: ${t.value}. Show these orders`" @click="openGroup(t.group)">
+          <span class="stat-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor"><path :d="t.icon" /></svg>
+          </span>
+          <span class="stat-text">
+            <span class="stat-label">{{ t.label }}</span>
+            <span class="stat-value" :data-testid="t.testid">{{ t.value }}</span>
+            <span class="stat-hint">{{ t.hint }}</span>
+          </span>
+          <span class="stat-arrow" aria-hidden="true">›</span>
         </button>
       </div>
-      <p v-if="loading" data-testid="seller-orders-loading">
-        <span class="spinner-border spinner-border-sm"></span> Loading…
-      </p>
-      <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
-      <template v-else>
-        <!-- Shows the seller's current order counts. -->
-        <div class="row g-3 mb-3" data-testid="seller-dashboard-stats">
-          <div class="col-6 col-lg-3">
-            <div class="card p-3">
-              <h3 class="h6 text-body-secondary mb-1">Needs reply</h3>
-              <p class="stat-value mb-1" data-testid="stat-needs-reply">{{ needsReply.length }}</p>
-              <p class="small text-body-secondary mb-0">Waiting for your answer</p>
+
+      <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
+      <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
+      <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
+
+      <div class="row g-4">
+        <!-- ===== left: the orders ===== -->
+        <div class="col-lg-8">
+          <section ref="ordersPanel" class="panel p-3 p-md-4" aria-labelledby="orders-title">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <h3 id="orders-title" class="panel-title mb-0">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.calendar" /></svg>
+                Orders
+              </h3>
+              <select v-if="orders.length > 0" v-model="sortOrder" class="form-select sort-select" aria-label="Sort orders" data-testid="done-sort">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
             </div>
-          </div>
-          <div class="col-6 col-lg-3">
-            <div class="card p-3">
-              <h3 class="h6 text-body-secondary mb-1">Accepted</h3>
-              <p class="stat-value mb-1" data-testid="stat-upcoming">{{ upcoming.length }}</p>
-              <p class="small text-body-secondary mb-0">Pickups coming up</p>
-            </div>
-          </div>
-          <div class="col-6 col-lg-3">
-            <div class="card p-3">
-              <h3 class="h6 text-body-secondary mb-1">Overdue</h3>
-              <p class="stat-value mb-1" data-testid="stat-overdue">{{ overdueCount }}</p>
-              <p class="small text-body-secondary mb-0">Pickup time has passed</p>
-            </div>
-          </div>
-          <div class="col-6 col-lg-3">
-            <div class="card p-3">
-              <h3 class="h6 text-body-secondary mb-1">Total active</h3>
-              <p class="stat-value mb-1" data-testid="stat-total-active">{{ totalActive }}</p>
-              <p class="small text-body-secondary mb-0">Not completed yet</p>
-            </div>
-          </div>
-        </div>
-        <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
-        <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
-        <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
-        <div class="row g-3 mb-3">
-          <div class="col-12 col-md-6 col-xl-4">
-            <div class="card" data-testid="status-breakdown">
-              <div class="card-body p-3">
-                <h6>Active orders</h6>
-                <p v-if="totalActive === 0" class="mb-0">No active orders.</p>
-                <template v-else>
-                  <div v-for="b in breakdown" :key="b.status" class="mb-2">
-                    <p class="d-flex justify-content-between small mb-1"><span>{{ b.label }}</span><span>({{ b.count }})</span></p>
-                    <div class="progress order-bar">
-                      <div class="progress-bar" :class="ORDER_STATUS_BADGE[b.status]" :style="{ width: b.percent + '%' }"></div>
-                    </div>
-                  </div>
-                </template>
+
+            <p v-if="orders.length === 0" class="text-muted mb-0" data-testid="seller-orders-empty">No order requests yet.</p>
+            <template v-else>
+              <!-- search the order lists (long lists are easier to go through) -->
+              <div class="search-field mb-3">
+                <label class="visually-hidden" for="seller-order-search">Search orders</label>
+                <svg class="field-icon" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                </svg>
+                <input id="seller-order-search" v-model="search" type="search" class="form-control" placeholder="Search by product, buyer or note" />
               </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 col-xl-4">
-            <div class="card" data-testid="next-pickup">
-              <div class="card-body p-3">
-                <h6>Next pickups</h6>
-                <ul v-if="nextPickups.length > 0" class="list-unstyled mb-0">
-                  <li v-for="p in nextPickups" :key="p._id" class="mb-1 text-break" data-testid="next-pickup-item"><span class="fw-bold">{{ p.product ? p.product.name : 'Product removed' }}</span> <span class="small">&middot; {{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ formatDateTime(p.requestedTime) }}</span></li>
-                </ul>
-                <p v-else class="mb-0">No upcoming pickups.</p>
+              <p v-if="search.trim()" class="small text-muted" aria-live="polite">{{ shownCount }} {{ shownCount === 1 ? 'order' : 'orders' }} found</p>
+
+              <!-- tabs: pills, the open one filled navy -->
+              <div class="tab-pills mb-3" role="tablist" data-testid="seller-orders-tabs">
+                <button v-for="t in TABS" :key="t.key" type="button" role="tab" class="tab-pill" :class="{ active: activeGroup === t.key }"
+                  :aria-selected="activeGroup === t.key" @click="activeGroup = t.key" :data-testid="`seller-tab-${t.key}`">
+                  {{ t.label }} ({{ shown[t.list].length }})
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
-        <!-- search the order lists (long lists are easier to go through) -->
-        <div v-if="orders.length > 0" class="d-flex align-items-center flex-wrap gap-2 mb-3">
-          <SearchBox v-model="search" class="flex-grow-1 order-search" placeholder="Search by product, buyer or note" label="Search orders" />
-          <span v-if="search.trim()" class="small text-muted" aria-live="polite">{{ shownCount }} {{ shownCount === 1 ? 'order' : 'orders' }} found</span>
-        </div>
-        <p v-if="orders.length === 0" class="text-muted" data-testid="seller-orders-empty">No order requests yet.</p>
-        <template v-else>
-          <ul class="nav nav-pills mb-3" data-testid="seller-orders-tabs">
-            <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'needs-reply' }" @click="activeGroup = 'needs-reply'" data-testid="seller-tab-needs-reply">Needs reply ({{ shown.needsReply.length }})</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'waiting-buyer' }" @click="activeGroup = 'waiting-buyer'" data-testid="seller-tab-waiting-buyer">Waiting on buyer ({{ shown.waitingOnBuyer.length }})</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'upcoming' }" @click="activeGroup = 'upcoming'" data-testid="seller-tab-upcoming">Accepted ({{ shown.upcoming.length }})</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" :class="{ active: activeGroup === 'done' }" @click="activeGroup = 'done'" data-testid="seller-tab-done">Done ({{ shown.done.length }})</button>
-            </li>
-          </ul>
-          <div v-if="activeGroup === 'needs-reply'" class="mb-4" data-testid="group-needs-reply">
-            <h5 class="mb-2">Needs reply ({{ shown.needsReply.length }})</h5>
-            <p v-if="shown.needsReply.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-            <div v-else class="list-grid order-list mb-4">
-              <div v-for="o in shown.needsReply" :key="o._id">
-                <div class="card h-auto" data-testid="order-row">
-                  <div class="card-body d-flex gap-3">
-                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
-                    <div class="order-text d-flex flex-column flex-grow-1">
-                    <div class="d-flex justify-content-between flex-wrap gap-2">
-                      <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
-                    </div>
-                    <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
-                    <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
-                    <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
-                    <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
-                    <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
-                    <div class="mt-auto pt-2">
-                      <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-success" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
-                        <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">Decline</button>
-                        <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
-                        <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                      </div>
-                      <div v-if="proposeOpenId === o._id" class="mt-2">
-                        <label class="form-label" :for="'proposed-time-' + o._id">Propose new time</label>
-                        <input type="datetime-local" class="form-control form-control-sm" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
-                        <div class="d-flex flex-wrap gap-2 mt-2">
-                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
+
+              <div v-if="activeGroup === 'done'" class="d-flex align-items-center gap-2 mb-3">
+                <label class="small text-muted" for="done-status">Show</label>
+                <select id="done-status" v-model="doneStatus" class="form-select form-select-sm w-auto" data-testid="done-filter-status">
+                  <option value="all">All</option>
+                  <option value="completed">Completed</option>
+                  <option value="declined">Declined</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <p v-if="currentList.length === 0" class="text-muted" data-testid="group-empty">
+                {{ search.trim() || (activeGroup === 'done' && doneStatus !== 'all') ? 'No matching orders.' : EMPTY_TEXT[activeGroup] }}
+              </p>
+
+              <div v-else class="d-flex flex-column gap-3" :data-testid="`group-${activeGroup}`">
+                <article v-for="o in currentList" :key="o._id" class="order-card" data-testid="order-row">
+                  <div class="d-flex gap-3 gap-md-4">
+                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="112" height="112"
+                      class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                    <div class="order-text flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-2 order-text">
+                          <h4 class="order-name text-break">{{ o.product ? o.product.name : 'Product removed' }}</h4>
+                          <span v-if="isOverdue(o)" class="status-pill pill-overdue" data-testid="order-overdue">Overdue</span>
+                          <span v-else class="status-pill" :class="`pill-${o.status}`" data-testid="order-status">{{ capitalize(o.status) }}</span>
                         </div>
+                        <span class="order-price" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
                       </div>
-                      <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
-                      <div class="d-flex justify-content-end mt-2">
-                        <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <div v-if="activeGroup === 'waiting-buyer'" class="mb-4" data-testid="group-waiting-buyer">
-            <h5 class="mb-2">Waiting on buyer ({{ shown.waitingOnBuyer.length }})</h5>
-            <p v-if="shown.waitingOnBuyer.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-            <div v-else class="list-grid order-list mb-4">
-              <div v-for="o in shown.waitingOnBuyer" :key="o._id">
-                <div class="card h-auto" data-testid="order-row">
-                  <div class="card-body d-flex gap-3">
-                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
-                    <div class="order-text d-flex flex-column flex-grow-1">
-                    <div class="d-flex justify-content-between flex-wrap gap-2">
-                      <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                      <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
-                    </div>
-                    <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
-                    <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
-                    <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
-                    <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
-                    <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
-                    <p class="mb-1">Proposed time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></p>
-                    <div class="mt-auto pt-2">
-                    <div v-if="o.buyer" class="d-flex flex-wrap gap-2">
-                      <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                    </div>
-                    <div class="d-flex justify-content-end mt-2">
-                      <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
-                    </div>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                      <ul class="order-facts">
+                        <li class="text-break">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.person" /></svg>
+                          {{ o.buyer ? o.buyer.name : 'Buyer removed' }}
+                        </li>
+                        <li data-testid="order-quantity-line">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.box" /></svg>
+                          Quantity: {{ o.quantity }}
+                        </li>
+                        <li>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.time" /></svg>
+                          {{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}
+                        </li>
+                        <li v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="text-break" data-testid="order-delivery-to">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.pin" /></svg>
+                          <span>Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</span>
+                        </li>
+                        <li class="text-break">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.note" /></svg>
+                          Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}
+                        </li>
+                      </ul>
 
-          <div v-if="activeGroup === 'upcoming'" class="mb-4" data-testid="group-upcoming">
-            <h5 class="mb-2">Accepted ({{ shown.upcoming.length }})</h5>
-            <p v-if="shown.upcoming.length === 0" data-testid="group-empty">{{ search.trim() ? 'No matching orders.' : 'Nothing here.' }}</p>
-            <div v-else class="list-grid order-list mb-4">
-              <div v-for="o in shown.upcoming" :key="o._id">
-                <div class="card h-auto" data-testid="order-row">
-                  <div class="card-body d-flex gap-3">
-                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
-                    <div class="order-text d-flex flex-column flex-grow-1">
-                    <div class="d-flex justify-content-between flex-wrap gap-2">
-                      <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                      <div class="d-flex flex-wrap gap-2 align-self-start">
-                        <span v-if="!isOverdue(o)" class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
-                        <span v-if="isOverdue(o)" class="badge bg-danger flex-shrink-0 text-nowrap" data-testid="order-overdue">Overdue</span>
-                      </div>
-                    </div>
-                    <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
-                    <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
-                    <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
-                    <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
-                    <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                    <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
-                    <div class="mt-auto pt-2">
-                      <div v-if="confirmId === o._id && confirmStatus === 'completed'">
-                        <p class="mb-1">Mark this order as completed?</p>
-                        <div class="d-flex flex-wrap gap-2">
-                          <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
-                          <button class="btn btn-sm btn-secondary" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
-                        </div>
-                      </div>
-                      <div v-else class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-success" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                        <button class="btn btn-sm btn-danger" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">Cancel</button>
-                        <button v-if="o.buyer" class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                      </div>
-                      <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
-                      <div class="d-flex justify-content-end mt-2">
-                        <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="activeGroup === 'done'" class="mb-4" data-testid="group-done">
-            <h5 class="mb-2">Done ({{ shown.done.length }})</h5>
-            <div class="d-flex flex-wrap gap-2 mb-3">
-              <button class="btn btn-sm btn-secondary" @click="showDone = !showDone" data-testid="group-done-toggle">{{ showDone ? 'Hide done orders' : 'Show done orders (' + shown.done.length + ')' }}</button>
-            </div>
-            <template v-if="showDone">
-              <div class="d-flex flex-wrap gap-3 mb-3">
-                <div>
-                  <label class="form-label small mb-1" for="done-status">Show</label>
-                  <select id="done-status" class="form-select form-select-sm" v-model="doneStatus" data-testid="done-filter-status">
-                    <option value="all">All</option>
-                    <option value="completed">Completed</option>
-                    <option value="declined">Declined</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="form-label small mb-1" for="done-sort">Sort</label>
-                  <select id="done-sort" class="form-select form-select-sm" v-model="doneSort" data-testid="done-sort">
-                    <option value="newest">Newest pickup first</option>
-                    <option value="oldest">Oldest pickup first</option>
-                  </select>
-                </div>
-              </div>
-              <p v-if="doneList.length === 0" data-testid="group-empty">{{ search.trim() || doneStatus !== 'all' ? 'No matching orders.' : 'Nothing here.' }}</p>
-              <div v-else class="list-grid order-list mb-4">
-                <div v-for="o in doneList" :key="o._id">
-                  <div class="card h-auto" data-testid="order-row">
-                    <div class="card-body d-flex gap-3">
-                      <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="72" height="72" class="order-thumb rounded flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
-                      <div class="order-text d-flex flex-column flex-grow-1">
-                      <div class="d-flex justify-content-between flex-wrap gap-2">
-                        <h5 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
-                        <span class="badge align-self-start flex-shrink-0 text-nowrap" :class="STATUS_BADGE[o.status]" data-testid="order-status">{{ capitalize(o.status) }}</span>
-                      </div>
-                      <p class="mb-1 text-body-secondary text-break">{{ o.buyer ? o.buyer.name : 'Buyer removed' }}</p>
-                      <p class="mb-1" data-testid="order-quantity-line">Quantity: {{ o.quantity }}</p>
-                      <p class="mb-1">{{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
-                      <p v-if="o.fulfilment === 'delivery' && o.deliveryAddress" class="mb-1 text-break" data-testid="order-delivery-to">Deliver to: {{ o.deliveryAddress }}{{ o.deliveryUnit ? `, ${o.deliveryUnit}` : '' }}, Singapore {{ o.deliveryPostalCode }}</p>
-                      <p class="mb-1 text-break">Note: {{ o.customisation && o.customisation.trim() ? o.customisation : 'None' }}</p>
-                      <p class="mb-1 small text-body-secondary" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
-                      <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="order-reason mb-1 small" data-testid="order-reason">
+                      <p class="status-help" data-testid="order-status-help">{{ sellerHelp(o) }}</p>
+                      <p v-if="o.status === 'rescheduled'" class="status-help proposal">Proposed time: <strong>{{ formatDateTime(o.proposedTime) }}</strong></p>
+                      <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="status-help reason" data-testid="order-reason">
                         <strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? "Buyer's reason" : 'Your reason' }}:</strong> {{ o.reason }}
                       </p>
-                      <div class="mt-auto pt-2">
-                      <div v-if="o.buyer" class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-secondary" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
-                      </div>
-                      <div class="d-flex justify-content-end mt-2">
-                        <span class="fs-5 fw-bold" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
-                      </div>
-                      </div>
-                      </div>
                     </div>
                   </div>
-                </div>
+
+                  <!-- actions -->
+                  <div class="order-actions">
+                    <!-- needs reply: accept / propose / message / decline -->
+                    <template v-if="o.status === 'pending'">
+                      <button class="btn pill-btn btn-navy" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg>
+                        Accept
+                      </button>
+                      <button class="btn pill-btn btn-outline-brand" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.calendar" /></svg>
+                        Propose new time
+                      </button>
+                    </template>
+                    <!-- accepted: complete / cancel -->
+                    <template v-else-if="o.status === 'accepted'">
+                      <button class="btn pill-btn btn-navy" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg>
+                        Mark completed
+                      </button>
+                    </template>
+                    <button v-if="o.buyer" class="btn pill-btn btn-text" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.808-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105" /></svg>
+                      Message buyer
+                    </button>
+                    <button v-if="o.status === 'pending'" class="btn pill-btn btn-outline-cancel ms-md-auto" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" /></svg>
+                      Decline
+                    </button>
+                    <button v-if="o.status === 'accepted'" class="btn pill-btn btn-outline-cancel ms-md-auto" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" /></svg>
+                      Cancel
+                    </button>
+                  </div>
+
+                  <!-- propose a new time -->
+                  <div v-if="proposeOpenId === o._id" class="inline-box">
+                    <label class="form-label small mb-1" :for="'proposed-time-' + o._id">New date and time</label>
+                    <div class="d-flex flex-wrap gap-2">
+                      <input type="datetime-local" class="form-control w-auto" :id="'proposed-time-' + o._id" v-model="proposals[o._id]" :disabled="busyId !== ''" data-testid="order-propose-input" />
+                      <button class="btn pill-btn btn-navy" :disabled="busyId !== ''" @click="proposeTime(o)" data-testid="order-propose-submit">Send new time</button>
+                    </div>
+                  </div>
+                  <!-- confirm completed -->
+                  <div v-if="confirmId === o._id && confirmStatus === 'completed'" class="inline-box">
+                    <p class="mb-2">Mark this order as completed?</p>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button class="btn pill-btn btn-navy" :disabled="busyId !== ''" @click="updateStatus(o, 'completed')" data-testid="order-confirm-yes">Yes, completed</button>
+                      <button class="btn pill-btn btn-outline-brand" :disabled="busyId !== ''" @click="clearConfirm" data-testid="order-confirm-no">Keep order</button>
+                    </div>
+                  </div>
+                  <p v-if="busyId === o._id" class="small text-body-secondary mt-2 mb-0" data-testid="order-sending"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
+                </article>
               </div>
             </template>
-          </div>
-        </template>
-      </template>
-    </div>
+          </section>
+        </div>
+
+        <!-- ===== right: overview + next pickups ===== -->
+        <div class="col-lg-4 d-flex flex-column gap-4">
+          <section class="panel overview" data-testid="status-breakdown" aria-labelledby="overview-title">
+            <h3 id="overview-title" class="overview-head">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.chart" /></svg>
+              Order overview
+            </h3>
+            <div class="p-3">
+              <div v-for="b in breakdown" :key="b.status" class="overview-row">
+                <p class="d-flex justify-content-between mb-1"><span>{{ b.label }}</span><strong>{{ b.count }}</strong></p>
+                <div class="overview-bar"><span :class="`bar-${b.status}`" :style="{ width: b.percent + '%' }"></span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel p-3 p-md-4" data-testid="next-pickup" aria-labelledby="pickups-title">
+            <h3 id="pickups-title" class="panel-title mb-3">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="ICONS.calendar" /></svg>
+              Next pickups
+            </h3>
+            <ul v-if="nextPickups.length > 0" class="pickup-list">
+              <li v-for="p in nextPickups" :key="p._id" data-testid="next-pickup-item">
+                <span class="pickup-date">{{ formatDateTime(p.requestedTime) }}</span>
+                <span class="fw-semibold text-break">{{ p.product ? p.product.name : 'Product removed' }}</span>
+                <span class="small text-muted text-break">{{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; {{ capitalize(p.fulfilment) }}</span>
+              </li>
+            </ul>
+            <div v-else class="empty-pickups">
+              <span class="empty-icon" aria-hidden="true">
+                <svg width="40" height="40" viewBox="0 0 16 16" fill="currentColor"><path :d="ICONS.calendar" /></svg>
+              </span>
+              <p class="fw-semibold mb-1">No upcoming pickups</p>
+              <p class="small text-muted mb-0">Accepted orders will appear here.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
   </div>
   <ReasonModal ref="reasonModal" />
 </template>
 
 <style scoped>
-/* why the order was declined / cancelled */
-.order-reason {
-  padding: 0.4rem 0.6rem;
-  border-radius: 0.5rem;
-  background: rgba(var(--rose-rgb), 0.08);
-  overflow-wrap: anywhere;
+/* ---------- the four tiles: soft colour + a wave in the corner ---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
 }
-
-.order-thumb {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
+.stat-tile {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.1rem 1.1rem 1.4rem;
+  overflow: hidden;
+  border: 1px solid var(--tile-line);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, var(--tile-from), var(--tile-to));
+  text-align: left;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-tile::after { /* the wave */
+  content: '';
+  position: absolute;
+  right: -20%;
+  bottom: -55%;
+  width: 80%;
+  height: 90%;
+  border-radius: 50%;
+  background: var(--tile-wave);
+  pointer-events: none;
+}
+.stat-tile:hover,
+.stat-tile:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(var(--navy-rgb), 0.08);
+}
+.tone-amber { --tile-from: #fff8ea; --tile-to: #fdeccb; --tile-line: #f8e2b4; --tile-wave: rgba(var(--amber-rgb), 0.18); }
+.tone-blue  { --tile-from: #f4f8fe; --tile-to: #e3ecf9; --tile-line: #d8e4f5; --tile-wave: rgba(var(--aqua-rgb), 0.2); }
+.tone-rose  { --tile-from: #fff3f4; --tile-to: #fbe0e3; --tile-line: #f6d2d6; --tile-wave: rgba(var(--rose-rgb), 0.14); }
+.tone-green { --tile-from: #f1faf5; --tile-to: #dcf1e5; --tile-line: #c9e8d6; --tile-wave: rgba(35, 128, 74, 0.14); }
+.stat-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--navy);
+  box-shadow: 0 2px 8px rgba(var(--navy-rgb), 0.08);
 }
-
-.order-text {
+.tone-green .stat-icon { color: #23804a; }
+.stat-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-width: 0;
 }
+.stat-label { font-weight: 600; }
+.tone-green .stat-label { color: #23804a; }
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--navy);
+}
+.stat-hint { font-size: 0.85rem; color: var(--ink-soft); }
+.stat-arrow {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--navy);
+}
 
-.order-bar {
-  height: 0.5rem;
+/* ---------- panels ---------- */
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(var(--navy-rgb), 0.04);
+}
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.sort-select {
+  width: auto;
+  min-width: 170px;
   border-radius: 999px;
 }
 
-.stat-value {
-  color: var(--brand-dark);
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1.1;
+/* search (same as My orders) */
+.search-field { position: relative; }
+.field-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.search-field .form-control {
+  height: 48px;
+  padding-left: 2.8rem;
+  border-radius: 999px;
 }
 
-/* each row is only as tall as its own cards (the team grid makes every row equal) */
-.order-list {
-  grid-auto-rows: auto;
+/* tabs: pills, the open one filled navy */
+.tab-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.tab-pill {
+  padding: 0.55rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--aqua-soft);
+  font-weight: 500;
+  color: var(--navy);
+}
+.tab-pill:hover { background: var(--tile-hover); }
+.tab-pill.active {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+
+/* ---------- order cards (same look as My orders) ---------- */
+.order-card {
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface);
+}
+.order-thumb {
+  width: 112px;
+  height: 112px;
+  border-radius: 1rem;
+  object-fit: cover;
+}
+.order-text { min-width: 0; }
+.order-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.order-price {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.status-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill-pending { background: #fdf0c8; color: #a8740a; }
+.pill-accepted { background: #e2f3e8; color: #23804a; }
+.pill-rescheduled { background: var(--aqua-soft); color: var(--aqua-dark); }
+.pill-completed { background: var(--tile); color: var(--ink-soft); }
+.pill-declined,
+.pill-cancelled,
+.pill-overdue { background: #fbe4e3; color: #b8312f; }
+
+.order-facts {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.order-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.45rem;
+  color: var(--ink);
+}
+.order-facts svg {
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+}
+.status-help {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--surface-soft);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.status-help.proposal {
+  background: var(--aqua-soft);
+  color: var(--ink);
+}
+.status-help.reason { /* why the order was declined / cancelled */
+  background: rgba(var(--rose-rgb), 0.08);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.3rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.btn-navy {
+  border: 1.5px solid var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+.btn-navy:hover,
+.btn-navy:focus-visible {
+  border-color: var(--ocean-dark);
+  background: var(--ocean-dark);
+  color: #fff;
+}
+.btn-outline-brand {
+  border: 1.5px solid var(--ocean);
+  background: var(--surface);
+  color: var(--ocean-dark);
+}
+.btn-outline-brand:hover,
+.btn-outline-brand:focus-visible {
+  border-color: var(--ocean-dark);
+  background: var(--ocean-soft);
+  color: var(--ocean-dark);
+}
+.btn-text {
+  border: 0;
+  background: none;
+  color: var(--navy);
+}
+.btn-text:hover { background: var(--ocean-soft); color: var(--navy); }
+.btn-outline-cancel {
+  border: 1.5px solid var(--rose);
+  background: var(--surface);
+  color: var(--rose);
+}
+.btn-outline-cancel:hover,
+.btn-outline-cancel:focus-visible {
+  border-color: var(--rose);
+  background: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}
+.inline-box {
+  margin-top: 0.9rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  background: var(--surface-soft);
+}
+
+/* ---------- right column ---------- */
+.overview { overflow: hidden; }
+.overview-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  background: var(--navy);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+}
+.overview-row { padding: 0.5rem 0.25rem; }
+.overview-row + .overview-row { border-top: 1px solid var(--line); }
+.overview-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--tile);
+  overflow: hidden;
+}
+.overview-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+.bar-pending { background: var(--amber); }
+.bar-rescheduled { background: var(--aqua); }
+.bar-accepted { background: #23804a; }
+
+.pickup-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pickup-list li {
+  display: flex;
+  flex-direction: column;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--line);
+}
+.pickup-list li:first-child { border-top: 0; padding-top: 0; }
+.pickup-date {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ocean);
+}
+.empty-pickups {
+  padding: 1rem 0 0.5rem;
+  text-align: center;
+  color: var(--ink);
+}
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  background: var(--aqua-soft);
+  color: var(--ocean);
+}
+
+/* ---------- smaller screens ---------- */
+@media (max-width: 991.98px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 575.98px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .order-card { padding: 1.1rem; }
+  .order-thumb { width: 72px; height: 72px; }
+  .order-price { font-size: 1.2rem; }
 }
 </style>

@@ -200,7 +200,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
       </ul>
       <div class="head-actions">
         <span v-if="newPicksReady" class="small new-picks">Your picks have changed</span>
-        <button type="button" class="btn refresh-btn" :class="{ ready: newPicksReady }" :disabled="loading"
+        <button type="button" class="btn soft-btn refresh-btn" :class="{ ready: newPicksReady }" :disabled="loading"
           aria-label="Refresh recommendations" @click="loadFeed">
           <svg :class="{ spinning: loading }" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
@@ -350,21 +350,10 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
   gap: 0.5rem;
   margin-left: auto;
 }
-.refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+.refresh-btn { /* look: .soft-btn in main.css */
   height: 46px;
-  padding: 0 1.3rem;
-  border: 0;
-  border-radius: 1.1rem;
-  background: var(--tile);
-  font-weight: 500;
-  color: var(--ink);
-}
-.refresh-btn:hover:not(:disabled) {
-  background: var(--tile-hover);
-  color: var(--navy);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 /* scores changed: the button invites a refresh */
 .refresh-btn.ready {

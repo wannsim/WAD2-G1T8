@@ -463,3 +463,20 @@ a.card-title:hover {
   background: var(--ocean);
   transform: translateX(-50%);
 }
+
+/* ---- Refresh buttons (Order dashboard, My orders, Sales analytics, For you): soft blue with an arrow icon ---- */
+.soft-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.3rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--ocean-soft);
+  font-weight: 600;
+  color: var(--navy);
+}
+.soft-btn:hover {
+  background: var(--tile-hover);
+  color: var(--navy);
+}
