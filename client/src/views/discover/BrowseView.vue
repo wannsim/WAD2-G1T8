@@ -17,6 +17,7 @@ const maxPrice = ref('')
 const products = ref([])
 const shops = ref([])
 const savedIds = ref([])
+const loading = ref(true) // first search still running -> skeleton, not "No products found"
 const mapRoute = computed(() => currentUser.value?.preferredMrt
   ? { path: '/map', query: { mrt: currentUser.value.preferredMrt } }
   : '/map')
@@ -33,6 +34,8 @@ async function search() {
 
   } catch (error) {
     console.log(error.message)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -143,7 +146,8 @@ onMounted(() => {
 
 </div>
 
-    <p v-if="products.length === 0 && shops.length === 0" class="text-muted"> No products or shops found. </p>
+    <PageSkeleton v-if="loading && products.length === 0" variant="grid" label="Loading products" />
+    <p v-else-if="products.length === 0 && shops.length === 0" class="text-muted"> No products or shops found. </p>
 
     <div class="card-grid mb-4">
       <div v-for="p in products" :key="p._id">

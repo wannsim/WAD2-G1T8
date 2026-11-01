@@ -1,52 +1,58 @@
 /* Global styles shared by everyone. Keep it short.
    Component-specific CSS goes in that component's <style scoped>. */
 :root {
-  /* ---- colour palette: "Navy" (deep navy ink -> navy blue -> mid blue, on light blue, with a golden amber accent) - use these, not raw hex codes.
+  /* ---- colour palette: "Burgundy" (deep burgundy buttons, dusty rose accents, pale pink cards on warm white,
+     deep plum text; pale gold / green / red for statuses) - use these, not raw hex codes.
      The old names (navy / ocean / aqua) are kept so every component picks up the new colours ---- */
-  --navy: #13284b;          /* headings, active tabs / toggles (deep navy) */
-  --navy-rgb: 19, 40, 75;
-  --ocean: #24498a;         /* main buttons, links (navy blue) */
-  --ocean-dark: #1b3a70;
-  --ocean-soft: #e8f0fa;
-  --ocean-rgb: 36, 73, 138;
-  --aqua: #5b86c5;          /* accents, selected chips, success, info (mid blue) */
-  --aqua-dark: #3f6aa8;
-  --aqua-soft: #edf3fb;
-  --aqua-rgb: 91, 134, 197;
+  --navy: #5c2b3d;          /* active tabs / toggles, filled dark buttons (darker burgundy) */
+  --navy-rgb: 92, 43, 61;
+  --ocean: #773b50;         /* main buttons, links, highlights (deep burgundy) */
+  --ocean-dark: #5f2e40;
+  --ocean-soft: #f5e6eb;
+  --ocean-rgb: 119, 59, 80;
+  --aqua: #d7a5b2;          /* accents, selected chips, info (dusty rose) */
+  --aqua-dark: #9a5f6f;
+  --aqua-soft: #fbf2f5;
+  --aqua-rgb: 215, 165, 178;
   --rose: #e5484d;          /* errors, remove / decline, sale badges (red) */
   --rose-rgb: 229, 72, 77;
   --amber: #e3a63a;         /* warnings, pending, stars, pins (golden amber) */
   --amber-rgb: 227, 166, 58;
+  --green: #1f8a5b;         /* up / positive numbers, finished (on --mint) */
+  --sky: #3b7dc4;           /* order status "rescheduled" only (light blue, stands apart from the burgundy) */
+  --sky-dark: #2a65a6;
+  --sky-soft: #e6f0fb;
 
   --brand: var(--ocean);    /* kept so older components keep working */
   --brand-dark: var(--ocean-dark);
   --brand-rgb: var(--ocean-rgb);
 
-  --ink: #13284b;           /* main text */
-  --ink-soft: #46577a;
-  --muted: #7a8aa6;         /* secondary text */
-  --line: #e3e9f2;          /* borders */
+  --ink: #462a39;           /* main text + headings (deep plum) */
+  --ink-rgb: 70, 42, 57;
+  --ink-soft: #6e5361;
+  --muted: #987d8a;         /* secondary text (muted mauve) */
+  --line: #ead7de;          /* borders (soft pink-grey) */
   --surface: #ffffff;
-  --surface-soft: #f6f9fd;  /* tinted boxes */
-  --surface-hover: #edf2fa; /* hover on light buttons / rows */
-  --cream: #f1f5fb;         /* page background around the white app frame */
-  --tile: #f2f6fb;          /* grey tiles / pill buttons */
-  --tile-hover: #e6edf7;
-  /* soft tiles for banners (For you page) - soft blues + butter */
-  --mint: #e9f0f8;
-  --butter: #fbefd9;
-  --peach: #eef2fa;
-  --ice: #e7eef9;
-  --shadow: 0 6px 20px rgba(19, 40, 75, 0.06);
+  --surface-soft: #fcf4f7;  /* tinted boxes */
+  --surface-hover: #f5e6eb; /* hover on light buttons / rows */
+  --cream: #fffafa;         /* page background (warm white) */
+  --tile: rgba(249, 237, 241, 0.8); /* card background + pill buttons (pale pink #f9edf1 at 80%, a little warm white shows through) */
+  --tile-hover: #f2dfe6;
+  /* soft tiles + statuses: mint = success (pale green), butter = pending (pale gold), peach = overdue (pale red) */
+  --mint: #ddf1e4;
+  --butter: #fff0c7;
+  --peach: #fce1e3;
+  --ice: #f5e6eb;
+  --shadow: 0 6px 20px rgba(92, 43, 61, 0.06);
 
   /* ---- Bootstrap uses our palette everywhere (alerts, badges, text-*, bg-*, links...) ---- */
   --bs-body-font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif; /* the whole site uses Poppins */
   --bs-body-color: var(--ink);
-  --bs-body-color-rgb: var(--navy-rgb);
+  --bs-body-color-rgb: var(--ink-rgb);
   --bs-secondary-color: var(--muted);
   --bs-border-color: var(--line);
   --bs-link-color: var(--ocean-dark);
-  --bs-link-color-rgb: 27, 58, 112; /* = --ocean-dark */
+  --bs-link-color-rgb: 95, 46, 64; /* = --ocean-dark */
   --bs-link-hover-color: var(--navy);
   --bs-link-hover-color-rgb: var(--navy-rgb);
   --bs-border-radius: 0.75rem;
@@ -55,40 +61,40 @@
 
   --bs-primary: var(--ocean);
   --bs-primary-rgb: var(--ocean-rgb);
-  --bs-primary-text-emphasis: #1b3a70;
+  --bs-primary-text-emphasis: #5f2e40;
   --bs-primary-bg-subtle: var(--ocean-soft);
-  --bs-primary-border-subtle: #c5d6ef;
-  --bs-success: var(--ocean);
-  --bs-success-rgb: var(--ocean-rgb);
-  --bs-success-text-emphasis: #2f5795;
-  --bs-success-bg-subtle: var(--aqua-soft);
-  --bs-success-border-subtle: #cfdcf0;
+  --bs-primary-border-subtle: #e3c9d2;
+  --bs-success: var(--green);
+  --bs-success-rgb: 31, 138, 91;
+  --bs-success-text-emphasis: #17694a;
+  --bs-success-bg-subtle: var(--mint);
+  --bs-success-border-subtle: #bfe3cc;
   --bs-info: var(--aqua);
   --bs-info-rgb: var(--aqua-rgb);
-  --bs-info-text-emphasis: #2f5795;
+  --bs-info-text-emphasis: #7a4a59;
   --bs-info-bg-subtle: var(--aqua-soft);
-  --bs-info-border-subtle: #cfdcf0;
+  --bs-info-border-subtle: #ecd2da;
   --bs-warning: var(--amber);
   --bs-warning-rgb: var(--amber-rgb);
   --bs-warning-text-emphasis: #8a4a1e;
-  --bs-warning-bg-subtle: #fbefd9;
+  --bs-warning-bg-subtle: #fff0c7;
   --bs-warning-border-subtle: #f3d9a6;
   --bs-danger: var(--rose);
   --bs-danger-rgb: var(--rose-rgb);
   --bs-danger-text-emphasis: #9b2328;
-  --bs-danger-bg-subtle: #fdecec;
+  --bs-danger-bg-subtle: #fce1e3;
   --bs-danger-border-subtle: #f6c4c6;
-  --bs-secondary: #8c97ab;
-  --bs-secondary-rgb: 140, 151, 171;
+  --bs-secondary: #a8939d;
+  --bs-secondary-rgb: 168, 147, 157;
   --bs-secondary-text-emphasis: var(--ink-soft);
   --bs-secondary-bg-subtle: var(--surface-hover);
   --bs-secondary-border-subtle: var(--line);
   --bs-dark: var(--navy);
   --bs-dark-rgb: var(--navy-rgb);
-  --bs-light-rgb: 246, 249, 253;
+  --bs-light-rgb: 252, 244, 247;
 }
 
-/* soft background around the white app frame (pale blue -> pale aqua).
+/* warm white background around the app frame.
    Drawn on a fixed layer behind the page, so it covers long pages and works on phones too
    (background-attachment: fixed is ignored by iPhone Safari). */
 body {
@@ -100,11 +106,11 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(160deg, #f5f8fc 0%, #f1f5fb 50%, #f6f9fd 100%);
+  background: var(--cream);
   pointer-events: none;
 }
 h1, h2, h3, h4, h5, h6 {
-  color: var(--navy);
+  color: var(--ink);
   font-family: var(--bs-body-font-family);
 }
 button, input, select, textarea {
@@ -157,11 +163,11 @@ button, input, select, textarea {
   --bs-btn-bg: var(--navy);
   --bs-btn-border-color: var(--navy);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: #1c3566;
-  --bs-btn-hover-border-color: #1c3566;
+  --bs-btn-hover-bg: #4d2433;
+  --bs-btn-hover-border-color: #4d2433;
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: #1c3566;
-  --bs-btn-active-border-color: #1c3566;
+  --bs-btn-active-bg: #4d2433;
+  --bs-btn-active-border-color: #4d2433;
   --bs-btn-disabled-bg: var(--navy);
   --bs-btn-disabled-border-color: var(--navy);
   --bs-btn-focus-shadow-rgb: var(--navy-rgb);
@@ -308,7 +314,7 @@ a.card-title:hover {
   font-size: 2.1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 /* all cards: same corners, border and shadow.
@@ -414,7 +420,7 @@ a.card-title:hover {
   color: #fff;
 }
 .status-rescheduled {
-  background-color: var(--aqua); /* blue */
+  background-color: var(--sky); /* light blue */
   color: #fff;
 }
 /* roomier status badges (only badges - the status bars use the same classes for their colour) */

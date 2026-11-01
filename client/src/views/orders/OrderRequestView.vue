@@ -193,9 +193,7 @@ async function submitOrder() {
 <template>
   <div class="row justify-content-center">
     <div class="col-12 page-narrow">
-      <p v-if="loading" data-testid="order-loading">
-        <span class="spinner-border spinner-border-sm"></span> Loading…
-      </p>
+      <PageSkeleton v-if="loading" variant="form" :count="4" label="Loading order form" data-testid="order-loading" />
       <div v-else-if="loadError" class="alert alert-danger" data-testid="order-load-error">{{ loadError }}</div>
       <div v-else-if="sent && product" class="alert alert-success" data-testid="order-success">
         <p class="text-break">Request sent to {{ product.shop.name }}. The seller will accept, decline or suggest another time.</p>

@@ -25,11 +25,11 @@ const emit = defineEmits(['more'])
 
 // banner + letter-avatar colour: picked from the shop id, so each shop always gets the same one
 const BANNERS = [
-  'linear-gradient(120deg, #24498a, #5b86c5)',
-  'linear-gradient(120deg, #3f6aa8, #b4c9e8)',
-  'linear-gradient(120deg, #13284b, #24498a)',
+  'linear-gradient(120deg, #773b50, #d7a5b2)',
+  'linear-gradient(120deg, #9a5f6f, #ecd2da)',
+  'linear-gradient(120deg, #5c2b3d, #773b50)',
   'linear-gradient(120deg, #e3a63a, #f6d9b0)',
-  'linear-gradient(120deg, #3f6aa8, #b4c9e8)',
+  'linear-gradient(120deg, #9a5f6f, #ecd2da)',
 ]
 const bannerColour = computed(() => {
   const sum = [...String(props.shop._id || '')].reduce((total, ch) => total + ch.charCodeAt(0), 0)

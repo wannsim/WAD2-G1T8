@@ -156,9 +156,7 @@ onBeforeUnmount(() => controller?.abort())
       </div>
     </div>
 
-    <div v-if="loading" class="analytics-panel text-center py-5" role="status">
-      <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading your sales analytics…
-    </div>
+    <PageSkeleton v-if="loading" variant="dashboard" :count="2" label="Loading your sales analytics" />
     <div v-else-if="error" class="alert alert-danger" role="alert">
       {{ error }} <button class="btn btn-sm btn-outline-danger ms-2" @click="load">Retry</button>
     </div>
@@ -251,7 +249,7 @@ onBeforeUnmount(() => controller?.abort())
             <title id="sales-chart-title">Completed-order sales revenue</title>
             <desc id="sales-chart-desc">{{ GROUPING_NAME[analytics.grouping] }} revenue from {{ displayDate(range.startDate) }} to {{ displayDate(range.endDate) }}. Total {{ formatSalesMoney(analytics.revenueCents) }}. Exact values are in the sales data table below.</desc>
             <g v-for="step in [0, 1, 2, 3, 4]" :key="step">
-              <line x1="90" x2="750" :y1="205 - step * 43.75" :y2="205 - step * 43.75" stroke="#e3e9f2" />
+              <line x1="90" x2="750" :y1="205 - step * 43.75" :y2="205 - step * 43.75" stroke="#ead7de" />
               <text x="78" :y="209 - step * 43.75" text-anchor="end" class="chart-label">{{ formatSalesMoney(Math.round(chartMax * step / 4)) }}</text>
             </g>
             <polyline :points="chartLine" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linejoin="round" />

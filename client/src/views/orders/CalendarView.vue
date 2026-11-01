@@ -483,7 +483,7 @@ onMounted(async () => {
           <button type="button" class="btn btn-act-outline" @click="thisWeek" data-testid="calendar-today">Today</button>
         </div>
       </div>
-      <p v-if="loading" data-testid="seller-orders-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading…</p>
+      <PageSkeleton v-if="loading" variant="dashboard" label="Loading your calendar" data-testid="seller-orders-loading" />
       <template v-else>
         <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
         <div v-if="message" class="alert alert-success" data-testid="seller-orders-message">{{ message }}</div>
@@ -609,7 +609,7 @@ onMounted(async () => {
   box-shadow: 0 8px 20px rgba(var(--navy-rgb), 0.08);
 }
 .tone-amber { --tile-from: #fff8ea; --tile-to: #fdeccb; --tile-line: #f8e2b4; --tile-wave: rgba(var(--amber-rgb), 0.18); }
-.tone-blue  { --tile-from: #f4f8fe; --tile-to: #e3ecf9; --tile-line: #d8e4f5; --tile-wave: rgba(var(--aqua-rgb), 0.2); }
+.tone-blue  { --tile-from: #fbf3f6; --tile-to: #f5e3ea; --tile-line: #ecd2db; --tile-wave: rgba(var(--aqua-rgb), 0.2); }
 .tone-rose  { --tile-from: #fff3f4; --tile-to: #fbe0e3; --tile-line: #f6d2d6; --tile-wave: rgba(var(--rose-rgb), 0.14); }
 .tone-green { --tile-from: #f1faf5; --tile-to: #dcf1e5; --tile-line: #c9e8d6; --tile-wave: rgba(35, 128, 74, 0.14); }
 .stat-icon {
@@ -667,7 +667,7 @@ onMounted(async () => {
 .calendar-grid { display: grid; grid-template-columns: 3rem repeat(7, minmax(5rem, 1fr)); grid-template-rows: auto repeat(14, minmax(3.5rem, auto)); min-width: 38rem; }
 .calendar-corner, .calendar-heading, .calendar-hour { padding: 0.65rem 0.35rem; color: var(--ink-soft); font-size: 0.8rem; }
 /* Day headers: weekday (or "Today") on top, date with month below. */
-.calendar-heading { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; border-bottom: 1px solid var(--line); background: #f6f9fd; color: #13284b; }
+.calendar-heading { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; border-bottom: 1px solid var(--line); background: #fcf4f7; color: #5c2b3d; }
 .heading-day { font-size: 0.75rem; font-weight: 500; }
 .heading-date { font-size: 0.95rem; font-weight: 700; }
 .calendar-slot { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.3rem; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -676,10 +676,10 @@ onMounted(async () => {
 .calendar-event:hover, .calendar-event:focus-visible { outline: 2px solid var(--navy); outline-offset: 1px; }
 
 /* Status colours follow the dashboard's pills; outside busy time is striped grey. */
-.kind-needs-reply { background: #fdf0c8; color: #a8740a; }
+.kind-needs-reply { background: #fff0c7; color: #a8740a; }
 .kind-waiting-buyer { background: var(--aqua-soft); color: var(--aqua-dark); }
-.kind-accepted { background: #e2f3e8; color: #23804a; }
-.kind-overdue { background: #fbe4e3; color: #b8312f; }
+.kind-accepted { background: #ddf1e4; color: #23804a; }
+.kind-overdue { background: #fce1e3; color: #b8312f; }
 .kind-done { background: var(--tile); color: var(--ink-soft); }
 .calendar-busy { background: repeating-linear-gradient(135deg, var(--tile), var(--tile) 5px, var(--line) 5px, var(--line) 7px); color: var(--ink-soft); }
 
@@ -691,7 +691,7 @@ onMounted(async () => {
 /* The selected day tints its column; only matching order ids receive an outline. */
 .calendar-heading { border: 0; border-bottom: 1px solid var(--line); }
 .calendar-heading:hover { background: var(--ocean-soft); color: var(--navy); }
-.calendar-heading.selected-day { background: #13284b; color: #fff; }
+.calendar-heading.selected-day { background: #5c2b3d; color: #fff; }
 /* White set on both lines too, so nothing can turn them navy on the navy background. */
 .calendar-heading.selected-day .heading-day, .calendar-heading.selected-day .heading-date { color: #fff; }
 .calendar-heading:focus-visible { outline: 2px solid var(--ocean); outline-offset: -3px; }
@@ -701,12 +701,12 @@ onMounted(async () => {
 /* The day panel sits below the grid on phones and beside it on larger screens. */
 .day-panel { min-width: 0; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); overflow: hidden; }
 /* Day panel header: the white colour is set on the h3 itself, because main.css makes every heading navy. */
-.day-head { padding: 14px 18px; background: #13284b; color: #fff; }
+.day-head { padding: 14px 18px; background: #5c2b3d; color: #fff; }
 .day-head h3 { margin: 0 0 0.2rem; font-size: 1.15rem; font-weight: 700; color: #fff; }
 .day-count { margin: 0; font-size: 0.85rem; color: rgba(255, 255, 255, 0.85); }
 /* Week controls: bordered square arrows and a bold week range. */
 .week-arrow { width: 38px; padding: 0; font-size: 1.1rem; }
-.week-range { font-size: 0.95rem; font-weight: 600; color: #13284b; }
+.week-range { font-size: 0.95rem; font-weight: 600; color: #5c2b3d; }
 .day-body { padding: 1rem; }
 .calendar-day-order { padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--line); border-radius: 0.8rem; }
 .day-order-name { min-width: 0; }
@@ -734,21 +734,21 @@ onMounted(async () => {
   border-radius: 50%;
   background: currentColor;
 }
-.pill-pending { background: #fdf0c8; color: #a8740a; }
-.pill-accepted { background: #e2f3e8; color: #23804a; }
-.pill-rescheduled { background: var(--aqua-soft); color: var(--aqua-dark); }
+.pill-pending { background: #fff0c7; color: #a8740a; }
+.pill-accepted { background: #ddf1e4; color: #23804a; }
+.pill-rescheduled { background: var(--sky-soft); color: var(--sky-dark); } /* light blue */
 .pill-completed { background: var(--tile); color: var(--ink-soft); }
 .pill-declined,
 .pill-cancelled,
-.pill-overdue { background: #fbe4e3; color: #b8312f; }
+.pill-overdue { background: #fce1e3; color: #b8312f; }
 /* One button set for every order screen (same values as SellerOrdersView.vue and BuyerOrdersView.vue). */
 .btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
-.btn.btn-act-primary { background: #13284b; border-color: #13284b; color: #fff; }
-.btn.btn-act-outline { background: #fff; border-color: #c9d5e8; color: #13284b; }
+.btn.btn-act-primary { background: #5c2b3d; border-color: #5c2b3d; color: #fff; }
+.btn.btn-act-outline { background: #fff; border-color: #e3c9d2; color: #5c2b3d; }
 .btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
-.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e8f0fa; border-color: #24498a; color: #13284b; }
+.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #f5e6eb; border-color: #773b50; color: #5c2b3d; }
 .btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
-.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #24498a; outline-offset: 2px; }
+.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #773b50; outline-offset: 2px; }
 .btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
 
 /* Each action row has two equal bordered buttons under a divider; wide actions span both columns. */

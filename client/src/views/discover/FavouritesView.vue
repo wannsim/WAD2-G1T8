@@ -43,7 +43,7 @@ onMounted(async () => {
 <template>
   <div>
     <h2 class="page-title">My favourites</h2>
-    <p v-if="loading" class="text-muted">Loading...</p>
+    <PageSkeleton v-if="loading" variant="grid" label="Loading favourites" />
     <p v-else-if="visible.length === 0" class="text-muted">Nothing saved yet. Tap the heart on a product!</p>
     <div class="card-grid">
       <div v-for="fav in visible" :key="fav._id">

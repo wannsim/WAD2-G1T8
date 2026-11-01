@@ -199,7 +199,7 @@ async function save() {
           <div><h3 class="h5 mb-1">Past purchases</h3><p class="small text-muted mb-0">Completed orders</p></div>
           <RouterLink to="/orders" class="small">View orders</RouterLink>
         </div>
-        <p v-if="loadingActivity" class="text-muted small">Loading purchases...</p>
+        <PageSkeleton v-if="loadingActivity" variant="list" :count="2" compact label="Loading purchases" />
         <p v-else-if="purchases.length === 0" class="text-muted small">No completed purchases yet.</p>
         <div v-else class="horizontal-list">
           <RouterLink v-for="order in purchases" :key="order._id" :to="order.product ? `/products/${order.product._id}` : '/orders'" class="purchase-card">
@@ -212,7 +212,7 @@ async function save() {
 
       <section class="card p-4 shadow-sm mb-5">
         <h3 class="h5 mb-2">Shops you follow</h3>
-        <p v-if="loadingActivity" class="text-muted small">Loading followed shops...</p>
+        <PageSkeleton v-if="loadingActivity" variant="list" :count="2" compact label="Loading followed shops" />
         <p v-else-if="followedShops.length === 0" class="text-muted small">You are not following any shops yet.</p>
         <div v-else class="followed-list">
           <RouterLink v-for="shop in followedShops" :key="shop._id" :to="`/shops/${shop._id}`" class="followed-shop">

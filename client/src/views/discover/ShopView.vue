@@ -1,5 +1,5 @@
 <template>
-  <p v-if="loading" class="text-muted">Loading shop...</p>
+  <PageSkeleton v-if="loading" variant="shop" label="Loading shop" />
   <div v-else-if="loadError" class="alert alert-warning">
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>

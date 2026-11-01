@@ -19,7 +19,7 @@ const TABS = [
 const route = useRoute()
 const tab = ref(TABS.some((t) => t.key === route.query.tab) ? route.query.tab : 'foryou') // /home?tab=following from the top bar
 const items = ref([]) // [{ product, reason, score }] in ranking order (fixed until the feed loads again)
-const loading = ref(false)
+const loading = ref(true) // true from the start, so the skeleton shows before the first load begins
 const newPicksReady = ref(false) // scores changed enough that a refresh would re-rank the feed
 
 async function loadFeed() {
@@ -320,7 +320,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
       </section>
     </template>
 
-    <p v-if="loading && items.length === 0" class="text-muted">Loading...</p>
+    <PageSkeleton v-if="loading && items.length === 0" variant="grid" label="Loading your feed" />
     <p v-else-if="!loading && items.length === 0" class="text-muted">Nothing here yet.</p>
 
     <div v-if="!useRows" class="card-grid" :class="{ refreshing: loading && items.length > 0 }">

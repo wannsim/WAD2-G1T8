@@ -69,13 +69,13 @@ onMounted(loadRecentOrders)
         <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true">
           <defs>
             <linearGradient id="logo-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#24498a" />
-              <stop offset="1" stop-color="#5b86c5" />
+              <stop offset="0" stop-color="#773b50" />
+              <stop offset="1" stop-color="#d7a5b2" />
             </linearGradient>
           </defs>
           <rect width="34" height="34" rx="10" fill="url(#logo-gradient)" />
           <path d="M8 16 17 8l9 8v10H8z" fill="#fff" />
-          <rect x="14" y="19" width="6" height="7" fill="#13284b" />
+          <rect x="14" y="19" width="6" height="7" fill="#5c2b3d" />
         </svg>
         <span class="label">Homly Hauls</span>
       </RouterLink>

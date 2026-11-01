@@ -53,7 +53,7 @@ const stationLabel = (shop) => (cleanMrtName(shop?.nearestMrt) ? `${cleanMrtName
 const categoryLabel = (shop) => (shop.categories?.length ? shop.categories.join(', ') : 'No category yet')
 
 // same colour for the same shop every time
-const AVATAR_COLOURS = ['#24498a', '#5b86c5', '#13284b', '#1b3a70', '#3f6aa8', '#93b2dd', '#46577a', '#e3a63a'] // navy / blue palette
+const AVATAR_COLOURS = ['#773b50', '#d7a5b2', '#5c2b3d', '#5f2e40', '#9a5f6f', '#e6c3cd', '#6e5361', '#e3a63a'] // burgundy / rose palette
 function avatarColour(name) {
   let hash = 0
   for (const ch of String(name)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
@@ -134,7 +134,7 @@ onMounted(async () => {
     <div class="map-shell">
       <!-- left: shop list -->
       <div class="shop-list">
-        <p v-if="loadingShops" class="text-muted small p-2">Loading shops...</p>
+        <PageSkeleton v-if="loadingShops" variant="list" :count="6" compact label="Loading shops" />
         <p v-else-if="listError" class="text-danger small p-2">{{ listError }}</p>
         <p v-else-if="shownShops.length === 0" class="text-muted small p-2">No shops match your search.</p>
         <button v-for="shop in shownShops" :key="shop._id" type="button" class="shop-item"

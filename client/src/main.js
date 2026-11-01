@@ -11,10 +11,12 @@ import { setupHttp } from './utils/http'
 // -> use <ProductCard /> and <StarRating /> in any component without importing them
 import ProductCard from './components/ProductCard.vue'
 import StarRating from './components/StarRating.vue'
+import PageSkeleton from './components/PageSkeleton.vue'
 
 const app = createApp(App)
 app.component('ProductCard', ProductCard)
 app.component('StarRating', StarRating)
+app.component('PageSkeleton', PageSkeleton) // grey placeholder layout while a page loads
 app.use(router)
 setupHttp(router) // sends the login token with every request
 app.mount('#app')

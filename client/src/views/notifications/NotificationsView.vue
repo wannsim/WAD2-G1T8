@@ -33,7 +33,7 @@ onMounted(() => {
       </div>
 
       <div class="card shadow-sm p-2">
-        <p v-if="loadingNotifications && notifications.length === 0" class="text-muted text-center py-4 mb-0">Loading...</p>
+        <PageSkeleton v-if="loadingNotifications && notifications.length === 0" variant="list" :count="5" compact label="Loading notifications" />
         <p v-else-if="shown.length === 0" class="text-muted text-center py-4 mb-0">
           {{ showUnreadOnly ? 'No unread notifications.' : 'No notifications yet.' }}
         </p>

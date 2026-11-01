@@ -55,7 +55,7 @@
       Pin up to {{ MAX_PINS }} products to show them first on your shop page ({{ pinnedIds.length }}/{{ MAX_PINS }} pinned)
     </p>
     <p v-if="actionError" class="text-danger small">{{ actionError }}</p>
-    <p v-if="loadingProducts" class="text-muted">Loading products...</p>
+    <PageSkeleton v-if="loadingProducts" variant="grid" :count="4" label="Loading products" />
     <p v-else-if="products.length === 0" class="text-muted">You have not listed any products yet.</p>
     <template v-else>
       <SearchBox v-model="productSearch" class="mb-3" placeholder="Search your products & services by name, category or tag"
@@ -131,8 +131,11 @@
     <EditProductModal ref="editModal" @saved="loadProducts" />
   </div>
 
+  <!-- still loading the shop: show its layout in grey -->
+  <PageSkeleton v-else-if="loadingProducts" variant="shop" label="Loading your shop" />
+
   <!-- no shop yet: send the seller to set up their profile first -->
-  <div v-else-if="!loadingProducts">
+  <div v-else>
     <div class="card p-4 shadow-sm text-center">
       <h5>You don't have a shop yet</h5>
       <p class="text-muted mb-3">Set up your shop profile first. After that you can add products and services.</p>

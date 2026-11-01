@@ -84,7 +84,7 @@ async function submitReview() {
   <div class="page-narrow review-page">
     <h2 class="page-title">Rate product</h2>
 
-    <p v-if="loading" class="text-muted">Loading...</p>
+    <PageSkeleton v-if="loading" variant="form" :count="2" label="Loading review form" />
     <section v-else class="review-card">
       <!-- the product being reviewed -->
       <div class="product-row">

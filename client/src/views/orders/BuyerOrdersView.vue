@@ -334,9 +334,7 @@ onMounted(async () => {
         </div>
         <p v-else-if="!calendar.connected && calendarConnectError" class="calendar-connect-error" role="alert" data-testid="buyer-calendar-connect-error">{{ calendarConnectError }}</p>
       </div>
-      <p v-if="loading" data-testid="buyer-orders-loading">
-        <span class="spinner-border spinner-border-sm"></span> Loading…
-      </p>
+      <PageSkeleton v-if="loading" variant="list" :count="3" label="Loading your orders" data-testid="buyer-orders-loading" />
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
       <div v-else-if="orders.length === 0" data-testid="buyer-orders-empty">
         <p class="text-muted">No orders yet.</p>
@@ -457,17 +455,17 @@ onMounted(async () => {
 
 <style scoped>
 /* The white connection strip keeps the specified padding and wraps its contents. */
-.buyer-calendar { padding: 0.75rem 1rem; background: #fff; border: 1px solid #e3e9f2; border-radius: 1rem; color: #46577a; font-size: 0.88rem; }
+.buyer-calendar { padding: 0.75rem 1rem; background: #fff; border: 1px solid #ead7de; border-radius: 1rem; color: #6e5361; font-size: 0.88rem; }
 .buyer-calendar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.5rem; }
 
 /* Calendar connection controls use the shared navy, outlined and danger button set. */
 .btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
-.btn.btn-act-primary { background: #13284b; border-color: #13284b; color: #fff; }
-.btn.btn-act-outline { background: #fff; border-color: #c9d5e8; color: #13284b; }
+.btn.btn-act-primary { background: #5c2b3d; border-color: #5c2b3d; color: #fff; }
+.btn.btn-act-outline { background: #fff; border-color: #e3c9d2; color: #5c2b3d; }
 .btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
-.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e8f0fa; border-color: #24498a; color: #13284b; }
+.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #f5e6eb; border-color: #773b50; color: #5c2b3d; }
 .btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
-.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #24498a; outline-offset: 2px; }
+.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #773b50; outline-offset: 2px; }
 .btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
 
 /* Ownership inputs reuse existing form styles and leave room below the final buttons. */
@@ -587,13 +585,13 @@ onMounted(async () => {
   border-radius: 50%;
   background: currentColor;
 }
-.pill-pending { background: #fdf0c8; color: #a8740a; }
-.pill-accepted { background: #e2f3e8; color: #23804a; }
-.pill-rescheduled { background: var(--aqua-soft); color: var(--aqua-dark); }
+.pill-pending { background: #fff0c7; color: #a8740a; }
+.pill-accepted { background: #ddf1e4; color: #23804a; }
+.pill-rescheduled { background: var(--sky-soft); color: var(--sky-dark); } /* light blue */
 .pill-completed { background: var(--tile); color: var(--ink-soft); }
 .pill-declined,
 .pill-cancelled,
-.pill-overdue { background: #fbe4e3; color: #b8312f; }
+.pill-overdue { background: #fce1e3; color: #b8312f; }
 .pill-reviewed { background: var(--tile); color: var(--muted); }
 
 /* View more details */

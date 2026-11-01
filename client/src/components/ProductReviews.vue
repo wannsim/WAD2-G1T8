@@ -34,7 +34,7 @@ watch(() => props.productId, load, { immediate: true })
     <div class="card-body p-4">
       <h4 id="ratings-title" class="mb-4">Product ratings</h4>
 
-      <p v-if="loading" class="text-muted mb-0">Loading reviews...</p>
+      <PageSkeleton v-if="loading" variant="list" :count="3" label="Loading reviews" />
       <div v-else-if="error" class="alert alert-warning mb-0">
         {{ error }} <button type="button" class="btn btn-sm btn-outline-secondary ms-2" @click="load">Retry</button>
       </div>

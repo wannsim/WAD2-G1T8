@@ -106,7 +106,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <p v-if="loading" class="text-muted">Loading...</p>
+  <PageSkeleton v-if="loading" variant="detail" label="Loading product" />
   <div v-else-if="loadError" class="alert alert-warning">
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>

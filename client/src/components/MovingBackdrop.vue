@@ -140,18 +140,18 @@ function hideBrokenImage(event) {
   height: 100%;
   font-size: 3.5rem;
 }
-.hue-0 { background: linear-gradient(160deg, #24498a, #13284b); }
-.hue-1 { background: linear-gradient(160deg, #5b86c5, #1b3a70); }
-.hue-2 { background: linear-gradient(160deg, #b4c9e8, #24498a); }
-.hue-3 { background: linear-gradient(160deg, #3f6aa8, #13284b); }
+.hue-0 { background: linear-gradient(160deg, #773b50, #5c2b3d); }
+.hue-1 { background: linear-gradient(160deg, #d7a5b2, #5f2e40); }
+.hue-2 { background: linear-gradient(160deg, #ecd2da, #773b50); }
+.hue-3 { background: linear-gradient(160deg, #9a5f6f, #5c2b3d); }
 
 /* darkens the collage so the login card in front is easy to read */
 .shade {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at center, rgba(19, 40, 75, 0.35) 0%, rgba(19, 40, 75, 0.75) 70%),
-    linear-gradient(180deg, rgba(19, 40, 75, 0.25), rgba(19, 40, 75, 0.55));
+    radial-gradient(ellipse at center, rgba(92, 43, 61, 0.35) 0%, rgba(92, 43, 61, 0.75) 70%),
+    linear-gradient(180deg, rgba(92, 43, 61, 0.25), rgba(92, 43, 61, 0.55));
 }
 
 /* people who turn off animations in their system settings get a still collage */

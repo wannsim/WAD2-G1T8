@@ -8,7 +8,7 @@
     <h2 class="page-title mb-1">Add products & services</h2>
     <p class="text-muted mb-4">Create a listing so buyers can discover your products.</p>
 
-    <p v-if="loadingShop" class="text-muted">Loading...</p>
+    <PageSkeleton v-if="loadingShop" variant="form" label="Loading" />
 
     <!-- no shop yet: the seller must set up their shop profile before they can list anything -->
     <div v-else-if="!myShopId" class="card p-4 shadow-sm text-center">

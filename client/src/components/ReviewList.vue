@@ -45,7 +45,7 @@ onBeforeUnmount(() => controller?.abort())
 
 <template>
   <div :aria-busy="loading">
-    <p v-if="loading" class="text-muted" role="status">Loading reviews...</p>
+    <PageSkeleton v-if="loading" variant="list" :count="3" label="Loading reviews" />
     <div v-else-if="error" class="alert alert-warning" role="alert">
       {{ error }} <button type="button" class="btn btn-sm btn-outline-secondary" @click="load">Retry</button>
     </div>

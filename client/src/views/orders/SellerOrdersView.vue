@@ -469,9 +469,7 @@ onMounted(async () => {
       </button>
     </div>
 
-    <p v-if="loading" data-testid="seller-orders-loading">
-      <span class="spinner-border spinner-border-sm"></span> Loading…
-    </p>
+    <PageSkeleton v-if="loading" variant="dashboard" label="Loading your orders" data-testid="seller-orders-loading" />
     <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
     <template v-else>
       <!-- ===== the four numbers ===== -->
@@ -761,7 +759,7 @@ onMounted(async () => {
   box-shadow: 0 8px 20px rgba(var(--navy-rgb), 0.08);
 }
 .tone-amber { --tile-from: #fff8ea; --tile-to: #fdeccb; --tile-line: #f8e2b4; --tile-wave: rgba(var(--amber-rgb), 0.18); }
-.tone-blue  { --tile-from: #f4f8fe; --tile-to: #e3ecf9; --tile-line: #d8e4f5; --tile-wave: rgba(var(--aqua-rgb), 0.2); }
+.tone-blue  { --tile-from: #fbf3f6; --tile-to: #f5e3ea; --tile-line: #ecd2db; --tile-wave: rgba(var(--aqua-rgb), 0.2); }
 .tone-rose  { --tile-from: #fff3f4; --tile-to: #fbe0e3; --tile-line: #f6d2d6; --tile-wave: rgba(var(--rose-rgb), 0.14); }
 .tone-green { --tile-from: #f1faf5; --tile-to: #dcf1e5; --tile-line: #c9e8d6; --tile-wave: rgba(35, 128, 74, 0.14); }
 .stat-icon {
@@ -912,13 +910,13 @@ onMounted(async () => {
   border-radius: 50%;
   background: currentColor;
 }
-.pill-pending { background: #fdf0c8; color: #a8740a; }
-.pill-accepted { background: #e2f3e8; color: #23804a; }
-.pill-rescheduled { background: var(--aqua-soft); color: var(--aqua-dark); }
+.pill-pending { background: #fff0c7; color: #a8740a; }
+.pill-accepted { background: #ddf1e4; color: #23804a; }
+.pill-rescheduled { background: var(--sky-soft); color: var(--sky-dark); } /* light blue */
 .pill-completed { background: var(--tile); color: var(--ink-soft); }
 .pill-declined,
 .pill-cancelled,
-.pill-overdue { background: #fbe4e3; color: #b8312f; }
+.pill-overdue { background: #fce1e3; color: #b8312f; }
 
 .order-facts {
   margin: 0.4rem 0 0;
@@ -1005,14 +1003,14 @@ onMounted(async () => {
   gap: 6px;
   margin-bottom: 10px;
   padding: 12px 14px;
-  border: 1.5px solid #e3e9f2;
+  border: 1.5px solid #ead7de;
   border-radius: 16px;
 }
 .pickup-card:last-child { margin-bottom: 0; }
 .pickup-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.pickup-name { font-size: 15px; font-weight: 700; color: #13284b; }
-.pickup-price { flex-shrink: 0; font-size: 15px; font-weight: 700; color: #13284b; }
-.pickup-meta { margin: 0; font-size: 13px; color: #46577a; }
+.pickup-name { font-size: 15px; font-weight: 700; color: #5c2b3d; }
+.pickup-price { flex-shrink: 0; font-size: 15px; font-weight: 700; color: #5c2b3d; }
+.pickup-meta { margin: 0; font-size: 13px; color: #6e5361; }
 .pickup-warning { margin: 0; font-size: 12.5px; font-weight: 500; color: #b8312f; }
 /* Two buttons per row; "full" makes one button (or line) take the whole row. */
 .pickup-actions {
@@ -1021,7 +1019,7 @@ onMounted(async () => {
   gap: 8px;
   margin-top: 4px;
   padding-top: 10px;
-  border-top: 1px solid #e3e9f2;
+  border-top: 1px solid #ead7de;
 }
 .pickup-actions .full { grid-column: 1 / -1; }
 .empty-pickups {
@@ -1050,21 +1048,21 @@ onMounted(async () => {
 
 /* Calendar connection controls use the shared navy, outlined and danger button set. */
 .btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
-.btn.btn-act-primary { background: #13284b; border-color: #13284b; color: #fff; }
-.btn.btn-act-outline { background: #fff; border-color: #c9d5e8; color: #13284b; }
+.btn.btn-act-primary { background: #5c2b3d; border-color: #5c2b3d; color: #fff; }
+.btn.btn-act-outline { background: #fff; border-color: #e3c9d2; color: #5c2b3d; }
 .btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
-.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e8f0fa; border-color: #24498a; color: #13284b; }
+.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #f5e6eb; border-color: #773b50; color: #5c2b3d; }
 .btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
-.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #24498a; outline-offset: 2px; }
+.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #773b50; outline-offset: 2px; }
 .btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
 
 /* Own-order bars stay visible; the optional Google row has space around its actions. */
 .next-seven-panel { padding: 1rem 1rem 1.25rem; }
-.calendar-panel-title { margin: 0; color: #13284b; font-size: 1.15rem; font-weight: 700; }
-.calendar-open { color: #24498a; font-weight: 600; }
-.calendar-summary { margin-bottom: 1rem; color: #5a6a88; font-size: 0.85rem; }
-.calendar-google-row { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e3e9f2; }
-.calendar-google-status { color: #46577a; font-size: 0.85rem; }
+.calendar-panel-title { margin: 0; color: #5c2b3d; font-size: 1.15rem; font-weight: 700; }
+.calendar-open { color: #773b50; font-weight: 600; }
+.calendar-summary { margin-bottom: 1rem; color: var(--ink-soft); font-size: 0.85rem; }
+.calendar-google-row { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ead7de; }
+.calendar-google-status { color: #6e5361; font-size: 0.85rem; }
 
 /* Ownership inputs reuse existing form styles and are never kept after an attempt. */
 .calendar-password-box { margin-top: 1rem; background: #fff; border: 0; }
