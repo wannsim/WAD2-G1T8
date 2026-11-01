@@ -5,20 +5,21 @@ import { API_URL } from './config'
 // ONE shared connection to the server for the whole app.
 export const socket = io(API_URL)
  
-let userId = null
+let token = null
  
-// after (re)connecting, tell the server which private room we belong to
+// after (re)connecting, tell the server which private room we belong to.
+// We send the login token (the server checks it), not the user id, so nobody can join someone else's room.
 socket.on('connect', () => {
-  if (userId) socket.emit('join', userId)
+  if (token) socket.emit('join', token)
 })
  
-export function joinRoom(id) {
-  userId = id
-  if (socket.connected) socket.emit('join', id)
+export function joinRoom(loginToken) {
+  token = loginToken
+  if (token && socket.connected) socket.emit('join', token)
 }
  
 export function leaveRoom() {
-  if (userId) socket.emit('leave', userId)
-  userId = null
+  if (token) socket.emit('leave')
+  token = null
 }
  

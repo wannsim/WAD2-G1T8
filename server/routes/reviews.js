@@ -6,15 +6,17 @@ import { updateShopStats } from '../utils/trust.js'
 import Shop from '../models/Shop.js'
 import Product from '../models/Product.js'
 import { notify } from '../utils/notify.js'
+import { requireAuth } from '../utils/auth.js'
 
 // Owner: Yu Chen
 // POST /reviews   GET /reviews/shop/:shopId   GET /reviews/product/:productId
 const router = express.Router()
 
 // body: { order, buyer, rating, comment }
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
-    const { order: orderId, buyer, rating, comment } = req.body
+    const { order: orderId, rating, comment } = req.body
+    const buyer = req.user.id // only the logged-in buyer can review their own order
     const order = await Order.findById(orderId)
     if (!order) return res.status(404).json({ message: 'Order not found' })
     if (String(order.buyer) !== String(buyer)) return res.status(403).json({ message: 'This is not your order' })

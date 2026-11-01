@@ -7,6 +7,7 @@ import Review from '../models/Review.js'
 import User from '../models/User.js'
 import { updateShopStats } from '../utils/trust.js'
 import { notify } from '../utils/notify.js'
+import { requireAuth, requireSelf, requireShopOwner } from '../utils/auth.js'
 import { formatDateTime } from '../utils/format.js'
 import { syncOrderCalendars } from '../utils/googleCalendar.js'
 
@@ -202,8 +203,9 @@ router.get('/open-slots/:productId', async (req, res) => {
 })
 
 // Creates an order after checking its fields and slot capacity. Repeat orders are allowed.
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
+    req.body.buyer = req.user.id // the buyer is whoever is logged in
     const { buyer, product, quantity, customisation, fulfilment, requestedTime, saveAddress } = req.body
     if (!product) return res.status(400).json({ message: 'No product chosen.' }) // An order needs a product.
     const p = await Product.findById(product)
@@ -261,7 +263,7 @@ router.post('/', async (req, res) => {
 })
 
 // Sends the buyer's orders with review status and the pickup-address privacy rule applied.
-router.get('/buyer/:userId', async (req, res) => {
+router.get('/buyer/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const orders = await Order.find({ buyer: req.params.userId })
       .populate('product', 'name unit')
@@ -284,7 +286,7 @@ router.get('/buyer/:userId', async (req, res) => {
 })
 
 // Returns shop orders soonest pickup first so the seller can handle earlier pickups first.
-router.get('/shop/:shopId', async (req, res) => {
+router.get('/shop/:shopId', requireShopOwner('shopId'), async (req, res) => {
   try {
     const orders = await Order.find({ shop: req.params.shopId })
       .populate('product', 'name unit')
@@ -298,9 +300,10 @@ router.get('/shop/:shopId', async (req, res) => {
 
 // Applies an allowed status change for the order's buyer or seller.
 // body: { status, userId, proposedTime, reason }   reason: required when declining / cancelling
-router.put('/:id/status', async (req, res) => {
+router.put('/:id/status', requireAuth, async (req, res) => {
   try {
-    const { status, userId, proposedTime } = req.body
+    const { status, proposedTime } = req.body
+    const userId = req.user.id // the buyer or seller acting is whoever is logged in
     const reason = String(req.body.reason ?? '').trim()
     const order = await Order.findById(req.params.id)
     if (!order) return res.status(404).json({ message: 'Order not found' })

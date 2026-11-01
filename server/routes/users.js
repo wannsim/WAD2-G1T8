@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import { OAuth2Client } from 'google-auth-library'
+import { createToken, requireAuth, requireSelf } from '../utils/auth.js'
 
 // Owner: Wan Sim
 // POST /users/register   POST /users/login   GET /users/:id   PUT /users/:id
@@ -31,7 +32,7 @@ router.post('/register', async (req, res) => {
     if (exists) return res.status(409).json({ message: 'Email is already registered' })
 
     const hash = await bcrypt.hash(password, 10)
-    const user = await User.create({ name, email, password: hash, role })
+    const user = await User.create({ name, email, password: hash, role: role === 'seller' ? 'seller' : 'buyer' })
     res.status(201).json(safeUser(user))
   } catch (err) {
     res.status(500).json({ message: err.message })
@@ -44,7 +45,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: (email || '').toLowerCase() })
     const ok = user && user.password && (await bcrypt.compare(password || '', user.password))
     if (!ok) return res.status(401).json({ message: 'Wrong email or password' })
-    res.json(safeUser(user))
+    res.json({ ...safeUser(user), token: createToken(user) }) // token: proves who they are on later requests
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -69,13 +70,13 @@ router.post('/google', async (req, res) => {
       user.googleId = sub // link an existing email/password account
       await user.save()
     }
-    res.json(safeUser(user))
+    res.json({ ...safeUser(user), token: createToken(user) })
   } catch (err) {
     res.status(401).json({ message: 'Google sign-in failed' })
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireSelf('id'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
     if (!user) return res.status(404).json({ message: 'User not found' })
@@ -85,7 +86,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireSelf('id'), async (req, res) => {
   try {
     const { name, preferences, preferredMrt, deliveryAddress, deliveryUnit, deliveryPostalCode } = req.body
     const changes = { name, preferences, preferredMrt: String(preferredMrt || '').trim() }
@@ -119,9 +120,9 @@ function uploadImage(req, res, next) {
     res.status(400).json({ message: err.code === 'LIMIT_FILE_SIZE' ? 'Image is too big (max 5MB)' : err.message })
   })
 }
-// only the account owner may change it (body.user must be the same id)
+// only the account owner may change it (the logged-in user must be this id)
 function isMe(req, res) {
-  if (!mongoose.isValidObjectId(req.params.id) || String(req.body?.user) !== req.params.id) {
+  if (!mongoose.isValidObjectId(req.params.id) || req.user?.id !== req.params.id) {
     res.status(403).json({ message: 'You can only change your own profile picture' })
     return false
   }
@@ -129,7 +130,7 @@ function isMe(req, res) {
 }
 
 // upload / replace it. multipart form: user (text) + image (file). Returns the updated user
-router.post('/:id/avatar', uploadImage, async (req, res) => {
+router.post('/:id/avatar', requireAuth, uploadImage, async (req, res) => {
   try {
     if (!isMe(req, res)) return
     if (!req.file) return res.status(400).json({ message: 'Please choose an image file (max 5MB)' })
@@ -143,7 +144,7 @@ router.post('/:id/avatar', uploadImage, async (req, res) => {
 })
 
 // remove it (back to the first letter of the name). body: { user }
-router.delete('/:id/avatar', async (req, res) => {
+router.delete('/:id/avatar', requireAuth, async (req, res) => {
   try {
     if (!isMe(req, res)) return
     const user = await User.findByIdAndUpdate(req.params.id, { $unset: { avatar: 1 }, avatarUpdatedAt: null }, { new: true })

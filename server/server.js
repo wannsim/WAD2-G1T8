@@ -19,12 +19,14 @@ import notificationRoutes from './routes/notifications.js'
 import { startRealtime } from './utils/realtime.js'
 import User from './models/User.js'
 import { startTrendRefresh } from './utils/trends.js'
+import { authenticate, readToken } from './utils/auth.js'
  
 dotenv.config({ path: './config.env' })
  
 const app = express()
 app.use(cors())
 app.use(express.json())
+app.use(authenticate) // req.user = who is logged in (from their token), or null - see utils/auth.js
  
 // Socket.IO runs on the same HTTP server as Express (same port 8000)
 const httpServer = http.createServer(app)
@@ -32,6 +34,7 @@ const io = new Server(httpServer, { cors: { origin: '*' } })
 app.set('io', io) // route files can reach it with req.app.get('io')
  
 // Every logged-in browser joins a private "room" named after its user id.
+// It proves who it is with its login token (not a bare user id, which anyone could send).
 // To notify someone we just send to their room.
 // "Last seen" (chat): while a browser is joined, its user's lastSeenAt is refreshed every minute,
 // and once more when it leaves / disconnects. Chat shows "Online" if that was under ~2 minutes ago.
@@ -47,19 +50,23 @@ io.on('connection', (socket) => {
     markSeen(socket.data.userId)
     socket.data.userId = null
   }
-  socket.on('join', (userId) => {
-    if (typeof userId !== 'string') return
+  socket.on('join', (token) => {
+    const userId = readToken(token)?.id
+    if (!userId) return
+    if (socket.data.userId && socket.data.userId !== userId) { // someone else logged in on this browser
+      socket.leave(`user:${socket.data.userId}`)
+      stopSeen()
+    }
     socket.join(`user:${userId}`)
-    if (socket.data.userId && socket.data.userId !== userId) stopSeen()
     socket.data.userId = userId
     markSeen(userId)
     clearInterval(seenTimer)
     seenTimer = setInterval(() => markSeen(userId), SEEN_EVERY_MS)
   })
-  socket.on('leave', (userId) => {
-    if (typeof userId !== 'string') return
-    socket.leave(`user:${userId}`)
-    if (socket.data.userId === userId) stopSeen()
+  socket.on('leave', () => {
+    if (!socket.data.userId) return
+    socket.leave(`user:${socket.data.userId}`)
+    stopSeen()
   })
   socket.on('disconnect', () => {
     if (socket.data.userId) stopSeen()

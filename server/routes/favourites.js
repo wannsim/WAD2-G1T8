@@ -4,12 +4,13 @@ import Favourite from '../models/Favourite.js'
 import Interaction from '../models/Interaction.js'
 import Product from '../models/Product.js'
 import { withImageUrl, imageCounts } from '../utils/images.js'
+import { requireAuth, requireSelf } from '../utils/auth.js'
 
 // Owner: Tanya (Discovery)
 // GET /favourites/:userId   GET /favourites/:userId/ids   POST /favourites  (save / un-save)
 const router = express.Router()
 
-router.get('/:userId/ids', async (req, res) => {
+router.get('/:userId/ids', requireSelf('userId'), async (req, res) => {
   try {
     const favs = await Favourite.find({ user: req.params.userId })
     res.json(favs.map((f) => String(f.product)))
@@ -18,7 +19,7 @@ router.get('/:userId/ids', async (req, res) => {
   }
 })
 
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const favs = await Favourite.find({ user: req.params.userId }).populate({
       path: 'product',
@@ -38,9 +39,10 @@ router.get('/:userId', async (req, res) => {
 // Saying the wanted state (instead of "toggle") means quick double-clicks can never get out of sync.
 // Only ONE database write happens before we answer, so the ♥ feels instant; the FYP "save" signal
 // is logged after the answer has been sent.
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
-    const { user, product } = req.body
+    const { product } = req.body
+    const user = req.user.id
     if (!mongoose.isValidObjectId(user) || !mongoose.isValidObjectId(product)) {
       return res.status(400).json({ message: 'Log in to save products' })
     }

@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import mongoose from 'mongoose'
 import Shop from '../models/Shop.js'
+import { requireAuth, requireSelf, requireShopOwner } from '../utils/auth.js'
 import Product from '../models/Product.js'
 
 // Owner: Cheyenne
@@ -64,7 +65,7 @@ router.get('/map', async (req, res) => {
 })
 
 // Public shop cards for a buyer's following list.
-router.get('/following/:userId', async (req, res) => {
+router.get('/following/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const shops = await Shop.find({ followers: req.params.userId })
       .select('name nearestMrt categories stats')
@@ -89,7 +90,7 @@ router.get('/name-available', async (req, res) => {
 
 // the logged-in seller's own shop (null if they have not created one yet)
 // NOTE: must be defined BEFORE '/:id'
-router.get('/mine/:ownerId', async (req, res) => {
+router.get('/mine/:ownerId', requireSelf('ownerId'), async (req, res) => {
   try {
     const shop = await Shop.findOne({ owner: req.params.ownerId }).select(NO_CERT_IMAGES)
     res.json(shop)
@@ -109,9 +110,10 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
-    const { certificationFiles, avatar, avatarUpdatedAt, ...data } = req.body // photos are uploaded separately
+    const { certificationFiles, avatar, avatarUpdatedAt, stats, followers, pinnedProducts, ...data } = req.body // photos are uploaded separately
+    data.owner = req.user.id // a shop always belongs to whoever is logged in
     data.name = cleanName(data.name)
     const problem = await checkShopName(data.name)
     if (problem) return res.status(409).json({ message: problem })
@@ -122,7 +124,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireShopOwner('id'), async (req, res) => {
   try {
     // never let the client overwrite the owner or the trust stats
     // certificate photos + the profile picture have their own routes below, so they can't be wiped by a profile save
@@ -144,9 +146,10 @@ router.put('/:id', async (req, res) => {
 // pin / un-pin a product (toggles). Pinned products show first on the shop page.
 // body: { user, productId }   user must be the shop owner
 const MAX_PINS = 3
-router.put('/:id/pin', async (req, res) => {
+router.put('/:id/pin', requireAuth, async (req, res) => {
   try {
-    const { user, productId } = req.body
+    const { productId } = req.body
+    const user = req.user.id
     if (!mongoose.isValidObjectId(req.params.id) || !mongoose.isValidObjectId(productId)) {
       return res.status(400).json({ message: 'Invalid shop or product' })
     }
@@ -173,9 +176,9 @@ router.put('/:id/pin', async (req, res) => {
 })
 
 // follow / unfollow a shop (toggles). body: { user }
-router.post('/:id/follow', async (req, res) => {
+router.post('/:id/follow', requireAuth, async (req, res) => {
   try {
-    const { user } = req.body
+    const user = req.user.id
     if (!mongoose.isValidObjectId(user)) return res.status(400).json({ message: 'Log in to follow shops' })
     const shop = await Shop.findById(req.params.id).select('owner followers')
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
@@ -205,7 +208,7 @@ function uploadCertImage(req, res, next) {
   })
 }
 
-router.post('/:id/certs', uploadCertImage, async (req, res) => {
+router.post('/:id/certs', requireShopOwner('id'), uploadCertImage, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Please choose an image file (max 5MB)' })
     const image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
@@ -222,7 +225,7 @@ router.post('/:id/certs', uploadCertImage, async (req, res) => {
 })
 
 // remove one certificate photo
-router.delete('/:id/certs/:certId', async (req, res) => {
+router.delete('/:id/certs/:certId', requireShopOwner('id'), async (req, res) => {
   try {
     const shop = await Shop.findByIdAndUpdate(
       req.params.id,
@@ -245,7 +248,7 @@ async function findOwnShop(req, res) {
   }
   const shop = await Shop.findById(req.params.id).select('owner')
   if (!shop) res.status(404).json({ message: 'Shop not found' })
-  else if (String(shop.owner) !== String(req.body?.user)) {
+  else if (String(shop.owner) !== req.user?.id) {
     res.status(403).json({ message: 'Only the shop owner can change the profile picture' })
     return null
   }
@@ -253,7 +256,7 @@ async function findOwnShop(req, res) {
 }
 
 // upload / replace it. multipart form: user (text) + image (file, images only, max 5MB)
-router.post('/:id/avatar', uploadCertImage, async (req, res) => {
+router.post('/:id/avatar', requireAuth, uploadCertImage, async (req, res) => {
   try {
     if (!(await findOwnShop(req, res))) return
     if (!req.file) return res.status(400).json({ message: 'Please choose an image file (max 5MB)' })
@@ -267,7 +270,7 @@ router.post('/:id/avatar', uploadCertImage, async (req, res) => {
 })
 
 // remove it (the page goes back to the first letter of the shop name). body: { user }
-router.delete('/:id/avatar', async (req, res) => {
+router.delete('/:id/avatar', requireAuth, async (req, res) => {
   try {
     if (!(await findOwnShop(req, res))) return
     await Shop.updateOne({ _id: req.params.id }, { $unset: { avatar: 1 }, avatarUpdatedAt: null })

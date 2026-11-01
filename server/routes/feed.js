@@ -1,4 +1,5 @@
 import express from 'express'
+import { requireSelf } from '../utils/auth.js'
 import mongoose from 'mongoose'
 import Product from '../models/Product.js'
 import Shop from '../models/Shop.js'
@@ -16,6 +17,12 @@ import { keywordsFor, loadTrendMap } from '../utils/trends.js'
 // POST /feed/interactions   body { user, product, shop, type }   type = view|click|save|impression|order
 // POST /feed/search         body { user, term }                   (Browse calls this when a buyer searches)
 const router = express.Router()
+
+// the feed works for guests ('guest'); a real user id must be the logged-in user (their likes / history are private)
+function selfOrGuest(req, res, next) {
+  if (req.params.userId === 'guest') return next()
+  return requireSelf('userId')(req, res, next)
+}
 
 const NEW_SELLER_DAYS = 30
 const FEED_SIZE = 20
@@ -256,7 +263,7 @@ function diversify(items, maxPerShop = 3) {
 // ======================================================================================
 // 4. the feed (For you / Trending / Following)
 // ======================================================================================
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', selfOrGuest, async (req, res) => {
   try {
     const tab = req.query.tab || 'foryou'
     const products = await loadProducts()
@@ -301,7 +308,7 @@ router.get('/:userId', async (req, res) => {
 // fresh scores + reasons for the cards already on screen, e.g. after the buyer (un-)favourites something.
 // The page notes the new scores but keeps its order; the ranking only changes when the feed loads again.
 // -> { productId: { score, reason } }
-router.get('/:userId/scores', async (req, res) => {
+router.get('/:userId/scores', selfOrGuest, async (req, res) => {
   try {
     const ids = String(req.query.ids || '').split(',').filter((id) => mongoose.isValidObjectId(id))
     if (ids.length === 0) return res.json({})
@@ -317,9 +324,12 @@ router.get('/:userId/scores', async (req, res) => {
   }
 })
 
+// guests' views / clicks are not logged; a logged-in user's are saved under their own id
 router.post('/interactions', async (req, res) => {
   try {
-    const interaction = await Interaction.create(req.body)
+    if (!req.user) return res.status(204).end()
+    const { product, shop, type } = req.body
+    const interaction = await Interaction.create({ user: req.user.id, product, shop, type })
     res.status(201).json(interaction)
   } catch (err) {
     res.status(500).json({ message: err.message })
@@ -328,8 +338,9 @@ router.post('/interactions', async (req, res) => {
 
 router.post('/search', async (req, res) => {
   try {
-    const { user, term } = req.body
-    if (!mongoose.isValidObjectId(user) || !term?.trim()) return res.status(204).end()
+    const { term } = req.body
+    const user = req.user?.id // guests' searches are not saved
+    if (!user || !term?.trim()) return res.status(204).end()
     await SearchHistory.create({ user, term })
     res.status(201).json({ ok: true })
   } catch (err) {

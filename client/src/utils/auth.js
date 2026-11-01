@@ -11,17 +11,25 @@ function loadUser() {
   return saved ? JSON.parse(saved) : null
 }
  
-export const currentUser = ref(loadUser())
+// a login saved before tokens existed can't prove who it is -> treat it as logged out (log in again once)
+const saved = loadUser()
+if (saved && !saved.token) {
+  localStorage.removeItem(KEY)
+  sessionStorage.removeItem(KEY)
+}
+export const currentUser = ref(saved?.token ? saved : null)
 export const isLoggedIn = computed(() => currentUser.value !== null)
 export const isSeller = computed(() => currentUser.value?.role === 'seller')
  
-if (currentUser.value) joinRoom(currentUser.value._id) // already logged in when the page loads
+if (currentUser.value) joinRoom(currentUser.value.token) // already logged in when the page loads
  
 // remember = true  -> localStorage (stays after closing the browser)
 // remember = false -> sessionStorage (gone when the tab/browser closes)
 // remember not given (e.g. profile update) -> keep it wherever it already was
-export function saveUser(user, remember) {
+// user.token comes from login; a profile update has none, so the current token is kept
+export function saveUser(newUser, remember) {
   const useSession = remember === undefined ? sessionStorage.getItem(KEY) !== null : !remember
+  const user = { ...newUser, token: newUser.token || currentUser.value?.token }
  
   currentUser.value = user
   localStorage.removeItem(KEY)
@@ -29,7 +37,7 @@ export function saveUser(user, remember) {
  
   const storage = useSession ? sessionStorage : localStorage
   storage.setItem(KEY, JSON.stringify(user))
-  joinRoom(user._id)
+  joinRoom(user.token)
 }
  
 export function clearUser() {

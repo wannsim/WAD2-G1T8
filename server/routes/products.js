@@ -8,6 +8,7 @@ import Interaction from '../models/Interaction.js'
 import { withImageUrl, imageCounts } from '../utils/images.js'
 import { checkProduct, toPrice, cleanTags } from '../utils/productRules.js'
 import { notify } from '../utils/notify.js'
+import { requireAuth, requireSelf, requireShopOwner } from '../utils/auth.js'
 
 // buyers who saved this product (to tell them it is sold out / deleted)
 async function favouritedBy(productId) {
@@ -16,15 +17,23 @@ async function favouritedBy(productId) {
 }
 
 const router = express.Router()
+
+// does this user own the shop that sells this product?
+async function ownsProduct(productId, userId) {
+  const product = await Product.findById(productId).select('shop').lean()
+  if (!product) return true // let the route answer "Product not found"
+  const shop = await Shop.findById(product.shop).select('owner').lean()
+  return !!shop && String(shop.owner) === userId
+}
 const upload = multer({ storage: multer.memoryStorage() })
 
 // Create Product/Service. body also has { shopId, user }   user must own the shop
 // (a seller can only list products after setting up their shop profile)
-router.post('/', upload.array('images', 5), async (req, res) => {
+router.post('/', requireAuth, upload.array('images', 5), async (req, res) => {
   try {
     const shop = mongoose.isValidObjectId(req.body.shopId) ? await Shop.findById(req.body.shopId).select('owner name followers').lean() : null
     if (!shop) return res.status(400).json({ error: 'Please set up your shop profile before adding products.' })
-    if (String(shop.owner) !== String(req.body.user)) return res.status(403).json({ error: 'You can only add products to your own shop.' })
+    if (String(shop.owner) !== req.user.id) return res.status(403).json({ error: 'You can only add products to your own shop.' })
 
     const problem = checkProduct(req.body, { missingImage: !req.files || req.files.length === 0 })
     if (problem) return res.status(400).json({ error: problem })
@@ -121,9 +130,10 @@ router.get('/:id/image/:index', async (req, res) => {
 })
 
 // Update Product / Order Slots
-router.put('/:id', upload.array('images', 5), async (req, res) => {
+router.put('/:id', requireAuth, upload.array('images', 5), async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' })
+    if (!(await ownsProduct(req.params.id, req.user.id))) return res.status(403).json({ error: 'Only the shop owner can edit this product' })
     const problem = checkProduct(req.body)
     if (problem) return res.status(400).json({ error: problem })
 
@@ -172,13 +182,13 @@ router.put('/:id', upload.array('images', 5), async (req, res) => {
 
 // Delete a product. body: { user }   user must own the product's shop
 // Past orders keep working (they show "Product removed").
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' })
     const product = await Product.findById(req.params.id).select('shop name').lean()
     if (!product) return res.status(404).json({ error: 'Product not found' })
     const shop = await Shop.findById(product.shop).select('owner').lean()
-    if (!shop || String(shop.owner) !== String(req.body?.user)) {
+    if (!shop || String(shop.owner) !== req.user.id) {
       return res.status(403).json({ error: 'Only the shop owner can delete this product' })
     }
 

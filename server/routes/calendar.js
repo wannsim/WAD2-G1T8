@@ -1,6 +1,7 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
+import { requireAuth, requireSelf } from '../utils/auth.js'
 import { calendarEnabled, startConnect, finishConnect, calendarStatus, disconnect, listEvents } from '../utils/googleCalendar.js'
 
 const router = express.Router()
@@ -14,10 +15,11 @@ function allowedReturnTo(page, role = 'seller') {
 }
 
 // POST /calendar/connect-start checks Homly ownership before returning Google's consent link.
-router.post('/connect-start', async (req, res) => {
+router.post('/connect-start', requireAuth, async (req, res) => {
   try {
     if (!calendarEnabled()) return res.status(400).json({ message: 'Google Calendar is not available right now.' })
-    const { userId, password, returnTo } = req.body
+    const { password, returnTo } = req.body
+    const userId = req.user.id
     const user = await User.findById(userId).select('+password')
     if (!user) return res.status(404).json({ message: 'User not found.' })
     if (user.password) {
@@ -44,7 +46,7 @@ router.get('/callback', async (req, res) => {
 })
 
 // GET /calendar/status/:userId returns only safe connection information.
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
     if (!user) return res.status(404).json({ message: 'User not found.' })
@@ -55,10 +57,9 @@ router.get('/status/:userId', async (req, res) => {
 })
 
 // POST /calendar/disconnect clears the connection and returns connected: false.
-router.post('/disconnect', async (req, res) => {
+router.post('/disconnect', requireAuth, async (req, res) => {
   try {
-    if (typeof req.body.userId !== 'string' || !req.body.userId) return res.status(400).json({ message: 'A user id is required.' })
-    const cleared = await disconnect(req.body.userId)
+    const cleared = await disconnect(req.user.id)
     if (!cleared) return res.status(500).json({ message: 'Could not disconnect Google Calendar. Please try again.' })
     res.json({ connected: false })
   } catch (err) {
@@ -67,7 +68,7 @@ router.post('/disconnect', async (req, res) => {
 })
 
 // GET /calendar/events/:userId lists events for a valid range of at most 31 days.
-router.get('/events/:userId', async (req, res) => {
+router.get('/events/:userId', requireSelf('userId'), async (req, res) => {
   try {
     if (typeof req.query.from !== 'string' || typeof req.query.to !== 'string') {
       return res.status(400).json({ message: 'Choose a valid date range of 31 days or less.' })

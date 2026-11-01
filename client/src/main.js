@@ -5,6 +5,7 @@ import './assets/main.css' // our own CSS goes AFTER bootstrap so it can overrid
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import { setupHttp } from './utils/http'
 
 // Shared components registered globally (Week 6: Global Registration)
 // -> use <ProductCard /> and <StarRating /> in any component without importing them
@@ -15,4 +16,5 @@ const app = createApp(App)
 app.component('ProductCard', ProductCard)
 app.component('StarRating', StarRating)
 app.use(router)
+setupHttp(router) // sends the login token with every request
 app.mount('#app')

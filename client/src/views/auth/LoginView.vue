@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { saveUser } from '@/utils/auth'
@@ -9,6 +9,8 @@ import MovingBackdrop from '@/components/MovingBackdrop.vue'
  
 // Owner: Wan Sim
 const router = useRouter()
+const route = useRoute()
+const expired = route.query.expired === '1' // sent here because the login ran out (utils/http.js)
 const email = ref('')
 const password = ref('')
 const error = ref('')
@@ -83,6 +85,7 @@ onMounted(() => {
       <h2 class="auth-title text-center">Welcome back</h2>
       <p class="text-center text-muted mb-4">Please enter your details</p>
  
+      <div v-if="expired && !error" class="alert alert-info py-2 small">Your login has expired. Please log in again.</div>
       <div v-if="error" class="alert alert-danger py-2 small">{{ error }}</div>
  
       <div class="auth-field">

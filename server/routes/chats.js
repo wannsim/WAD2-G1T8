@@ -1,4 +1,5 @@
 import express from 'express'
+import { requireAuth, requireSelf } from '../utils/auth.js'
 import mongoose from 'mongoose'
 import Conversation from '../models/Conversation.js'
 import Message from '../models/Message.js'
@@ -28,10 +29,22 @@ function peerOf(c, isBuyer) {
     : { title: c.buyer.name, avatar: { kind: 'user', id: c.buyer._id, updatedAt: c.buyer.avatarUpdatedAt || null }, lastSeenAt: c.buyer.lastSeenAt || null }
 }
  
+// The buyer of a new chat: the shop's owner may start one with a buyer (from Shop Orders, body.buyer);
+// for everyone else the buyer is the logged-in user.
+async function chatBuyer(req, shopId) {
+  if (mongoose.isValidObjectId(shopId) && mongoose.isValidObjectId(req.body.buyer) && req.body.buyer !== req.user.id) {
+    const shop = await Shop.findById(shopId).select('owner').lean()
+    if (shop && String(shop.owner) === req.user.id) return req.body.buyer
+  }
+  return req.user.id
+}
+
 // ---- start (or reopen) a chat with a shop ----  body: { buyer, shop }
-router.post('/start', async (req, res) => {
+router.post('/start', requireAuth, async (req, res) => {
   try {
-    const { buyer, shop: shopId } = req.body
+    const { shop: shopId } = req.body
+    // a seller opening a chat from an order passes the buyer; anyone else is the buyer themselves
+    const buyer = await chatBuyer(req, shopId)
     if (!mongoose.isValidObjectId(buyer) || !mongoose.isValidObjectId(shopId)) {
       return res.status(400).json({ message: 'Invalid buyer or shop' })
     }
@@ -54,7 +67,7 @@ router.post('/start', async (req, res) => {
 })
  
 // ---- unread count for the navbar badge ----
-router.get('/unread/:userId', async (req, res) => {
+router.get('/unread/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const { userId } = req.params
     if (!mongoose.isValidObjectId(userId)) return res.json({ unread: 0 })
@@ -70,7 +83,7 @@ router.get('/unread/:userId', async (req, res) => {
 })
  
 // ---- the user's chat list ----
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const { userId } = req.params
     if (!mongoose.isValidObjectId(userId)) return res.json([])
@@ -95,9 +108,9 @@ router.get('/user/:userId', async (req, res) => {
 })
  
 // ---- messages of one chat ----
-router.get('/:id/messages', async (req, res) => {
+router.get('/:id/messages', requireAuth, async (req, res) => {
   try {
-    const { userId } = req.query
+    const userId = req.user.id
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Chat not found' })
     const conversation = await Conversation.findById(req.params.id).populate(PEER_FIELDS)
     if (!conversation) return res.status(404).json({ message: 'Chat not found' })
@@ -124,9 +137,9 @@ router.get('/:id/messages', async (req, res) => {
 })
  
 // ---- send a message ----  body: { sender, text }
-router.post('/:id/messages', async (req, res) => {
+router.post('/:id/messages', requireAuth, async (req, res) => {
   try {
-    const { sender } = req.body
+    const sender = req.user.id
     const text = (req.body.text || '').trim()
     if (!text) return res.status(400).json({ message: 'Message cannot be empty' })
     if (text.length > 1000) return res.status(400).json({ message: 'Message is too long (max 1000 characters)' })
