@@ -10,7 +10,8 @@
     "start": "node server.js",
     "seed": "node seed/seed.js",
     "mock": "node seed/mockData.js",
-    "activity": "node seed/activityData.js"
+    "activity": "node seed/activityData.js",
+    "bob-orders": "node seed/bobOrders.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
