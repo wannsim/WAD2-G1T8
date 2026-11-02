@@ -455,17 +455,17 @@ onMounted(async () => {
 
 <style scoped>
 /* The white connection strip keeps the specified padding and wraps its contents. */
-.buyer-calendar { padding: 0.75rem 1rem; background: #fff; border: 1px solid #ead7de; border-radius: 1rem; color: #6e5361; font-size: 0.88rem; }
+.buyer-calendar { padding: 0.75rem 1rem; background: #fff; border: 1px solid #dfe3f2; border-radius: 1rem; color: #4b4f72; font-size: 0.88rem; }
 .buyer-calendar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.5rem; }
 
 /* Calendar connection controls use the shared navy, outlined and danger button set. */
 .btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
-.btn.btn-act-primary { background: #5c2b3d; border-color: #5c2b3d; color: #fff; }
-.btn.btn-act-outline { background: #fff; border-color: #e3c9d2; color: #5c2b3d; }
+.btn.btn-act-primary { background: var(--ocean); border-color: var(--ocean); color: #fff; }
+.btn.btn-act-outline { background: #fff; border-color: #c9d0f6; color: #2e3170; }
 .btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
-.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #f5e6eb; border-color: #773b50; color: #5c2b3d; }
+.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e9ecfc; border-color: #4d63ff; color: #2e3170; }
 .btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
-.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #773b50; outline-offset: 2px; }
+.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #4d63ff; outline-offset: 2px; }
 .btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
 
 /* Ownership inputs reuse existing form styles and leave room below the final buttons. */
@@ -587,7 +587,7 @@ onMounted(async () => {
 }
 .pill-pending { background: #fff0c7; color: #a8740a; }
 .pill-accepted { background: #ddf1e4; color: #23804a; }
-.pill-rescheduled { background: var(--sky-soft); color: var(--sky-dark); } /* light blue */
+.pill-rescheduled { background: var(--sky-soft); color: var(--sky-dark); } /* violet (stands apart from the blue buttons) */
 .pill-completed { background: var(--tile); color: var(--ink-soft); }
 .pill-declined,
 .pill-cancelled,

@@ -1,49 +1,49 @@
 /* Global styles shared by everyone. Keep it short.
    Component-specific CSS goes in that component's <style scoped>. */
 :root {
-  /* ---- colour palette: "Burgundy" (deep burgundy buttons, dusty rose accents, pale pink cards on warm white,
-     deep plum text; pale gold / green / red for statuses) - use these, not raw hex codes.
+  /* ---- colour palette: "Ocean" (royal blue buttons, aqua accents, pale periwinkle cards on a cool white,
+     deep indigo text and dark fills; gold / green / red for statuses) - use these, not raw hex codes.
      The old names (navy / ocean / aqua) are kept so every component picks up the new colours ---- */
-  --navy: #5c2b3d;          /* active tabs / toggles, filled dark buttons (darker burgundy) */
-  --navy-rgb: 92, 43, 61;
-  --ocean: #773b50;         /* main buttons, links, highlights (deep burgundy) */
-  --ocean-dark: #5f2e40;
-  --ocean-soft: #f5e6eb;
-  --ocean-rgb: 119, 59, 80;
-  --aqua: #d7a5b2;          /* accents, selected chips, info (dusty rose) */
-  --aqua-dark: #9a5f6f;
-  --aqua-soft: #fbf2f5;
-  --aqua-rgb: 215, 165, 178;
+  --navy: #2e3170;          /* active tabs / toggles, filled dark buttons (deep indigo) */
+  --navy-rgb: 46, 49, 112;
+  --ocean: #4d63ff;         /* main buttons, links, highlights (royal blue) */
+  --ocean-dark: #3a50e8;
+  --ocean-soft: #e9ecfc;
+  --ocean-rgb: 77, 99, 255;
+  --aqua: #7fd0dc;          /* accents, selected chips, info (aqua) */
+  --aqua-dark: #2a8796;
+  --aqua-soft: #e9f8fa;
+  --aqua-rgb: 127, 208, 220;
   --rose: #e5484d;          /* errors, remove / decline, sale badges (red) */
   --rose-rgb: 229, 72, 77;
   --amber: #e3a63a;         /* warnings, pending, stars, pins (golden amber) */
   --amber-rgb: 227, 166, 58;
   --green: #1f8a5b;         /* up / positive numbers, finished (on --mint) */
-  --sky: #3b7dc4;           /* order status "rescheduled" only (light blue, stands apart from the burgundy) */
-  --sky-dark: #2a65a6;
-  --sky-soft: #e6f0fb;
+  --sky: #8a5cd6;           /* order status "rescheduled" only (violet, stands apart from the blue buttons) */
+  --sky-dark: #6c3fbf;
+  --sky-soft: #f1eafc;
 
   --brand: var(--ocean);    /* kept so older components keep working */
   --brand-dark: var(--ocean-dark);
   --brand-rgb: var(--ocean-rgb);
 
-  --ink: #462a39;           /* main text + headings (deep plum) */
-  --ink-rgb: 70, 42, 57;
-  --ink-soft: #6e5361;
-  --muted: #987d8a;         /* secondary text (muted mauve) */
-  --line: #ead7de;          /* borders (soft pink-grey) */
+  --ink: #1f2140;           /* main text + headings (deep indigo) */
+  --ink-rgb: 31, 33, 64;
+  --ink-soft: #4b4f72;
+  --muted: #6b6f8e;         /* secondary text (blue-grey) */
+  --line: #dfe3f2;          /* borders (soft periwinkle) */
   --surface: #ffffff;
-  --surface-soft: #fcf4f7;  /* tinted boxes */
-  --surface-hover: #f5e6eb; /* hover on light buttons / rows */
-  --cream: #fffafa;         /* page background (warm white) */
-  --tile: rgba(249, 237, 241, 0.8); /* card background + pill buttons (pale pink #f9edf1 at 80%, a little warm white shows through) */
-  --tile-hover: #f2dfe6;
+  --surface-soft: #f5f7fe;  /* tinted boxes */
+  --surface-hover: #e9ecfc; /* hover on light buttons / rows */
+  --cream: #f8f9ff;         /* page background (cool white) */
+  --tile: rgba(238, 240, 252, 0.8); /* card background + pill buttons (pale periwinkle #eef0fc at 80%, a little warm white shows through) */
+  --tile-hover: #e3e7fa;
   /* soft tiles + statuses: mint = success (pale green), butter = pending (pale gold), peach = overdue (pale red) */
   --mint: #ddf1e4;
   --butter: #fff0c7;
   --peach: #fce1e3;
-  --ice: #f5e6eb;
-  --shadow: 0 6px 20px rgba(92, 43, 61, 0.06);
+  --ice: #e9ecfc;
+  --shadow: 0 6px 20px rgba(46, 49, 112, 0.06);
 
   /* ---- Bootstrap uses our palette everywhere (alerts, badges, text-*, bg-*, links...) ---- */
   --bs-body-font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif; /* the whole site uses Poppins */
@@ -52,7 +52,7 @@
   --bs-secondary-color: var(--muted);
   --bs-border-color: var(--line);
   --bs-link-color: var(--ocean-dark);
-  --bs-link-color-rgb: 95, 46, 64; /* = --ocean-dark */
+  --bs-link-color-rgb: 58, 80, 232; /* = --ocean-dark */
   --bs-link-hover-color: var(--navy);
   --bs-link-hover-color-rgb: var(--navy-rgb);
   --bs-border-radius: 0.75rem;
@@ -61,9 +61,9 @@
 
   --bs-primary: var(--ocean);
   --bs-primary-rgb: var(--ocean-rgb);
-  --bs-primary-text-emphasis: #5f2e40;
+  --bs-primary-text-emphasis: #3a50e8;
   --bs-primary-bg-subtle: var(--ocean-soft);
-  --bs-primary-border-subtle: #e3c9d2;
+  --bs-primary-border-subtle: #c9d0f6;
   --bs-success: var(--green);
   --bs-success-rgb: 31, 138, 91;
   --bs-success-text-emphasis: #17694a;
@@ -71,9 +71,9 @@
   --bs-success-border-subtle: #bfe3cc;
   --bs-info: var(--aqua);
   --bs-info-rgb: var(--aqua-rgb);
-  --bs-info-text-emphasis: #7a4a59;
+  --bs-info-text-emphasis: #1f6672;
   --bs-info-bg-subtle: var(--aqua-soft);
-  --bs-info-border-subtle: #ecd2da;
+  --bs-info-border-subtle: #c4ebf0;
   --bs-warning: var(--amber);
   --bs-warning-rgb: var(--amber-rgb);
   --bs-warning-text-emphasis: #8a4a1e;
@@ -84,17 +84,17 @@
   --bs-danger-text-emphasis: #9b2328;
   --bs-danger-bg-subtle: #fce1e3;
   --bs-danger-border-subtle: #f6c4c6;
-  --bs-secondary: #a8939d;
-  --bs-secondary-rgb: 168, 147, 157;
+  --bs-secondary: #9095b5;
+  --bs-secondary-rgb: 144, 149, 181;
   --bs-secondary-text-emphasis: var(--ink-soft);
   --bs-secondary-bg-subtle: var(--surface-hover);
   --bs-secondary-border-subtle: var(--line);
   --bs-dark: var(--navy);
   --bs-dark-rgb: var(--navy-rgb);
-  --bs-light-rgb: 252, 244, 247;
+  --bs-light-rgb: 245, 247, 254;
 }
 
-/* warm white background around the app frame.
+/* ocean background (pale indigo, aqua, then pale royal blue) around the app frame.
    Drawn on a fixed layer behind the page, so it covers long pages and works on phones too
    (background-attachment: fixed is ignored by iPhone Safari). */
 body {
@@ -106,7 +106,10 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: var(--cream);
+  /* "ocean" wash: pale indigo at the top, a soft aqua glow in the middle, royal blue tint at the bottom */
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 45%, rgba(var(--aqua-rgb), 0.16), transparent 70%),
+    linear-gradient(180deg, #eceefb 0%, var(--cream) 35%, #f2f9fb 60%, #e8ebfc 100%);
   pointer-events: none;
 }
 h1, h2, h3, h4, h5, h6 {
@@ -141,7 +144,7 @@ button, input, select, textarea {
   --bs-btn-disabled-bg: var(--ocean);
   --bs-btn-disabled-border-color: var(--ocean);
   --bs-btn-focus-shadow-rgb: var(--ocean-rgb);
-  box-shadow: 0 4px 12px rgba(var(--ocean-rgb), 0.25);
+  box-shadow: 0 4px 14px rgba(var(--ocean-rgb), 0.35); /* soft blue glow */
 }
 .btn-outline-primary,
 .btn-outline-success {
@@ -159,18 +162,19 @@ button, input, select, textarea {
 }
 .btn-secondary,
 .btn-dark {
+  /* a brighter indigo than --navy, so dark buttons still look lively */
   --bs-btn-color: #fff;
-  --bs-btn-bg: var(--navy);
-  --bs-btn-border-color: var(--navy);
+  --bs-btn-bg: #4a4fd0;
+  --bs-btn-border-color: #4a4fd0;
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: #4d2433;
-  --bs-btn-hover-border-color: #4d2433;
+  --bs-btn-hover-bg: #3b3fb4;
+  --bs-btn-hover-border-color: #3b3fb4;
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: #4d2433;
-  --bs-btn-active-border-color: #4d2433;
-  --bs-btn-disabled-bg: var(--navy);
-  --bs-btn-disabled-border-color: var(--navy);
-  --bs-btn-focus-shadow-rgb: var(--navy-rgb);
+  --bs-btn-active-bg: #3b3fb4;
+  --bs-btn-active-border-color: #3b3fb4;
+  --bs-btn-disabled-bg: #4a4fd0;
+  --bs-btn-disabled-border-color: #4a4fd0;
+  --bs-btn-focus-shadow-rgb: 74, 79, 208;
 }
 /* grey filled pills (like "Filters" / "Cart" in the BuyMore inspiration) */
 .btn-outline-secondary,
@@ -406,26 +410,42 @@ a.card-title:hover {
 }
 
 /* order status badges (see ORDER_STATUS_BADGE in utils/constants.js) - also colour the status bars on Shop orders */
+/* soft pastel fills with dark text, the same as the status pills on the Shop orders page */
 .status-pending {
-  background-color: #f6c744; /* yellow */
-  color: var(--navy);
+  background-color: var(--butter); /* pale gold */
+  color: #a8740a;
 }
 .status-accepted {
-  background-color: #2e9e5b; /* green */
-  color: #fff;
+  background-color: var(--mint); /* pale green */
+  color: #23804a;
 }
 .status-declined,
 .status-cancelled {
-  background-color: var(--rose); /* red */
-  color: #fff;
+  background-color: var(--peach); /* pale red */
+  color: #b8312f;
 }
 .status-rescheduled {
-  background-color: var(--sky); /* light blue */
-  color: #fff;
+  background-color: var(--sky-soft); /* pale violet */
+  color: var(--sky-dark);
+}
+.status-completed {
+  background-color: var(--ice) !important; /* pale periwinkle (beats Bootstrap's bg-secondary / bg-success) */
+  color: var(--ink-soft);
 }
 /* roomier status badges (only badges - the status bars use the same classes for their colour) */
 .badge[class*="status-"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
   padding: 0.65em 1.3em;
+  font-weight: 600;
+}
+.badge[class*="status-"]::before { /* small coloured dot, like the Shop orders pills */
+  content: '';
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 /* tabs (Bootstrap nav-pills): one pill-shaped toggle with the brand colour, same on every page
