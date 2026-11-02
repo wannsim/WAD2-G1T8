@@ -29,6 +29,44 @@ let quotaHit = false // once Gemini says "no more today", stop asking until the 
 export const aiFilterEnabled = () => Boolean(process.env.GEMINI_API_KEY)
 export const resetAiQuota = () => { quotaHit = false }
 
+// prints why Gemini said no (used by the filter and the start-up check)
+async function warnRefused(res, model) {
+  const body = await res.json().catch(() => ({}))
+  const msg = body.error?.message || res.statusText
+  if (res.status === 429) console.warn(`[Gemini] free quota used up for today - rule-based filter only until tomorrow (${msg})`)
+  else if (res.status === 400 || res.status === 403) console.warn(`[Gemini] request refused - check GEMINI_API_KEY (${msg})`)
+  else if (res.status === 404) console.warn(`[Gemini] model "${model}" not found - set GEMINI_MODEL in config.env (${msg})`)
+  else console.warn(`[Gemini] error ${res.status}: ${msg} - keeping rule-based result`)
+}
+
+// START-UP CHECK: one small real question to Gemini, so the terminal shows the AI answering
+// every time the server starts. Prints the question and Gemini's reply (never the key itself).
+export async function checkGemini(videoTitle) {
+  const key = process.env.GEMINI_API_KEY
+  if (!key) {
+    console.log('[Gemini] no GEMINI_API_KEY in config.env - AI filter is off')
+    return
+  }
+  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
+  const question = 'Is this YouTube video about something people could buy, make or eat from a small home business? ' +
+    `Answer "Yes" or "No", then the reason in under 15 words. Title: "${videoTitle}"`
+  console.log(`[Gemini] key ...${key.slice(-4)} - asking ${model}: ${question}`)
+  try {
+    const res = await fetch(`${API}/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      signal: AbortSignal.timeout(20000),
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: question }] }] }),
+    })
+    if (!res.ok) return warnRefused(res, model)
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('').trim()
+    console.log(`[Gemini] OK - live answer: ${text || '(empty answer)'}`)
+  } catch (err) {
+    console.warn(`[Gemini] start-up check failed: ${err.message}`)
+  }
+}
+
 // videos: YouTube video objects (id, snippet.title, snippet.tags, snippet.description)
 // returns the subset Gemini says is about `term`, or all of them if Gemini can't be used
 export async function filterVideosWithAI(term, videos) {
@@ -55,18 +93,8 @@ export async function filterVideosWithAI(term, videos) {
     })
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      const msg = body.error?.message || res.statusText
-      if (res.status === 429) {
-        quotaHit = true
-        console.warn(`[Gemini] free quota used up for today - rule-based filter only until tomorrow (${msg})`)
-      } else if (res.status === 400 || res.status === 403) {
-        console.warn(`[Gemini] request refused - check GEMINI_API_KEY (${msg})`)
-      } else if (res.status === 404) {
-        console.warn(`[Gemini] model "${model}" not found - set GEMINI_MODEL in config.env (${msg})`)
-      } else {
-        console.warn(`[Gemini] error ${res.status}: ${msg} - keeping rule-based result`)
-      }
+      if (res.status === 429) quotaHit = true
+      await warnRefused(res, model)
       return videos
     }
 

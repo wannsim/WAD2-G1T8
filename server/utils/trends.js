@@ -1,6 +1,6 @@
 import Product from '../models/Product.js'
 import TrendSignal from '../models/TrendSignal.js'
-import { filterVideosWithAI, aiFilterEnabled, resetAiQuota } from './geminiFilter.js'
+import { filterVideosWithAI, aiFilterEnabled, resetAiQuota, checkGemini } from './geminiFilter.js'
 
 // Owner: Cheyenne
 // ONLINE TRENDS for the Trending tab, from the YouTube Data API v3 (free key, put it in config.env):
@@ -163,6 +163,7 @@ export async function refreshTrends({ force = false } = {}) {
     const saved = new Map((await TrendSignal.find({ term: { $in: terms } }).select('term history updatedAt version').lean()).map((t) => [t.term, t]))
     const isFresh = (t) => saved.get(t)?.version === SOURCE_VERSION && saved.get(t).updatedAt >= cutoff
     const todo = force ? terms : terms.filter((t) => !isFresh(t))
+    if (!todo.length) console.log(`Trends: all ${terms.length} keywords were already checked on YouTube in the last ${REFRESH_HOURS}h (saved in MongoDB) - no new searches until then`)
     let done = 0
     let quotaHit = ''
     for (let i = 0; i < todo.length && !quotaHit; i += PARALLEL) {
@@ -200,9 +201,28 @@ export async function refreshTrends({ force = false } = {}) {
   }
 }
 
+// START-UP CHECK: the full refresh above is skipped for 24h (results are saved), so on most restarts
+// nothing would reach YouTube or Gemini. This makes one cheap live call to each on every start, so the
+// terminal always shows that both keys work: YouTube's #1 popular video in Singapore (videos.list = 1 unit,
+// not a search), then Gemini's opinion on that title. Only the last 4 characters of a key are printed.
+export async function checkApisOnStart() {
+  const key = process.env.YOUTUBE_API_KEY
+  if (!key) return // refreshTrends prints "no YOUTUBE_API_KEY"
+  try {
+    const data = await getJson(`${API}/videos?part=snippet,statistics&chart=mostPopular&regionCode=SG&maxResults=1&key=${key}`)
+    const v = data.items?.[0]
+    const title = v?.snippet?.title || '(no video)'
+    console.log(`[YouTube] key ...${key.slice(-4)} OK - live answer: #1 popular video in Singapore is "${title}" ` +
+      `(${Number(v?.statistics?.viewCount || 0).toLocaleString()} views)`)
+    await checkGemini(title)
+  } catch (err) {
+    console.warn(`[YouTube] key ...${key.slice(-4)} check failed: ${err.message}`)
+  }
+}
+
 // server.js calls this once MongoDB is connected: refresh now (in the background) and once a day
 export function startTrendRefresh() {
-  refreshTrends()
+  checkApisOnStart().finally(() => refreshTrends())
   setInterval(refreshTrends, REFRESH_HOURS * 3600000).unref()
 }
 
