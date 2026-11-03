@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
@@ -28,6 +28,41 @@ const loading = ref(true)
 const loadError = ref('')
 const submitting = ref(false)
 const sent = ref(false)
+// a short celebration (bag drops in, confetti, tick) between "Send request" and the confirmation card
+const celebrating = ref(false)
+const celebrateDone = ref(false) // second half: the bag has turned into a tick
+let celebrateTimers = []
+const CONFETTI_COLOURS = ['#4d63ff', '#7fd0dc', '#e3a63a', '#e5484d', '#1f8a5b', '#8a5cd6']
+// 28 pieces flying out in a circle, each a little different
+const confetti = Array.from({ length: 28 }, (_, i) => {
+  const angle = (i / 28) * 2 * Math.PI + Math.random() * 0.3
+  const distance = 90 + Math.random() * 70
+  return {
+    id: i,
+    style: {
+      '--x': `${Math.cos(angle) * distance}px`,
+      '--y': `${Math.sin(angle) * distance - 30}px`,
+      '--r': `${Math.round(Math.random() * 540 - 270)}deg`,
+      '--d': `${Math.round(Math.random() * 120)}ms`,
+      background: CONFETTI_COLOURS[i % CONFETTI_COLOURS.length],
+      borderRadius: i % 3 === 0 ? '50%' : '2px',
+    },
+  }
+})
+function showConfirmation() {
+  celebrateTimers.forEach(clearTimeout)
+  celebrateTimers = []
+  celebrating.value = false
+  sent.value = true
+}
+function celebrate() {
+  // people who turned off animations go straight to the confirmation
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return showConfirmation()
+  celebrateDone.value = false
+  celebrating.value = true
+  celebrateTimers = [setTimeout(() => (celebrateDone.value = true), 900), setTimeout(showConfirmation, 2100)]
+}
+onBeforeUnmount(() => celebrateTimers.forEach(clearTimeout))
 const chatBusy = ref(false)
 const chatError = ref('')
 
@@ -188,8 +223,8 @@ async function submitOrder() {
       deliveryPostalCode: deliveryPostalCode.value,
       saveAddress: fulfilment.value === 'delivery' && addressChanged.value && saveAddress.value,
     })
-    sent.value = true
     submitting.value = false
+    celebrate() // then the confirmation card
   } catch (err) {
     error.value = getErrorMessage(err)
     submitting.value = false
@@ -203,6 +238,23 @@ async function submitOrder() {
       <PageSkeleton v-if="loading" variant="form" :count="4" label="Loading order form" data-testid="order-loading" />
       <div v-else-if="loadError" class="alert alert-danger" data-testid="order-load-error">{{ loadError }}</div>
       <!-- success card: green tick, what happens next, a short summary, then where to go -->
+      <!-- celebration: click anywhere on it to skip -->
+      <div v-else-if="celebrating" class="celebrate" role="status" aria-live="polite" title="Click to skip" @click="showConfirmation">
+        <div class="celebrate-stage" aria-hidden="true">
+          <span class="celebrate-ring"></span>
+          <span v-for="piece in confetti" :key="piece.id" class="confetti" :style="piece.style"></span>
+          <span class="celebrate-badge" :class="{ done: celebrateDone }">
+            <!-- shopping bag, then a tick -->
+            <svg v-if="!celebrateDone" width="46" height="46" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 15v-3a6 6 0 0 1 12 0v3" /><path d="M11 15h26l2 27H9z" />
+            </svg>
+            <svg v-else width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+              <path class="tick-path" d="M12 25l8 8 16-17" />
+            </svg>
+          </span>
+        </div>
+        <p class="celebrate-text">{{ celebrateDone ? 'Order sent!' : `Sending your order to ${product.shop.name}...` }}</p>
+      </div>
       <section v-else-if="sent && product" class="success-card" role="status" data-testid="order-success">
         <div class="success-tick" aria-hidden="true">
           <svg width="34" height="34" viewBox="0 0 16 16" fill="currentColor"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg>
@@ -350,6 +402,100 @@ async function submitOrder() {
 </template>
 
 <style scoped>
+/* ---- celebration before the confirmation ---- */
+.celebrate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+  cursor: pointer;
+  user-select: none;
+}
+.celebrate-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 140px;
+}
+/* the bag drops in and bounces */
+.celebrate-badge {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: var(--ocean);
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(var(--ocean-rgb), 0.35);
+  animation: bag-drop 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+/* ...then turns green with a tick */
+.celebrate-badge.done {
+  background: #2e8b57;
+  box-shadow: 0 14px 34px rgba(46, 139, 87, 0.35);
+  animation: badge-pop 0.4s ease;
+}
+.tick-path {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw-tick 0.45s 0.1s ease forwards;
+}
+/* a soft ring ripples out when it lands */
+.celebrate-ring {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 3px solid var(--ocean);
+  opacity: 0;
+  animation: ring-out 0.9s 0.55s ease-out;
+}
+/* confetti bursts out from the middle */
+.confetti {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  opacity: 0;
+  animation: confetti-burst 1.3s calc(0.55s + var(--d)) cubic-bezier(0.15, 0.7, 0.4, 1) forwards;
+}
+.celebrate-text {
+  margin: 1.5rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink);
+  animation: text-in 0.4s 0.3s ease both;
+}
+@keyframes bag-drop {
+  0% { opacity: 0; transform: translateY(-120px) scale(0.6); }
+  60% { opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes badge-pop {
+  50% { transform: scale(1.12); }
+}
+@keyframes draw-tick {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ring-out {
+  0% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+@keyframes confetti-burst {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(0.4); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 60px)) rotate(var(--r)) scale(1); }
+}
+@keyframes text-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
 /* ---- Delivery / Pickup option cards ---- */
 .fulfil-options {
   display: grid;

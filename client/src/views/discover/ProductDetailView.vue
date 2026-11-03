@@ -33,6 +33,14 @@ async function chatWithSeller() {
 }
 
 const loading = ref(true)
+
+// "Available slots": only future ones, soonest first; 5 shown until "View all"
+const SLOTS_SHOWN = 5
+const showAllSlots = ref(false)
+const upcomingSlots = computed(() => (product.value?.orderSlots || [])
+  .filter((slot) => new Date(slot.start).getTime() > Date.now())
+  .sort((a, b) => new Date(a.start) - new Date(b.start)))
+const shownSlots = computed(() => (showAllSlots.value ? upcomingSlots.value : upcomingSlots.value.slice(0, SLOTS_SHOWN)))
 const loadError = ref('')
 const shopProductCount = ref(null) // "Products" in the seller box
 
@@ -148,10 +156,17 @@ onMounted(async () => {
 
       <div class="info-section">
         <h6>Available slots</h6>
-        <ul v-if="product.orderSlots && product.orderSlots.length" class="mb-0">
-          <li v-for="slot in product.orderSlots" :key="slot._id">{{ formatDateTime(slot.start) }}</li>
-        </ul>
-        <p v-else class="text-muted mb-0">No slots listed - ask the seller.</p>
+        <!-- upcoming slots, soonest first: 5, then "View all" -->
+        <template v-if="upcomingSlots.length">
+          <ul class="mb-0">
+            <li v-for="slot in shownSlots" :key="slot._id">{{ formatDateTime(slot.start) }}</li>
+          </ul>
+          <button v-if="upcomingSlots.length > SLOTS_SHOWN" type="button" class="btn btn-link btn-sm p-0 mt-1"
+            :aria-expanded="showAllSlots" @click="showAllSlots = !showAllSlots">
+            {{ showAllSlots ? 'Show fewer' : `View all ${upcomingSlots.length} slots` }}
+          </button>
+        </template>
+        <p v-else class="text-muted mb-0">No upcoming slots - ask the seller.</p>
       </div>
 
       <!-- <RouterLink v-if="currentUser && currentUser.role === 'buyer'" :to="`/order/new/${product._id}`" class="btn btn-brand">

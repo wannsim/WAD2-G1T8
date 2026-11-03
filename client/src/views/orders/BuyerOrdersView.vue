@@ -251,6 +251,7 @@ async function askCancel(order) {
   const reason = await reasonModal.value.ask({
     title: 'Cancel this order?',
     hint: 'The seller will see this reason.',
+    placeholder: "E.g. My plans changed and I can't collect it anymore",
     confirmLabel: 'Yes, cancel',
   })
   if (reason) updateStatus(order, 'cancelled', reason)
@@ -259,6 +260,14 @@ async function askCancel(order) {
 // Checks whether the buyer may still cancel this order.
 function canCancel(order) {
   return order.status === 'pending' || order.status === 'rescheduled' || order.status === 'accepted'
+}
+
+// "View more" only when there is something under it (same rules as the lines in .order-details):
+// a note, the delivery address, or the pickup address (shown once the order is accepted / completed)
+function hasDetails(order) {
+  return !!(order.customisation && order.customisation.trim())
+    || (order.fulfilment === 'delivery' && !!order.deliveryAddress)
+    || (order.fulfilment === 'pickup' && (order.status === 'accepted' || order.status === 'completed'))
 }
 
 // "Order again": finished orders (completed / declined / cancelled) whose product is still sold.
@@ -420,7 +429,7 @@ onMounted(async () => {
                     <span><strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? 'Your reason' : "Seller's reason" }}:</strong> {{ o.reason }}</span>
                   </p>
                   <!-- sits beside the photo (not on its own row) to keep the card short -->
-                  <button type="button" class="btn btn-link order-details-toggle" :aria-expanded="openDetails[o._id] === true" @click="toggleDetails(o)" data-testid="order-details-toggle">{{ openDetails[o._id] ? 'View less' : 'View more' }}</button>
+                  <button v-if="hasDetails(o)" type="button" class="btn btn-link order-details-toggle" :aria-expanded="openDetails[o._id] === true" @click="toggleDetails(o)" data-testid="order-details-toggle">{{ openDetails[o._id] ? 'View less' : 'View more' }}</button>
                 </div>
                 <div class="order-footer">
                   <span class="order-price" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
@@ -440,7 +449,7 @@ onMounted(async () => {
                   </div>
                 </div>
               </div>
-              <div v-if="openDetails[o._id]" class="order-details" data-testid="order-details">
+              <div v-if="openDetails[o._id] && hasDetails(o)" class="order-details" data-testid="order-details">
                 <ul class="order-facts">
                   <li v-if="o.customisation && o.customisation.trim()" class="text-break">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" /><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" /></svg>

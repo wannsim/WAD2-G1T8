@@ -4,13 +4,16 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
 // Pop-up asking why an order is being declined / cancelled. The reason is shown to the other side.
 //   <ReasonModal ref="reasonModal" />
-//   const reason = await reasonModal.value.ask({ title: 'Cancel this order?', confirmLabel: 'Yes, cancel' })
+//   const reason = await reasonModal.value.ask({ title: 'Cancel this order?', confirmLabel: 'Yes, cancel', placeholder: 'E.g. ...' })
+//   placeholder: an example reason that fits who is asking (buyer or seller)
 //   -> the reason typed, or null if they closed the pop-up
 const MAX_LENGTH = 300 // same limit as the server
 
 const modalEl = ref(null)
 const title = ref('')
 const hint = ref('')
+const DEFAULT_PLACEHOLDER = 'E.g. I am out of ingredients this week' // a seller's reason
+const placeholder = ref(DEFAULT_PLACEHOLDER)
 const confirmLabel = ref('')
 const reason = ref('')
 const touched = ref(false)
@@ -22,6 +25,7 @@ const missing = computed(() => reason.value.trim() === '')
 function ask(options) {
   title.value = options.title
   hint.value = options.hint || ''
+  placeholder.value = options.placeholder || DEFAULT_PLACEHOLDER
   confirmLabel.value = options.confirmLabel || 'Confirm'
   reason.value = ''
   touched.value = false
@@ -64,7 +68,7 @@ onBeforeUnmount(() => {
         <div class="modal-body">
           <label for="reason-input" class="form-label">Reason <span class="text-danger">*</span></label>
           <textarea id="reason-input" v-model="reason" class="form-control" :class="{ 'is-invalid': touched && missing }"
-            rows="3" :maxlength="MAX_LENGTH" placeholder="E.g. I am out of ingredients this week" data-testid="reason-input"></textarea>
+            rows="3" :maxlength="MAX_LENGTH" :placeholder="placeholder" data-testid="reason-input"></textarea>
           <div class="invalid-feedback">Please give a reason.</div>
           <div class="d-flex justify-content-between form-text">
             <span>{{ hint }}</span>
