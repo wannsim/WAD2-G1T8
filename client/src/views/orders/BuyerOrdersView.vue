@@ -97,7 +97,7 @@ const pendingOrders = computed(() => {
   return groupedOrders
 })
 
-// Groups accepted orders for the Accepted tab.
+// The Accepted tab: earliest pickup first, so overdue orders (time passed) are on top.
 const upcomingOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
@@ -105,6 +105,16 @@ const upcomingOrders = computed(() => {
     if (order.status === 'accepted') { // The Accepted tab holds accepted orders.
       groupedOrders.push(order)
     }
+  }
+  for (let i = 1; i < groupedOrders.length; i++) {
+    const order = groupedOrders[i]
+    const time = new Date(order.requestedTime).getTime()
+    let j = i
+    while (j > 0 && new Date(groupedOrders[j - 1].requestedTime).getTime() > time) {
+      groupedOrders[j] = groupedOrders[j - 1]
+      j--
+    }
+    groupedOrders[j] = order
   }
   return groupedOrders
 })
