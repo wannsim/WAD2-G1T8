@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { cleanMrtName } from '@/utils/googleMaps'
-import { timeAgo, shortNumber, capitalize } from '@/utils/format'
+import { shopStatItems } from '@/utils/shopStats'
 
 // Owner: Cheyenne
 // Seller box on the product page (like Shopee's): avatar, shop name, Chat now / View shop, shop stats.
@@ -13,25 +13,9 @@ const props = defineProps({
 })
 defineEmits(['chat'])
 
-const stats = computed(() => props.shop.stats || {})
 const station = computed(() => cleanMrtName(props.shop.nearestMrt))
-
-// avgResponseMins -> "Within 20 mins" / "Within 3 hours" / "Within days"
-const responseTime = computed(() => {
-  const mins = stats.value.avgResponseMins
-  if (!mins) return 'New seller'
-  if (mins < 60) return `Within ${Math.max(1, Math.round(mins))} mins`
-  if (mins < 1440) return `Within ${Math.round(mins / 60)} ${Math.round(mins / 60) === 1 ? 'hour' : 'hours'}`
-  return 'Within days'
-})
-const items = computed(() => [
-  { label: 'Ratings', value: stats.value.reviewCount ? `${Number(stats.value.avgRating).toFixed(1)} ★ (${shortNumber(stats.value.reviewCount)})` : 'No ratings yet' },
-  { label: 'Products', value: props.productCount === null ? '-' : String(props.productCount) },
-  { label: 'Response time', value: responseTime.value },
-  { label: 'Orders fulfilled', value: stats.value.fulfilmentRate ? `${Math.round(stats.value.fulfilmentRate * 100)}%` : '-' },
-  { label: 'Joined', value: timeAgo(props.shop.createdAt) || '-' },
-  { label: 'Followers', value: shortNumber(stats.value.followerCount ?? props.shop.followers?.length ?? 0) },
-])
+// Ratings, Products, Response time, Orders fulfilled, Joined, Followers (shared with the shop page's About tab)
+const items = computed(() => shopStatItems(props.shop, props.productCount))
 </script>
 
 <template>
@@ -62,7 +46,7 @@ const items = computed(() => [
       <dl class="stats mb-0">
         <div v-for="item in items" :key="item.label" class="stat">
           <dt>{{ item.label }}</dt>
-          <dd>{{ capitalize(item.value) }}</dd> <!-- every value starts with a capital letter -->
+          <dd>{{ item.value }}</dd>
         </div>
       </dl>
     </div>

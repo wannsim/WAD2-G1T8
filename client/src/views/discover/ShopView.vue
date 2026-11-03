@@ -67,6 +67,13 @@
     <!-- ===== About ===== -->
     <section v-else class="about card p-4">
       <h2 class="row-title mb-3">About</h2>
+      <!-- same six stats as the seller box on a product page -->
+      <dl class="about-stats" aria-label="Shop stats">
+        <div v-for="item in statItems" :key="item.label" class="about-stat">
+          <dt>{{ item.label }}</dt>
+          <dd>{{ item.value }}</dd>
+        </div>
+      </dl>
       <p v-if="shop.description" class="about-text">{{ shop.description }}</p>
       <dl class="about-list">
         <template v-if="shop.nearestMrt"><dt>Nearest MRT</dt><dd>{{ shop.nearestMrt }}</dd></template>
@@ -76,7 +83,7 @@
           <dd><span class="badge bg-secondary me-1" v-for="cat in shop.categories" :key="cat">{{ cat }}</span></dd>
         </template>
         <template v-if="shop.certifications?.length"><dt>Certifications</dt><dd>{{ shop.certifications.join(', ') }}</dd></template>
-        <template v-if="shop.createdAt"><dt>Joined</dt><dd>{{ joined }}</dd></template>
+        <template v-if="shop.createdAt"><dt>Member since</dt><dd>{{ joined }}</dd></template>
       </dl>
       <!-- certificate photos uploaded on the seller's profile page -->
       <div v-if="shop.certificationFiles && shop.certificationFiles.length" class="d-flex flex-wrap gap-2 mt-2">
@@ -101,6 +108,7 @@ import ProductCard from '@/components/ProductCard.vue'
 import ShopHeader from '@/components/ShopHeader.vue'
 import EditProductModal from '@/components/EditProductModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
+import { shopStatItems } from '@/utils/shopStats'
 
 const shop = ref(null)
 const products = ref([])
@@ -124,6 +132,7 @@ const fulfilment = computed(() => {
   const ways = [shop.value?.pickup && 'Pickup', shop.value?.delivery && 'Delivery'].filter(Boolean)
   return ways.length ? ways.join(' or ') : 'Ask the seller'
 })
+const statItems = computed(() => shopStatItems(shop.value, products.value.length))
 const joined = computed(() => new Date(shop.value.createdAt).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' }))
 
 // ---------- tabs ----------
@@ -346,6 +355,39 @@ const onProductSaved = (updated) => {
 }
 
 /* ---------- About ---------- */
+/* stats box: 3 columns (label left, value right), like the seller box on a product page */
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem 2rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--surface-soft);
+}
+.about-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.about-stat dt {
+  font-weight: 400;
+  color: var(--muted);
+}
+.about-stat dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ocean-dark);
+  text-align: right;
+  white-space: nowrap;
+}
+@media (max-width: 991.98px) {
+  .about-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 479.98px) {
+  .about-stats { grid-template-columns: 1fr; }
+}
 .about-text {
   white-space: pre-line;
 }

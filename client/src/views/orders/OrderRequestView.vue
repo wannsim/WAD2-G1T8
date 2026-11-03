@@ -53,6 +53,13 @@ const openSlots = computed(() => openSlotList.value ?? futureSlots.value)
 // No slot left: the buyer can still ask for DELIVERY at a time they suggest (pickup needs a slot).
 const noSlots = computed(() => openSlots.value.length === 0)
 const canRequestDelivery = computed(() => noSlots.value && product.value?.shop?.delivery !== false)
+// option cards: why each one can't be chosen ('' = it can)
+const deliveryOffered = computed(() => product.value?.shop?.delivery !== false)
+const pickupBlocked = computed(() => {
+  if (!product.value?.shop?.pickup) return "This shop doesn't offer pickup"
+  if (noSlots.value) return 'No pickup slots left. Choose delivery and suggest a time.'
+  return ''
+})
 // earliest time for the suggested-time box: the start of tomorrow, as "2026-10-30T00:00" (the seller needs a day's notice)
 function startOfTomorrow() {
   const day = new Date()
@@ -242,39 +249,65 @@ async function submitOrder() {
           <textarea class="form-control" rows="2" maxlength="200" id="customisation" v-model.trim="customisation" data-testid="order-customisation"></textarea>
         </div>
 
-        <div v-if="noSlots" class="alert alert-info small" data-testid="order-no-slots-delivery">
-          No slots are left for this product, but you can still request <strong>delivery</strong> at a time that suits you.
-          The seller will accept it or suggest another time.
-        </div>
+        <!-- how to get it: two big option cards; the inputs below change with the choice -->
+        <fieldset class="mb-4">
+          <legend class="form-label fs-6">How would you like to get it?</legend>
+          <div class="fulfil-options">
+            <label class="fulfil-card" :class="{ chosen: fulfilment === 'delivery', unavailable: !deliveryOffered }">
+              <input class="visually-hidden" type="radio" name="fulfilment" value="delivery" v-model="fulfilment"
+                :disabled="!deliveryOffered" data-testid="order-fulfilment-delivery" />
+              <svg class="fulfil-icon" width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 9h8l3 3M39 9h-8l-3 3" /><circle cx="24" cy="12" r="3.5" />
+                <path d="M17 31V22a7 7 0 0 1 14 0v9" /><rect x="20.5" y="25" width="7" height="17" rx="3.5" />
+              </svg>
+              <span class="fulfil-title">Delivery</span>
+              <span class="fulfil-sub">{{ deliveryOffered ? 'To your address' : 'Not offered by this shop' }}</span>
+            </label>
+            <label class="fulfil-card" :class="{ chosen: fulfilment === 'pickup', unavailable: !!pickupBlocked }">
+              <input class="visually-hidden" type="radio" name="fulfilment" value="pickup" v-model="fulfilment"
+                :disabled="!!pickupBlocked" :aria-describedby="pickupBlocked ? 'pickup-why' : undefined" data-testid="order-fulfilment-pickup" />
+              <svg class="fulfil-icon" width="52" height="52" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 15v-3a6 6 0 0 1 12 0v3" /><path d="M11 15h26l2 27H9z" />
+              </svg>
+              <span class="fulfil-title">Pickup</span>
+              <span v-if="pickupBlocked" id="pickup-why" class="fulfil-sub why" data-testid="order-pickup-why">{{ pickupBlocked }}</span>
+              <span v-else class="fulfil-sub">Free{{ product.shop.nearestMrt ? ` · near ${product.shop.nearestMrt} MRT` : '' }}</span>
+            </label>
+          </div>
+        </fieldset>
 
-        <div class="mb-3">
-          <label class="form-label" for="requested-time">{{ noSlots ? 'Preferred delivery time' : 'Preferred time' }}</label>
-          <input v-if="noSlots" type="datetime-local" class="form-control" id="requested-time" v-model="requestedTime"
-            :min="minRequestTime" data-testid="order-time" />
-          <select v-else class="form-select" id="requested-time" v-model="requestedTime" data-testid="order-time">
+        <!-- pickup: choose one of the seller's slots -->
+        <div v-if="fulfilment === 'pickup'" class="mb-3">
+          <label class="form-label" for="requested-time">Pickup time</label>
+          <select class="form-select" id="requested-time" v-model="requestedTime" data-testid="order-time">
             <option disabled value="">Please select one</option>
-            <option v-for="slot in openSlots" :key="slot._id" :value="slot.start">
-              {{ formatDateTime(slot.start) }}
-            </option>
+            <option v-for="slot in openSlots" :key="slot._id" :value="slot.start">{{ formatDateTime(slot.start) }}</option>
           </select>
-          <div v-if="currentUser && currentUser.role === 'buyer'" class="small mt-2">
-            <div class="d-flex flex-wrap gap-2">
-              <span>None of these times work?</span>
-              <button type="button" class="btn btn-link btn-sm p-0" :disabled="chatBusy" @click="messageSeller" data-testid="order-message-seller">Message seller</button>
-            </div>
-            <p v-if="chatError" class="text-danger small mt-2 mb-0" data-testid="order-chat-error">{{ chatError }}</p>
-          </div>
         </div>
 
-        <div class="mb-3">
-          <div v-if="product.shop.pickup && !noSlots" class="form-check">
-            <input class="form-check-input" type="radio" id="pickup" value="pickup" v-model="fulfilment" data-testid="order-fulfilment-pickup" />
-            <label class="form-check-label" for="pickup">Pickup</label>
+        <!-- delivery: a slot, or (no slots left) a time the buyer suggests -->
+        <template v-else>
+          <div v-if="noSlots" class="alert alert-info small" data-testid="order-no-slots-delivery">
+            No slots are left for this product, but you can still request <strong>delivery</strong> at a time that suits you.
+            The seller will accept it or suggest another time.
           </div>
-          <div v-if="product.shop.delivery" class="form-check">
-            <input class="form-check-input" type="radio" id="delivery" value="delivery" v-model="fulfilment" data-testid="order-fulfilment-delivery" />
-            <label class="form-check-label" for="delivery">Delivery</label>
+          <div class="mb-3">
+            <label class="form-label" for="requested-time">{{ noSlots ? 'Preferred delivery time' : 'Delivery time' }}</label>
+            <input v-if="noSlots" type="datetime-local" class="form-control" id="requested-time" v-model="requestedTime"
+              :min="minRequestTime" data-testid="order-time" />
+            <select v-else class="form-select" id="requested-time" v-model="requestedTime" data-testid="order-time">
+              <option disabled value="">Please select one</option>
+              <option v-for="slot in openSlots" :key="slot._id" :value="slot.start">{{ formatDateTime(slot.start) }}</option>
+            </select>
           </div>
+        </template>
+
+        <div v-if="currentUser && currentUser.role === 'buyer'" class="small mb-3">
+          <div class="d-flex flex-wrap gap-2">
+            <span>None of these times work?</span>
+            <button type="button" class="btn btn-link btn-sm p-0" :disabled="chatBusy" @click="messageSeller" data-testid="order-message-seller">Message seller</button>
+          </div>
+          <p v-if="chatError" class="text-danger small mt-2 mb-0" data-testid="order-chat-error">{{ chatError }}</p>
         </div>
 
         <fieldset v-if="fulfilment === 'delivery'" class="mb-3 delivery-box" data-testid="order-delivery-address">
@@ -317,6 +350,75 @@ async function submitOrder() {
 </template>
 
 <style scoped>
+/* ---- Delivery / Pickup option cards ---- */
+.fulfil-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.fulfil-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1.5rem 1rem 1.25rem;
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 2px 10px rgba(var(--navy-rgb), 0.06);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.fulfil-card:hover:not(.unavailable) {
+  border-color: var(--ocean);
+  transform: translateY(-2px);
+}
+.fulfil-card.chosen {
+  border-color: var(--ocean);
+  background: var(--ocean-soft);
+  box-shadow: 0 6px 18px rgba(var(--ocean-rgb), 0.18);
+}
+.fulfil-card:has(input:focus-visible) {
+  outline: 2px solid var(--ocean);
+  outline-offset: 2px;
+}
+.fulfil-icon {
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+.fulfil-card.chosen .fulfil-icon {
+  color: var(--ocean-dark);
+}
+.fulfil-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.fulfil-sub {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* can't be chosen: greyed out, the reason stays readable */
+.fulfil-card.unavailable {
+  cursor: not-allowed;
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+.fulfil-card.unavailable .fulfil-icon,
+.fulfil-card.unavailable .fulfil-title {
+  opacity: 0.4;
+}
+.fulfil-sub.why {
+  color: var(--rose);
+  font-weight: 500;
+}
+@media (max-width: 400px) {
+  .fulfil-card { padding: 1.1rem 0.6rem 1rem; }
+}
+
 /* ---- "Order requested" card ---- */
 .success-card {
   max-width: 560px;
