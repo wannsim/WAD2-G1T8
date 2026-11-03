@@ -66,8 +66,8 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Nearest MRT (for location pin)</label>
-        <input type="text" class="form-control" v-model="profile.nearestMrt" placeholder="E.g. Dhoby Ghaut MRT" required>
+        <label class="form-label" for="shop-mrt">Nearest MRT (for location pin)</label>
+        <MrtSelect id="shop-mrt" v-model="profile.nearestMrt" placeholder="e.g. Dhoby Ghaut" required />
       </div>
 
       <div class="mb-3">
@@ -144,6 +144,8 @@ import { API_URL } from '@/utils/config'
 import { myShopAvatar } from '@/utils/layout'
 import AvatarEditor from '@/components/AvatarEditor.vue'
 import CategoryMultiSelect from '@/components/CategoryMultiSelect.vue'
+import MrtSelect from '@/components/MrtSelect.vue'
+import { matchStation } from '@/utils/mrtStations'
 import { toCategories } from '@/utils/constants'
 
 const profile = ref({ name: '', nearestMrt: '', experience: '', categories: [], certifications: [] })
@@ -231,6 +233,16 @@ const saveProfile = async () => {
   if (!currentUser.value || !currentUser.value._id) {
     return alert("You must be logged in to save a profile.")
   }
+
+  // the nearest MRT must be a station on the list (it places the shop on the map)
+  const station = matchStation(profile.value.nearestMrt)
+  if (!station) {
+    message.value = 'Please choose your nearest MRT station from the list.'
+    document.getElementById('shop-mrt')?.focus()
+    return
+  }
+  profile.value.nearestMrt = station
+  message.value = ''
 
   // Convert the comma string back into an array before saving (categories already are one)
   profile.value.certifications = certsInput.value.split(',').map(s => s.trim()).filter(Boolean)

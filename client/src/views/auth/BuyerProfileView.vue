@@ -8,6 +8,8 @@ import { CATEGORIES } from '@/utils/constants'
 import { userAvatarUrl } from '@/utils/layout'
 import AvatarEditor from '@/components/AvatarEditor.vue'
 import CategoryMultiSelect from '@/components/CategoryMultiSelect.vue'
+import MrtSelect from '@/components/MrtSelect.vue'
+import { matchStation } from '@/utils/mrtStations'
 import { useNameCheck } from '@/utils/nameCheck'
  
 // Save as: client/src/views/auth/BuyerProfileView.vue   (Owner: Wan Sim)
@@ -86,6 +88,13 @@ async function save() {
     message.value = 'That username is taken. Please choose another one.'
     return
   }
+  // preferred MRT is optional, but if filled in it must be a station on the list
+  if (preferredMrt.value.trim() && !matchStation(preferredMrt.value)) {
+    message.value = 'Please choose your preferred MRT station from the list.'
+    document.getElementById('preferred-mrt')?.focus()
+    return
+  }
+  preferredMrt.value = matchStation(preferredMrt.value) // tidy spelling, e.g. "bishan mrt" -> "Bishan"
   if (deliveryPostalCode.value && !/^\d{6}$/.test(deliveryPostalCode.value)) {
     message.value = 'Postal code must be 6 digits.'
     return
@@ -177,7 +186,7 @@ async function save() {
 
         <div class="mb-3">
           <label for="preferred-mrt" class="form-label">Preferred MRT station</label>
-          <input id="preferred-mrt" v-model.trim="preferredMrt" class="form-control" placeholder="e.g. Bishan" />
+          <MrtSelect id="preferred-mrt" v-model="preferredMrt" placeholder="e.g. Bishan" />
           <!-- <div class="form-text">The map opens at this station when you switch from Browse.</div> -->
         </div>
 

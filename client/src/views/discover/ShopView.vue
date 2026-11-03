@@ -24,7 +24,7 @@
     <template v-if="tab === 'home'">
       <p v-if="products.length === 0" class="text-muted">This shop has no listings yet.</p>
       <section v-for="row in homeRows" :key="row.key" class="row-section">
-        <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <div class="d-flex justify-content-between align-items-baseline mb-3">
           <h2 class="row-title">{{ row.title }}</h2>
           <button type="button" class="see-all" @click="openProducts(row.sort)">See all</button>
         </div>
@@ -43,7 +43,7 @@
 
     <!-- ===== Products: everything, with Latest / Popular / Price chips ===== -->
     <template v-else-if="tab === 'products'">
-      <div class="d-flex flex-wrap gap-2 mb-3">
+      <div class="d-flex flex-wrap gap-2 mb-4">
         <button v-for="s in SORTS" :key="s.key" type="button" class="sort-chip" :class="{ active: sort === s.key }"
           @click="sort = s.key">{{ s.label }}</button>
       </div>
@@ -65,31 +65,42 @@
     </section>
 
     <!-- ===== About ===== -->
-    <section v-else class="about card p-4">
-      <h2 class="row-title mb-3">About</h2>
-      <!-- same six stats as the seller box on a product page -->
+    <section v-else class="about" aria-labelledby="about-title">
+      <h2 id="about-title" class="about-title">About</h2>
+      <p v-if="shop.description" class="about-text">{{ shop.description }}</p>
+
+      <!-- six stats in a row: big value, small label underneath -->
       <dl class="about-stats" aria-label="Shop stats">
-        <div v-for="item in statItems" :key="item.label" class="about-stat">
-          <dt>{{ item.label }}</dt>
-          <dd>{{ item.value }}</dd>
+        <div v-for="stat in aboutStats" :key="stat.label" class="about-stat">
+          <dt>{{ stat.label }}</dt>
+          <dd>{{ stat.value }}<small v-if="stat.extra"> {{ stat.extra }}</small></dd>
         </div>
       </dl>
-      <p v-if="shop.description" class="about-text">{{ shop.description }}</p>
-      <dl class="about-list">
-        <template v-if="shop.nearestMrt"><dt>Nearest MRT</dt><dd>{{ shop.nearestMrt }}</dd></template>
-        <dt>Getting your order</dt><dd>{{ fulfilment }}</dd>
-        <template v-if="shop.experience"><dt>Experience</dt><dd>{{ shop.experience }}</dd></template>
-        <template v-if="shop.categories?.length"><dt>Categories</dt>
-          <dd><span class="badge bg-secondary me-1" v-for="cat in shop.categories" :key="cat">{{ cat }}</span></dd>
-        </template>
-        <template v-if="shop.certifications?.length"><dt>Certifications</dt><dd>{{ shop.certifications.join(', ') }}</dd></template>
-        <template v-if="shop.createdAt"><dt>Member since</dt><dd>{{ joined }}</dd></template>
+
+      <!-- details: icon tile + label + value -->
+      <dl class="about-details">
+        <div v-for="item in aboutDetails" :key="item.label" class="about-detail">
+          <span class="detail-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path v-for="(d, i) in item.icon" :key="i" :d="d" /></svg>
+          </span>
+          <div class="min-w-0">
+            <dt>{{ item.label }}</dt>
+            <dd v-if="item.chips" class="detail-chips">
+              <span v-for="chip in item.chips" :key="chip" class="detail-chip">{{ chip }}</span>
+            </dd>
+            <dd v-else class="text-break">{{ item.value }}</dd>
+          </div>
+        </div>
       </dl>
+
       <!-- certificate photos uploaded on the seller's profile page -->
-      <div v-if="shop.certificationFiles && shop.certificationFiles.length" class="d-flex flex-wrap gap-2 mt-2">
-        <a v-for="cert in shop.certificationFiles" :key="cert._id" :href="certImageUrl(cert)" target="_blank" :title="cert.name">
-          <img :src="certImageUrl(cert)" :alt="cert.name" class="cert-img" loading="lazy" decoding="async">
-        </a>
+      <div v-if="shop.certificationFiles && shop.certificationFiles.length" class="cert-photos">
+        <p class="cert-heading">Certificate photos</p>
+        <div class="d-flex flex-wrap gap-2">
+          <a v-for="cert in shop.certificationFiles" :key="cert._id" :href="certImageUrl(cert)" target="_blank" :title="cert.name">
+            <img :src="certImageUrl(cert)" :alt="cert.name" class="cert-img" loading="lazy" decoding="async">
+          </a>
+        </div>
       </div>
     </section>
 
@@ -108,7 +119,7 @@ import ProductCard from '@/components/ProductCard.vue'
 import ShopHeader from '@/components/ShopHeader.vue'
 import EditProductModal from '@/components/EditProductModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
-import { shopStatItems } from '@/utils/shopStats'
+import { shortNumber } from '@/utils/format'
 
 const shop = ref(null)
 const products = ref([])
@@ -132,8 +143,46 @@ const fulfilment = computed(() => {
   const ways = [shop.value?.pickup && 'Pickup', shop.value?.delivery && 'Delivery'].filter(Boolean)
   return ways.length ? ways.join(' or ') : 'Ask the seller'
 })
-const statItems = computed(() => shopStatItems(shop.value, products.value.length))
-const joined = computed(() => new Date(shop.value.createdAt).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' }))
+// About tab: short stat values ("4.5 (61)", "< 4 hrs", "Oct 2026") so six fit in one row
+function shortResponse(mins) {
+  if (!mins) return 'New'
+  if (mins < 60) return `< ${Math.max(1, Math.round(mins))} mins`
+  const hours = Math.round(mins / 60)
+  if (mins < 1440) return `< ${hours} ${hours === 1 ? 'hr' : 'hrs'}`
+  return 'Days'
+}
+const aboutStats = computed(() => {
+  const stats = shop.value?.stats || {}
+  return [
+    stats.reviewCount
+      ? { label: 'Ratings', value: Number(stats.avgRating).toFixed(1), extra: `(${shortNumber(stats.reviewCount)})` }
+      : { label: 'Ratings', value: 'New' },
+    { label: 'Orders fulfilled', value: stats.fulfilmentRate ? `${Math.round(stats.fulfilmentRate * 100)}%` : '-' },
+    { label: 'Response time', value: shortResponse(stats.avgResponseMins) },
+    { label: 'Products', value: String(products.value.length) },
+    { label: 'Followers', value: shortNumber(stats.followerCount ?? shop.value?.followers?.length ?? 0) },
+    { label: 'Member since', value: shop.value?.createdAt ? new Date(shop.value.createdAt).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' }) : '-' },
+  ]
+})
+// bootstrap-icons paths for the detail tiles
+const ABOUT_ICONS = {
+  pin: ['M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10', 'M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6'],
+  truck: ['M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2'],
+  briefcase: ['M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5m1.886 6.914L15 7.151V12.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V7.15l6.614 1.764a1.5 1.5 0 0 0 .772 0M1.5 4h13a.5.5 0 0 1 .5.5v1.616L8.129 7.948a.5.5 0 0 1-.258 0L1 6.116V4.5a.5.5 0 0 1 .5-.5'],
+  award: ['M9.669.864 8 0 6.331.864l-1.858.282-.842 1.68-1.337 1.32L2.6 6l-.306 1.854 1.337 1.32.842 1.68 1.858.282L8 12l1.669-.864 1.858-.282.842-1.68 1.337-1.32L13.4 6l.306-1.854-1.337-1.32-.842-1.68zm1.196 1.193.684 1.365 1.086 1.072L12.387 6l.248 1.506-1.086 1.072-.684 1.365-1.51.229L8 10.874l-1.355-.702-1.51-.229-.684-1.365-1.086-1.072L3.614 6l-.25-1.506 1.087-1.072.684-1.365 1.51-.229L8 1.126l1.356.702z', 'M4 11.794V16l4-1 4 1v-4.206l-2.018.306L8 13.126 6.018 12.1z'],
+  tag: ['M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0', 'M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1m0 5.586 7 7L13.586 9l-7-7H2z'],
+}
+// only the details the seller filled in are shown
+const aboutDetails = computed(() => {
+  const s = shop.value || {}
+  return [
+    s.nearestMrt && { label: 'Nearest MRT', value: s.nearestMrt, icon: ABOUT_ICONS.pin },
+    { label: 'Getting your order', value: fulfilment.value, icon: ABOUT_ICONS.truck },
+    s.experience && { label: 'Experience', value: s.experience, icon: ABOUT_ICONS.briefcase },
+    s.certifications?.length && { label: 'Certifications', value: s.certifications.join(', '), icon: ABOUT_ICONS.award },
+    s.categories?.length && { label: 'Categories', chips: s.categories, icon: ABOUT_ICONS.tag },
+  ].filter(Boolean)
+})
 
 // ---------- tabs ----------
 const TABS = [
@@ -257,7 +306,7 @@ const onProductSaved = (updated) => {
 .shop-tabs {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin: 1rem 0 2.25rem;
   border-bottom: 1px solid var(--line);
   overflow-x: auto;
 }
@@ -279,10 +328,15 @@ const onProductSaved = (updated) => {
   color: var(--navy);
 }
 
+/* Products tab: more room between cards than the default grid */
+.card-grid {
+  gap: 1.75rem;
+}
+
 /* ---------- Home rows ---------- */
 .row-section {
-  padding-bottom: 1.75rem;
-  margin-bottom: 1.75rem;
+  padding-bottom: 2.5rem;
+  margin-bottom: 2.5rem;
   border-bottom: 1px solid var(--line);
 }
 .row-section:last-child {
@@ -307,7 +361,7 @@ const onProductSaved = (updated) => {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(220px, 250px);
-  gap: 1rem;
+  gap: 1.5rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
@@ -355,54 +409,115 @@ const onProductSaved = (updated) => {
 }
 
 /* ---------- About ---------- */
-/* stats box: 3 columns (label left, value right), like the seller box on a product page */
+.about {
+  padding: 2rem 2.25rem;
+  border-radius: 1.5rem;
+  background: var(--surface-soft);
+}
+.about-title {
+  margin: 0 0 0.3rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.about-text {
+  margin: 0 0 2rem;
+  white-space: pre-line;
+  color: var(--ink);
+}
+/* stats: one row of six, thin lines between them */
 .about-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem 2rem;
-  margin: 0 0 1.5rem;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
-  background: var(--surface-soft);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--line);
 }
 .about-stat {
   display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-width: 0;
+  flex-direction: column-reverse; /* label (dt) comes first for screen readers, but shows under the value */
+  padding: 0.1rem 1.25rem;
+  border-left: 1px solid var(--line);
 }
-.about-stat dt {
-  font-weight: 400;
-  color: var(--muted);
+.about-stat:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 .about-stat dd {
   margin: 0;
-  font-weight: 600;
-  color: var(--ocean-dark);
-  text-align: right;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ocean);
   white-space: nowrap;
 }
-@media (max-width: 991.98px) {
-  .about-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 479.98px) {
-  .about-stats { grid-template-columns: 1fr; }
-}
-.about-text {
-  white-space: pre-line;
-}
-.about-list {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.5rem 1.5rem;
-  margin: 0;
-}
-.about-list dt {
-  font-weight: 600;
+.about-stat dd small {
+  font-size: 0.95rem;
+  font-weight: 400;
   color: var(--ink-soft);
 }
-.about-list dd {
-  margin: 0;
+.about-stat dt {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+/* details: three columns of icon + label + value */
+.about-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.75rem 2.25rem;
+  margin: 1.75rem 0 0;
+}
+.about-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+.detail-icon {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.8rem;
+  background: var(--ocean-soft);
+  color: var(--ocean);
+}
+.about-detail dt {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.about-detail dd {
+  margin: 0.1rem 0 0;
+  font-weight: 500;
+  color: var(--ink);
+}
+.detail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.detail-chip {
+  padding: 0.15rem 0.75rem;
+  border-radius: 999px;
+  background: var(--ocean-soft);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ocean-dark);
+}
+.min-w-0 {
+  min-width: 0;
+}
+.cert-photos {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.cert-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 .cert-img {
   width: 80px;
@@ -412,10 +527,19 @@ const onProductSaved = (updated) => {
   border: 1px solid var(--line);
 }
 
-/* phones: About details stack */
+/* smaller screens: 3 stats a row, then 2; details 2 columns, then 1 */
+@media (max-width: 1199.98px) {
+  .about-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 1.5rem; }
+  .about-stat:nth-child(3n + 1) { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 991.98px) {
+  .about-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 575.98px) {
-  .about-list {
-    grid-template-columns: 1fr;
-  }
+  .about { padding: 1.5rem 1.25rem; }
+  .about-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .about-stat { padding-left: 1rem; border-left: 1px solid var(--line); }
+  .about-stat:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .about-details { grid-template-columns: 1fr; }
 }
 </style>
