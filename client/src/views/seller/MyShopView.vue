@@ -119,12 +119,13 @@
     <div class="card-grid">
       <div v-for="item in shownProducts" :key="item._id">
         <div class="card product-tile h-100 shadow-sm"
-          :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting }"
+          :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting, paused: item.isAvailable === false }"
           @click="selecting && toggleSelected(item)">
           <div class="position-relative">
             <!-- photo is loaded from its own URL (lazy), not sent inside the JSON -->
             <img :src="item.imageUrl || '/placeholder.svg'" class="card-img-top product-img" :alt="item.name"
               loading="lazy" decoding="async" @error="$event.target.src = '/placeholder.svg'">
+            <span v-if="item.isAvailable === false" class="paused-badge">Orders closed</span>
             <!-- select mode: a checkbox on every card, ticked when the card is selected -->
             <label v-if="selecting" class="select-box" @click.stop>
               <input type="checkbox" class="form-check-input" :checked="isSelected(item)"
@@ -153,6 +154,14 @@
             <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
               <span>{{ formatPrice(item.price) }} <span class="small text-muted">/ {{ item.unit }}</span></span>
               <div v-if="!selecting" class="d-flex gap-1">
+                <!-- close orders = stop taking orders but keep the product; reopen = take orders again -->
+                <button type="button" class="btn btn-sm icon-btn" :class="item.isAvailable === false ? 'btn-success' : 'btn-outline-secondary'"
+                  :data-label="item.isAvailable === false ? 'Reopen orders' : 'Close orders'"
+                  :aria-label="item.isAvailable === false ? `Reopen orders for ${item.name}` : `Close orders for ${item.name}`"
+                  :aria-pressed="item.isAvailable === false" :disabled="pausingId === item._id" @click="togglePause(item)">
+                  <svg v-if="item.isAvailable === false" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" /></svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" /></svg>
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-primary icon-btn" data-label="Edit"
                   aria-label="Edit" @click="editModal.open(item)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
@@ -161,6 +170,8 @@
                 </button>
               </div>
             </div>
+            <p v-if="item.isAvailable === false" class="paused-note">Buyers can still see it but can't order. Reopen orders any time.</p>
+            <p v-if="pauseError[item._id]" class="small text-danger mb-0 mt-1" role="alert">{{ pauseError[item._id] }}</p>
             <!-- a button (not an href="#product-reviews" link): some ad blockers hide links like that -->
             <button v-if="!selecting" type="button" class="btn btn-sm btn-outline-secondary mt-3"
               :aria-label="`View reviews for ${item.name}`" @click="showReviewsFor(item)">View reviews</button>
@@ -452,6 +463,23 @@ async function addSlotToAll() {
 
 const recurring = ref(null) // the "Recurring slots" pop-up
 
+// ---- close / reopen orders for a product (stop taking orders without deleting it) ----
+const pausingId = ref('')
+const pauseError = ref({})
+async function togglePause(item) {
+  const isAvailable = item.isAvailable === false // closed -> reopen, otherwise close
+  pausingId.value = item._id
+  pauseError.value = { ...pauseError.value, [item._id]: '' }
+  try {
+    const { data } = await axios.patch(`${API_URL}/products/${item._id}/availability`, { isAvailable })
+    item.isAvailable = data.isAvailable
+  } catch (err) {
+    pauseError.value = { ...pauseError.value, [item._id]: err.response?.data?.error || 'Could not change it. Please try again.' }
+  } finally {
+    pausingId.value = ''
+  }
+}
+
 // "View all slots": every product's slots grouped by start time (one row per time, products listed under it)
 const slotView = ref('upcoming')
 const slotGroups = computed(() => {
@@ -707,6 +735,27 @@ onBeforeUnmount(() => shopController?.abort())
   padding: 0 0.25rem 1.25rem;
   border-bottom: 1px solid var(--line);
   color: var(--ink-soft);
+}
+/* orders closed: faded photo + "Orders closed" label */
+.product-tile.paused .product-img {
+  filter: grayscale(0.7);
+  opacity: 0.6;
+}
+.paused-badge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(var(--navy-rgb), 0.85);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+.paused-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 .icon-btn {
   position: relative;

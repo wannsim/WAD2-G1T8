@@ -88,6 +88,8 @@ function useFallbackImage(event) {
           </div>
         </template>
 
+        <!-- the seller closed orders: still shown, but can't be ordered right now -->
+        <span v-if="product.isAvailable === false" class="paused-chip">Orders closed</span>
         <FavouriteButton v-if="favourite" :product-id="product._id" class="fav-on-photo" />
         <!-- shop owner: a Pin / Unpin button. Everyone else: just the pin icon on pinned products -->
         <button v-if="pinnable" type="button" class="feature-mark feature-toggle" :class="{ pinned, 'beside-fav': favourite }"
@@ -387,5 +389,18 @@ function useFallbackImage(event) {
 .reason-hint:focus-visible + .reason-tip {
   opacity: 1;
   transform: none;
+}
+/* the seller closed orders for this product */
+.paused-chip {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  z-index: 2;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(var(--navy-rgb), 0.85);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
 }
 </style>

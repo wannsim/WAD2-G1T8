@@ -176,8 +176,12 @@ onMounted(async () => {
         <RouterLink to="/login">Log in</RouterLink> as a buyer to order.
       </p> -->
       <div v-if="currentUser && currentUser.role === 'buyer' && product.shop" class="mt-4">
+        <p v-if="product.isAvailable === false" class="paused-notice" role="status">
+          The seller isn't taking orders for this right now. Chat with them or check back later.
+        </p>
         <div class="d-flex gap-2">
-          <RouterLink :to="`/order/new/${product._id}`" class="btn btn-brand btn-lg flex-fill">Request order</RouterLink>
+          <button v-if="product.isAvailable === false" type="button" class="btn btn-brand btn-lg flex-fill" disabled>Orders closed</button>
+          <RouterLink v-else :to="`/order/new/${product._id}`" class="btn btn-brand btn-lg flex-fill">Request order</RouterLink>
           <button class="btn chatBtn btn-lg flex-fill" @click="chatWithSeller">Chat with seller</button>
         </div>
         <p v-if="chatError" class="text-danger small mt-2">{{ chatError }}</p>
@@ -288,5 +292,13 @@ onMounted(async () => {
 .chatBtn:hover{
   color: var(--brand-dark);
   border-color: var(--brand-dark)
+}
+.paused-notice {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.75rem;
+  background: var(--tile);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
 }
 </style>

@@ -222,6 +222,22 @@ router.put('/:id', requireAuth, upload.array('images', 5), async (req, res) => {
   }
 })
 
+// Close / reopen orders for a product (My shop): closed = still in the shop, but no new orders.
+// body: { isAvailable: true | false }. Closed products are hidden from Browse / For you, and POST /orders refuses them.
+router.patch('/:id/availability', requireAuth, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' })
+    if (!(await ownsProduct(req.params.id, req.user.id))) return res.status(403).json({ error: 'Only the shop owner can change this product' })
+    if (typeof req.body.isAvailable !== 'boolean') return res.status(400).json({ error: 'isAvailable must be true or false' })
+    const product = await Product.findByIdAndUpdate(req.params.id, { isAvailable: req.body.isAvailable }, { new: true })
+      .select('_id isAvailable').lean()
+    if (!product) return res.status(404).json({ error: 'Product not found' })
+    res.json(product)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Delete a product. body: { user }   user must own the product's shop
 // Past orders keep working (they show "Product removed").
 router.delete('/:id', requireAuth, async (req, res) => {
