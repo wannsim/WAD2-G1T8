@@ -492,7 +492,7 @@ onMounted(async () => {
       <div v-if="error" class="alert alert-danger" data-testid="seller-orders-error">{{ error }}</div>
       <div v-if="chatError" class="alert alert-danger" data-testid="order-chat-error">{{ chatError }}</div>
 
-      <div class="row g-4">
+      <div class="row g-4 gx-lg-5"> <!-- wider gap between Orders and Next pickups on laptops -->
         <!-- ===== left: the orders ===== -->
         <div class="col-lg-8">
           <section ref="ordersPanel" class="panel p-3 p-md-4" aria-labelledby="orders-title">
@@ -541,10 +541,10 @@ onMounted(async () => {
                 {{ search.trim() || (activeGroup === 'done' && doneStatus !== 'all') ? 'No matching orders.' : EMPTY_TEXT[activeGroup] }}
               </p>
 
-              <div v-else class="d-flex flex-column gap-3" :data-testid="`group-${activeGroup}`">
+              <div v-else class="order-cards" :data-testid="`group-${activeGroup}`">
                 <article v-for="o in currentList" :key="o._id" class="order-card" data-testid="order-row">
-                  <div class="d-flex gap-3">
-                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="64" height="64"
+                  <div class="d-flex order-top">
+                    <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="76" height="76"
                       class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                     <div class="order-text flex-grow-1">
                       <div class="d-flex justify-content-between align-items-start gap-2">
@@ -657,7 +657,7 @@ onMounted(async () => {
                     <span class="pickup-price">{{ formatPrice(p.totalPrice) }}</span>
                   </div>
                   <p class="pickup-meta text-break">{{ formatDateTime(p.requestedTime) }} &middot; {{ p.buyer ? p.buyer.name : 'Buyer removed' }} &middot; Quantity: {{ p.quantity }} &middot; {{ capitalize(p.fulfilment) }}</p>
-                  <p v-if="isOverdue(p)" class="pickup-warning">The pickup time has passed. Mark it completed or message the buyer.</p>
+                  <p v-if="isOverdue(p)" class="pickup-warning">The pickup time has passed.</p>
                   <!-- Mark completed asks here, not in the list, because this is where it was clicked -->
                   <div v-if="confirmId === p._id && confirmStatus === 'completed' && confirmPlace === 'pickups'" class="pickup-actions">
                     <p class="full mb-0">Mark this order as completed?</p>
@@ -665,9 +665,10 @@ onMounted(async () => {
                     <button type="button" class="btn btn-act-outline" :disabled="busyId !== ''" @click="clearConfirm" data-testid="next-pickup-confirm-no">Keep order</button>
                   </div>
                   <div v-else class="pickup-actions">
-                    <button type="button" class="btn btn-act-primary full" :disabled="busyId !== ''" @click="askConfirm(p, 'completed', 'pickups')" data-testid="next-pickup-complete">Mark completed</button>
-                    <button v-if="p.buyer" type="button" class="btn btn-act-outline" :disabled="chatBusyId !== ''" @click="messageBuyer(p)" data-testid="next-pickup-message">Message buyer</button>
-                    <button type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(p, 'cancelled')" data-testid="next-pickup-cancel">Cancel order</button>
+                    <!-- one row of short buttons keeps the card short (full words for screen readers) -->
+                    <button type="button" class="btn btn-act-primary" :disabled="busyId !== ''" @click="askConfirm(p, 'completed', 'pickups')" data-testid="next-pickup-complete">Mark completed</button>
+                    <button v-if="p.buyer" type="button" class="btn btn-act-outline" :disabled="chatBusyId !== ''" @click="messageBuyer(p)" aria-label="Message buyer" data-testid="next-pickup-message">Message</button>
+                    <button type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(p, 'cancelled')" aria-label="Cancel order" data-testid="next-pickup-cancel">Cancel</button>
                   </div>
                   <p v-if="busyId === p._id" class="small text-body-secondary mb-0"><span class="spinner-border spinner-border-sm"></span> Sending…</p>
                 </li>
@@ -732,8 +733,8 @@ onMounted(async () => {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 0.9rem;
-  padding: 1.1rem 1.1rem 1.4rem;
+  gap: 0.7rem;
+  padding: 0.75rem 0.8rem 0.85rem;
   overflow: hidden;
   border: 1px solid var(--tile-line);
   border-radius: 1.25rem;
@@ -769,8 +770,8 @@ onMounted(async () => {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: #fff;
   color: var(--navy);
@@ -788,23 +789,23 @@ onMounted(async () => {
 .stat-label { font-weight: 600; }
 .tone-green .stat-label { color: #23804a; }
 .stat-value {
-  font-size: 2rem;
+  font-size: 1.7rem;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.1;
   color: var(--navy);
 }
-.stat-hint { font-size: 0.85rem; color: var(--ink-soft); }
+.stat-hint { font-size: 0.8rem; line-height: 1.3; color: var(--ink-soft); }
 .stat-arrow {
   position: relative;
   z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   line-height: 1;
   color: var(--navy);
 }
@@ -850,10 +851,11 @@ onMounted(async () => {
 .tab-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.4rem;
 }
 .tab-pill {
-  padding: 0.55rem 1.2rem;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.85rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--aqua-soft);
@@ -868,38 +870,47 @@ onMounted(async () => {
 }
 
 /* ---------- order cards (same look as My orders) ---------- */
+/* roomier list: more gap between cards, more padding inside */
+.order-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.order-top {
+  gap: 0.9rem;
+}
 .order-card {
-  padding: 1rem 1.25rem 1.25rem;
+  padding: 0.9rem 1.1rem;
   border: 1px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
 }
 .order-thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: 0.8rem;
+  width: 76px;
+  height: 76px;
+  border-radius: 1rem;
   object-fit: cover;
 }
 .order-text { min-width: 0; }
 .order-name {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ink);
 }
 .order-price {
   flex-shrink: 0;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--ink);
 }
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.85rem;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.76rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -922,12 +933,15 @@ onMounted(async () => {
   margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
+  font-size: 0.9rem;
+}
+.order-facts li + li {
+  margin-top: 0.2rem;
 }
 .order-facts li {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
-  margin-bottom: 0.25rem;
+  gap: 0.5rem;
   color: var(--ink);
 }
 .order-facts svg {
@@ -936,11 +950,11 @@ onMounted(async () => {
   color: var(--ink-soft);
 }
 .status-help {
-  margin: 0.4rem 0 0;
-  padding: 0.6rem 0.9rem;
-  border-radius: 0.8rem;
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.7rem;
   background: var(--surface-soft);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   color: var(--ink-soft);
 }
 /* Passed times need a clear warning. */
@@ -963,11 +977,12 @@ onMounted(async () => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--line);
 }
+
 /* Space between a button's icon and its label. */
 .order-actions .btn { gap: 0.4rem; }
 .inline-box {
@@ -1000,9 +1015,9 @@ onMounted(async () => {
 .pickup-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
-  padding: 12px 14px;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 10px 12px;
   border: 1.5px solid #dfe3f2;
   border-radius: 16px;
 }
@@ -1010,18 +1025,21 @@ onMounted(async () => {
 .pickup-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .pickup-name { font-size: 15px; font-weight: 700; color: #2e3170; }
 .pickup-price { flex-shrink: 0; font-size: 15px; font-weight: 700; color: #2e3170; }
-.pickup-meta { margin: 0; font-size: 13px; color: #4b4f72; }
-.pickup-warning { margin: 0; font-size: 12.5px; font-weight: 500; color: #b8312f; }
+.pickup-meta { margin: 0; font-size: 12.5px; line-height: 1.4; color: #4b4f72; }
+.pickup-warning { margin: 0; font-size: 12px; font-weight: 500; color: #b8312f; }
 /* Two buttons per row; "full" makes one button (or line) take the whole row. */
+/* all buttons on one row (they wrap only if the column is very narrow) */
 .pickup-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   margin-top: 4px;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid #dfe3f2;
 }
-.pickup-actions .full { grid-column: 1 / -1; }
+.pickup-actions .btn { flex: 1 1 auto; }
+.pickup-actions .full { flex-basis: 100%; }
 .empty-pickups {
   padding: 1rem 0 0.5rem;
   text-align: center;
@@ -1047,7 +1065,8 @@ onMounted(async () => {
 .calendar-bar-empty { background: var(--line); }
 
 /* Calendar connection controls use the shared navy, outlined and danger button set. */
-.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
+.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; border: 1.5px solid; border-radius: 999px; min-height: 30px; padding: 0 10px; font-size: 12px; font-weight: 600; line-height: 1.2; }
+.btn.btn-act-primary svg, .btn.btn-act-outline svg, .btn.btn-act-danger svg { width: 13px; height: 13px; }
 .btn.btn-act-primary { background: var(--ocean); border-color: var(--ocean); color: #fff; }
 .btn.btn-act-outline { background: #fff; border-color: #c9d0f6; color: #2e3170; }
 .btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
@@ -1076,8 +1095,8 @@ onMounted(async () => {
 }
 @media (max-width: 575.98px) {
   .stat-grid { grid-template-columns: 1fr; }
-  .order-card { padding: 0.9rem 0.9rem 1.25rem; }
-  .order-thumb { width: 56px; height: 56px; }
+  .order-card { padding: 0.85rem 0.9rem 1rem; }
+  .order-thumb { width: 64px; height: 64px; }
   .order-price { font-size: 1.1rem; }
 }
 </style>

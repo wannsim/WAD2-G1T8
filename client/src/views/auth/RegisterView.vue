@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
+import { useNameCheck } from '@/utils/nameCheck'
 import '@/assets/auth.css'
  
 // Owner: Wan Sim
@@ -14,9 +15,14 @@ const role = ref('buyer')
 const error = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
+const { nameStatus, nameMessage } = useNameCheck(name) // ✓ / ✗ under the Name box while typing
  
 async function register() {
   error.value = ''
+  if (nameStatus.value === 'taken') {
+    error.value = 'That username is taken. Please choose another one.'
+    return
+  }
   loading.value = true
   try {
     await axios.post(`${API_URL}/users/register`, {
@@ -44,7 +50,14 @@ async function register() {
  
       <div class="auth-field">
         <label class="auth-label" for="name">Name</label>
-        <input id="name" type="text" class="auth-input" v-model.trim="name" autocomplete="name" />
+        <input id="name" type="text" class="auth-input" v-model.trim="name" autocomplete="name" maxlength="50"
+          :class="{ 'is-taken': nameStatus === 'taken' }" />
+        <p v-if="nameStatus" class="name-check" :class="nameStatus" aria-live="polite">
+          <span v-if="nameStatus === 'checking'" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <template v-else-if="nameStatus === 'available'"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg></template>
+          <template v-else><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" /></svg></template>
+          {{ nameStatus === 'checking' ? 'Checking...' : nameMessage }}
+        </p>
       </div>
  
       <div class="auth-field">

@@ -57,10 +57,12 @@
 
       <div class="mb-3">
         <label class="form-label" for="shopName">Shop name <span class="text-danger">*</span></label>
+        <!-- the name is chosen once, when the shop is created; after that it is locked -->
         <input id="shopName" type="text" class="form-control" v-model="profile.name" maxlength="60" required
-          :class="{ 'is-invalid': nameError }" @input="onNameInput">
+          :disabled="!!myShopId" :class="{ 'is-invalid': nameError }" @input="onNameInput">
         <div class="invalid-feedback">{{ nameError }}</div>
-        <div v-if="!nameError" class="form-text">Must be different from every other shop on Homly Hauls.</div>
+        <div v-if="myShopId" class="form-text">Shop names can't be changed after the shop is created.</div>
+        <div v-else-if="!nameError" class="form-text">Must be different from every other shop on Homly Hauls. You can't change it later.</div>
       </div>
 
       <div class="mb-3">
@@ -69,8 +71,9 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Categories (comma-separated)</label>
-        <input type="text" class="form-control" v-model="categoriesInput" placeholder="E.g. baked goods, crafts">
+        <label class="form-label" for="shop-categories">Categories</label>
+        <CategoryMultiSelect id="shop-categories" v-model="profile.categories" />
+        <div class="form-text">Pick everything your shop sells. Buyers filter by these on Browse and the map.</div>
       </div>
 
       <div class="mb-3">
@@ -140,9 +143,10 @@ import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
 import { myShopAvatar } from '@/utils/layout'
 import AvatarEditor from '@/components/AvatarEditor.vue'
+import CategoryMultiSelect from '@/components/CategoryMultiSelect.vue'
+import { toCategories } from '@/utils/constants'
 
 const profile = ref({ name: '', nearestMrt: '', experience: '', categories: [], certifications: [] })
-const categoriesInput = ref('')
 const certsInput = ref('')
 const myShopId = ref('')
 const followerCount = ref(0)
@@ -155,8 +159,8 @@ const shopPhoto = myShopAvatar // the shop's profile picture (changed on My shop
 const editing = ref(false)
 let savedProfile = null // copy of the last saved profile, so Cancel can throw away unsaved changes
 function fillForm(shop) {
-  profile.value = { ...shop }
-  categoriesInput.value = shop.categories?.join(', ') || ''
+  // old free-text categories are matched to the shared list (anything unknown becomes 'Others')
+  profile.value = { ...shop, categories: toCategories(shop.categories) }
   certsInput.value = shop.certifications?.join(', ') || ''
 }
 function startEditing() {
@@ -228,8 +232,7 @@ const saveProfile = async () => {
     return alert("You must be logged in to save a profile.")
   }
 
-  // Convert the comma strings back into arrays before saving
-  profile.value.categories = categoriesInput.value.split(',').map(s => s.trim()).filter(Boolean)
+  // Convert the comma string back into an array before saving (categories already are one)
   profile.value.certifications = certsInput.value.split(',').map(s => s.trim()).filter(Boolean)
   
   try {
@@ -243,7 +246,7 @@ const saveProfile = async () => {
       myShopId.value = res.data._id
     }
     nameError.value = ''
-    savedProfile = { ...profile.value }
+    savedProfile = { ...profile.value, categories: [...profile.value.categories] }
     message.value = 'Profile saved!'
     editing.value = false
   } catch (err) {

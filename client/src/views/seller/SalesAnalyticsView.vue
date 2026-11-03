@@ -205,14 +205,15 @@ onBeforeUnmount(() => controller?.abort())
         Revenue, the chart, and product revenue include only valid saved amounts. Average order value uses the {{ analytics.pricedOrderCount }} completed orders with valid amounts; order and unit counts include all completed orders.
       </p>
 
-      <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 row-cols-xxl-5 g-3 mb-4">
+      <!-- all 5 in one line on laptops and up; 3 / 2 / 1 per line on smaller screens -->
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-2 mb-4">
         <div v-for="card in summaryCards" :key="card.label" class="col">
           <div class="kpi-card h-100">
             <div class="kpi-head">
               <span class="kpi-icon" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path :d="card.icon" /></svg>
               </span>
-              <h2 class="kpi-label">{{ card.label }}</h2>
+              <h2 class="kpi-label" :title="card.label">{{ card.label }}</h2>
               <div class="dropdown ms-auto">
                 <button class="kpi-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" :aria-label="`More for ${card.label}`">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0" /></svg>
@@ -316,15 +317,15 @@ onBeforeUnmount(() => controller?.abort())
 <style scoped>
 .analytics-panel { background: #fff; border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 4px 16px rgb(0 0 0 / 3%); }
 /* summary cards: icon + label + menu, then a grey box with the number, change and period */
-.kpi-card { display: flex; flex-direction: column; padding: 0.5rem; background: #fff; border: 1px solid var(--line); border-radius: 1rem; }
-.kpi-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.4rem 0.6rem; }
-.kpi-icon { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 0.4rem; background: var(--tile); color: var(--ink-soft); flex-shrink: 0; }
-.kpi-label { margin: 0; font-size: 1rem; font-weight: 500; color: var(--muted); }
+.kpi-card { display: flex; flex-direction: column; padding: 0.35rem; background: #fff; border: 1px solid var(--line); border-radius: 1rem; }
+.kpi-head { display: flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.25rem 0.4rem; }
+.kpi-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 0.4rem; background: var(--tile); color: var(--ink-soft); flex-shrink: 0; }
+.kpi-label { min-width: 0; margin: 0; overflow: hidden; font-size: 0.875rem; font-weight: 500; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
 .kpi-menu { display: inline-flex; padding: 0.2rem; border: 0; border-radius: 0.4rem; background: transparent; color: var(--ink-soft); }
 .kpi-menu:hover, .kpi-menu:focus-visible { background: var(--tile); }
-.kpi-body { flex: 1; display: flex; flex-direction: column; padding: 0.9rem 0.75rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); }
-.kpi-value { margin: 0 0 1.25rem; font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; color: var(--brand-dark); overflow-wrap: anywhere; }
-.kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: auto; font-size: 0.875rem; }
+.kpi-body { flex: 1; display: flex; flex-direction: column; padding: 0.6rem 0.65rem 0.55rem; border-radius: 0.75rem; background: var(--surface-soft); }
+.kpi-value { margin: 0 0 0.6rem; font-size: clamp(1.3rem, 1.9vw, 1.75rem); font-weight: 700; color: var(--brand-dark); overflow-wrap: anywhere; }
+.kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: auto; font-size: 0.8rem; }
 .kpi-change { display: inline-flex; align-items: center; gap: 0.2rem; font-weight: 500; }
 .kpi-change.up { color: #1a9e55; }
 .kpi-change.down { color: var(--rose); }

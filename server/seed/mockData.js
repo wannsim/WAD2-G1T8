@@ -52,6 +52,10 @@ const CATEGORY_STYLE = {
   Drinks: ['#06b6d4', '#155e75'],
   'Handmade crafts': ['#8b5cf6', '#5b21b6'],
   Others: ['#10b981', '#065f46'],
+  'Cakes & cupcakes': ['#f472b6', '#9d174d'],
+  'Kueh & traditional treats': ['#22c55e', '#166534'],
+  'Classes & workshops': ['#6366f1', '#3730a3'],
+  'Plants & flowers': ['#84cc16', '#3f6212'],
 }
 const escapeXml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&apos;').replace(/"/g, '&quot;')
 

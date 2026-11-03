@@ -19,6 +19,7 @@ import notificationRoutes from './routes/notifications.js'
 import { startRealtime } from './utils/realtime.js'
 import User from './models/User.js'
 import { startTrendRefresh } from './utils/trends.js'
+import { startOverdueReminders } from './utils/overdueReminders.js'
 import { authenticate, readToken } from './utils/auth.js'
  
 dotenv.config({ path: './config.env' })
@@ -97,6 +98,7 @@ mongoose
     console.log('MongoDB connected')
     startRealtime(io) // live chat / notifications, even when each teammate runs their own server
     startTrendRefresh() // online trends for the Trending tab (YouTube Data API, YOUTUBE_API_KEY in config.env)
+    startOverdueReminders() // tells sellers when an accepted order is past its time (mark it completed?)
     // NOTE: httpServer.listen (not app.listen) so Socket.IO works
     httpServer.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
   })

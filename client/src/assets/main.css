@@ -506,3 +506,39 @@ a.card-title:hover {
   background: var(--tile-hover);
   color: var(--navy);
 }
+
+/* ---- read-only inputs (e.g. the email on the profile): grey, lock icon, no typing ---- */
+.form-control:disabled {
+  background-color: var(--tile);
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+.locked-input {
+  position: relative;
+}
+.locked-input .form-control {
+  padding-right: 2.2rem;
+}
+.locked-input .lock-icon {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ---- "✓ Username available" / "✗ Username is taken" under a name box ---- */
+.name-check {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.name-check.available { color: #1a9e55; }
+.name-check.taken { color: var(--rose); }
+.auth-input.is-taken { border-bottom-color: var(--rose); }

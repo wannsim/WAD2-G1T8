@@ -1,7 +1,33 @@
 // Rules for a product listing, checked on create and edit so the data stays standard
 // (category and price are used for filtering, search and sales analytics).
 // Keep these lists the same as client/src/utils/constants.js
-export const CATEGORIES = ['Baked goods', 'Meals', 'Snacks & desserts', 'Drinks', 'Handmade crafts', 'Others']
+export const CATEGORIES = [
+  // food & drink
+  'Baked goods',
+  'Cakes & cupcakes',
+  'Kueh & traditional treats',
+  'Snacks & desserts',
+  'Meals',
+  'Frozen & ready-to-cook',
+  'Sauces, jams & spreads',
+  'Healthy & dietary',
+  'Drinks',
+  'Festive & gift hampers',
+  // handmade & lifestyle
+  'Handmade crafts',
+  'Jewellery & accessories',
+  'Candles & home scents',
+  'Clothing & textiles',
+  'Art, prints & stationery',
+  'Beauty & self-care',
+  'Plants & flowers',
+  'Pet treats & supplies',
+  'Kids & baby',
+  // services
+  'Classes & workshops',
+  'Services',
+  'Others', // always last
+]
 export const UNITS = ['piece', 'box', 'pack', 'set', 'dozen', 'slice', 'jar', 'bottle', 'kg', 'session', 'hour']
 
 // up to 2 decimal places, e.g. 6, 6.5, 6.00

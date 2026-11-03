@@ -57,7 +57,10 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Category</label>
-                  <input type="text" class="form-control" v-model="editingProduct.category" required>
+                  <select class="form-select" v-model="editingProduct.category" required>
+                    <option value="" disabled>Choose a category</option>
+                    <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
+                  </select>
                 </div>
               </div>
 
@@ -97,6 +100,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { API_URL } from '@/utils/config'
 import { capitalize } from '@/utils/format'
+import { CATEGORIES } from '@/utils/constants'
 import { currentUser } from '@/utils/auth'
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js'
 

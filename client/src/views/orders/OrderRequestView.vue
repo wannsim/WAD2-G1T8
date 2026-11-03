@@ -195,12 +195,26 @@ async function submitOrder() {
     <div class="col-12 page-narrow">
       <PageSkeleton v-if="loading" variant="form" :count="4" label="Loading order form" data-testid="order-loading" />
       <div v-else-if="loadError" class="alert alert-danger" data-testid="order-load-error">{{ loadError }}</div>
-      <div v-else-if="sent && product" class="alert alert-success" data-testid="order-success">
-        <p class="text-break">Request sent to {{ product.shop.name }}. The seller will accept, decline or suggest another time.</p>
-        <div class="d-flex flex-wrap gap-2">
-          <RouterLink to="/orders" class="btn btn-brand" data-testid="order-view-orders-link">View my orders</RouterLink>
+      <!-- success card: green tick, what happens next, a short summary, then where to go -->
+      <section v-else-if="sent && product" class="success-card" role="status" data-testid="order-success">
+        <div class="success-tick" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 16 16" fill="currentColor"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg>
         </div>
-      </div>
+        <h2 class="success-title">Order requested</h2>
+        <p class="success-text text-break">
+          We sent your request to <strong>{{ product.shop.name }}</strong>. The seller will accept, decline or suggest
+          another time, and we'll notify you. Until then you can cancel it for free in My orders.
+        </p>
+        <dl class="success-summary">
+          <div><dt>Item</dt><dd class="text-break">{{ product.name }} &times; {{ quantity }}</dd></div>
+          <div><dt>{{ fulfilment === 'delivery' ? 'Delivery' : 'Pickup' }}</dt><dd>{{ formatDateTime(requestedTime) }}</dd></div>
+          <div><dt>Total</dt><dd>{{ formatPrice(product.price * quantity) }}</dd></div>
+        </dl>
+        <div class="success-actions">
+          <RouterLink to="/orders" class="btn success-primary" data-testid="order-view-orders-link">Go to My orders</RouterLink>
+          <RouterLink to="/browse" class="btn success-secondary">Keep browsing</RouterLink>
+        </div>
+      </section>
       <div v-else-if="product && product.isAvailable === false" class="alert alert-warning" data-testid="order-unavailable">
         This product is not available right now. Please browse other products.
       </div>
@@ -303,6 +317,106 @@ async function submitOrder() {
 </template>
 
 <style scoped>
+/* ---- "Order requested" card ---- */
+.success-card {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 2.5rem 2rem 2rem;
+  border: 1px solid var(--line);
+  border-radius: 1.75rem;
+  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-soft) 100%);
+  box-shadow: 0 18px 50px rgba(var(--navy-rgb), 0.12);
+  text-align: center;
+  animation: card-in 0.35s ease both;
+}
+.success-tick {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  background: #2e8b57;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(46, 139, 87, 0.3);
+  animation: tick-pop 0.45s 0.1s ease both;
+}
+.success-title {
+  margin-bottom: 0.6rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.success-text {
+  max-width: 440px;
+  margin: 0 auto 1.25rem;
+  color: var(--ink-soft);
+}
+.success-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: var(--tile);
+}
+.success-summary dt {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.success-summary dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.success-primary,
+.success-secondary {
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+.success-primary {
+  background: var(--navy);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(var(--navy-rgb), 0.25);
+}
+.success-primary:hover {
+  background: var(--ocean-dark);
+  color: #fff;
+}
+.success-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.success-secondary:hover {
+  background: var(--surface-hover);
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+@keyframes tick-pop {
+  from { opacity: 0; transform: scale(0.5); }
+  70% { transform: scale(1.08); }
+}
+@media (max-width: 575.98px) {
+  .success-card { padding: 2rem 1.25rem 1.5rem; }
+  .success-summary { grid-template-columns: 1fr; text-align: left; }
+  .success-actions .btn { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .success-card, .success-tick { animation: none; }
+}
+
 .delivery-box {
   padding: 0.75rem 1rem;
   border: 1px solid var(--line);

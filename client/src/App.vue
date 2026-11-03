@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import TopBar from './components/TopBar.vue'
+import BackButton from './components/BackButton.vue'
 
 // App frame (like the BuyMore inspiration): white rounded panel, sidebar on the left, top bar + page on the right.
 // Login / Register are "bare": no frame, so their full-screen backgrounds show.
@@ -22,6 +23,7 @@ const bare = computed(() => route.path === '/login' || route.path === '/register
     <div class="app-main">
       <TopBar />
       <main class="app-content">
+        <BackButton />
         <RouterView />
       </main>
     </div>
