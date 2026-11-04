@@ -19,7 +19,7 @@
   box-shadow: var(--shadow);
 }
  
-/* login page: card floats over the moving product collage (components/MovingBackdrop.vue) */
+/* login + register pages: card floats over the moving product collage (components/MovingBackdrop.vue) */
 .auth-stage.immersive {
   min-height: calc(100vh - 140px);
   align-items: center;

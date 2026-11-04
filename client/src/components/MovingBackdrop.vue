@@ -5,7 +5,7 @@ import { API_URL } from '@/utils/config'
 import { formatPrice } from '@/utils/format'
 
 // Owner: Cheyenne
-// Full-screen moving collage of our sellers' products behind the login page (like Shopify's sign-up page).
+// Full-screen moving collage of our sellers' products behind the login and register pages (like Shopify's sign-up page).
 // Tilted columns of product cards drift up and down forever. Pure CSS animation: no library.
 // Uses the public GET /discover (no login needed); if it fails, shows coloured placeholder tiles instead.
 //   <MovingBackdrop />   (put it anywhere on the page - it is fixed behind everything)
