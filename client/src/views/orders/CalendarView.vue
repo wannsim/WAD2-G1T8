@@ -337,7 +337,7 @@ function timePassed(order) {
 
 // Explains passed-time warnings, copied from SellerOrdersView.vue.
 function sellerHelp(order) {
-  if (isOverdue(order)) return 'The pickup time has passed. Mark it completed or message the buyer.'
+  if (isOverdue(order)) return 'The pickup time has passed.'
   if (order.status === 'pending' && timePassed(order)) return 'The pickup time has passed. Propose a new time or decline.'
   if (order.status === 'rescheduled' && timePassed(order)) return 'Your new time has passed. Message the buyer.'
   return ''
@@ -523,7 +523,7 @@ onMounted(async () => {
               <p v-if="dayOrders.length === 0" class="text-body-secondary">No orders on this day.</p>
               <article v-for="o in dayOrders" :key="o._id" class="calendar-day-order" :class="{ 'is-highlighted': o._id === selectedId || o._id === hoverId }" tabindex="0" :aria-label="o.product ? o.product.name : 'Product removed'" @mouseenter="hoverId = o._id" @mouseleave="hoverId = ''" @focus="hoverId = o._id" @blur="hoverId = ''" data-testid="calendar-day-order">
                 <div class="d-flex justify-content-between align-items-start gap-2">
-                  <div class="day-order-name">
+                  <div class="day-order-name d-flex flex-wrap align-items-center gap-2">
                     <h4 class="text-break">{{ o.product ? o.product.name : 'Product removed' }}</h4>
                     <span v-if="isOverdue(o)" class="status-pill pill-overdue" data-testid="order-overdue">Overdue</span>
                     <span v-else class="status-pill" :class="`pill-${o.status}`" data-testid="order-status">{{ capitalize(o.status) }}</span>
@@ -538,10 +538,11 @@ onMounted(async () => {
                     <button type="button" class="btn btn-act-primary" :disabled="busyId !== '' || timePassed(o)" @click="updateStatus(o, 'accepted')" data-testid="order-accept">Accept</button>
                     <button type="button" class="btn btn-act-outline" :disabled="busyId !== ''" @click="toggleProposal(o)" data-testid="order-propose-toggle">Propose new time</button>
                   </template>
-                  <button v-else-if="o.status === 'accepted'" type="button" class="btn btn-act-primary action-wide" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">Mark completed</button>
-                  <button v-if="o.buyer" type="button" class="btn btn-act-outline" :class="{ 'action-wide': o.status === 'rescheduled' || o.status === 'completed' }" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" data-testid="order-message-buyer">Message buyer</button>
+                  <button v-else-if="o.status === 'accepted'" type="button" class="btn btn-act-primary" :disabled="busyId !== ''" @click="askConfirm(o, 'completed')" data-testid="order-complete">Mark completed</button>
+                  <!-- short labels keep the buttons on one row (full words for screen readers), like the dashboard -->
+                  <button v-if="o.buyer" type="button" class="btn btn-act-outline" :disabled="chatBusyId !== ''" @click="messageBuyer(o)" aria-label="Message buyer" data-testid="order-message-buyer">Message</button>
                   <button v-if="o.status === 'pending'" type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(o, 'declined')" data-testid="order-decline">Decline</button>
-                  <button v-if="o.status === 'accepted'" type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" data-testid="order-cancel">Cancel order</button>
+                  <button v-if="o.status === 'accepted'" type="button" class="btn btn-act-danger" :disabled="busyId !== ''" @click="askReason(o, 'cancelled')" aria-label="Cancel order" data-testid="order-cancel">Cancel</button>
                 </div>
                 <div v-if="proposeOpenId === o._id" class="day-inline">
                   <label class="form-label small" :for="'calendar-proposed-' + o._id">New date and time</label>
@@ -582,8 +583,8 @@ onMounted(async () => {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 0.9rem;
-  padding: 1.1rem 1.1rem 1.4rem;
+  gap: 0.7rem;
+  padding: 0.75rem 0.8rem 0.85rem;
   overflow: hidden;
   border: 1px solid var(--tile-line);
   border-radius: 1.25rem;
@@ -619,8 +620,8 @@ onMounted(async () => {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: #fff;
   color: var(--navy);
@@ -638,23 +639,23 @@ onMounted(async () => {
 .stat-label { font-weight: 600; }
 .tone-green .stat-label { color: #23804a; }
 .stat-value {
-  font-size: 2rem;
+  font-size: 1.7rem;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.1;
   color: var(--navy);
 }
-.stat-hint { font-size: 0.85rem; color: var(--ink-soft); }
+.stat-hint { font-size: 0.8rem; line-height: 1.3; color: var(--ink-soft); }
 .stat-arrow {
   position: relative;
   z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   line-height: 1;
   color: var(--navy);
 }
@@ -662,7 +663,7 @@ onMounted(async () => {
 
 /* Only the grid scrolls horizontally; the surrounding columns may shrink. */
 .calendar-page, .calendar-workspace, .calendar-scroll { min-width: 0; }
-.calendar-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.calendar-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 .calendar-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
 .calendar-grid { display: grid; grid-template-columns: 3rem repeat(7, minmax(5rem, 1fr)); grid-template-rows: auto repeat(14, minmax(3.5rem, auto)); min-width: 38rem; }
 .calendar-corner, .calendar-heading, .calendar-hour { padding: 0.65rem 0.35rem; color: var(--ink-soft); font-size: 0.8rem; }
@@ -708,22 +709,25 @@ onMounted(async () => {
 .week-arrow { width: 38px; padding: 0; font-size: 1.1rem; }
 .week-range { font-size: 0.95rem; font-weight: 600; color: #2e3170; }
 .day-body { padding: 1rem; }
-.calendar-day-order { padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--line); border-radius: 0.8rem; }
+/* day panel cards: same sizes and spacing as the Next pickups cards on the order dashboard */
+.calendar-day-order { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; margin-bottom: 20px; border: 1.5px solid #dfe3f2; border-radius: 16px; }
+.calendar-day-order:last-of-type { margin-bottom: 0; }
+.calendar-day-order p { margin: 0; }
 .day-order-name { min-width: 0; }
-.day-order-name h4 { margin: 0 0 0.4rem; font-size: 1rem; }
-.day-price { flex-shrink: 0; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.day-facts { margin: 0.6rem 0; font-size: 0.8rem; color: var(--ink-soft); overflow-wrap: anywhere; }
-.day-warning { color: #b8312f; font-size: 0.85rem; }
+.day-order-name h4 { margin: 0; font-size: 15px; font-weight: 700; color: #2e3170; }
+.day-price { flex-shrink: 0; font-size: 15px; font-weight: 700; color: #2e3170; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.day-facts { font-size: 12.5px; line-height: 1.4; color: #4b4f72; overflow-wrap: anywhere; }
+.day-warning { font-size: 12px; font-weight: 500; color: #b8312f; }
 .google-busy-title { margin: 1rem 0 0.6rem; font-size: 1rem; }
 
 /* Status pills and action colours are copied from SellerOrdersView.vue. */
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.3rem 0.85rem;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.76rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -742,7 +746,8 @@ onMounted(async () => {
 .pill-cancelled,
 .pill-overdue { background: #fce1e3; color: #b8312f; }
 /* One button set for every order screen (same values as SellerOrdersView.vue and BuyerOrdersView.vue). */
-.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
+.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; border: 1.5px solid; border-radius: 999px; min-height: 30px; padding: 0 10px; font-size: 12px; font-weight: 600; line-height: 1.2; }
+.btn.btn-act-primary svg, .btn.btn-act-outline svg, .btn.btn-act-danger svg { width: 13px; height: 13px; }
 .btn.btn-act-primary { background: var(--ocean); border-color: var(--ocean); color: #fff; }
 .btn.btn-act-outline { background: #fff; border-color: #c9d0f6; color: #2e3170; }
 .btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
@@ -752,11 +757,12 @@ onMounted(async () => {
 .btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
 
 /* Each action row has two equal bordered buttons under a divider; wide actions span both columns. */
-.calendar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.25rem; padding-top: 10px; border-top: 1px solid var(--line); }
-.calendar-actions .action-wide { grid-column: 1 / -1; }
+/* all buttons on one row (they wrap only if the panel is very narrow), like the dashboard's Next pickups */
+.calendar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; padding-top: 8px; border-top: 1px solid #dfe3f2; }
+.calendar-actions .btn { flex: 1 1 auto; }
 .calendar-day-order .btn { min-width: 0; }
 .day-inline { padding-top: 0.75rem; margin-top: 0.75rem; border-top: 1px solid var(--line); }
-@media (min-width: 992px) { .calendar-workspace { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; } }
+@media (min-width: 992px) { .calendar-workspace { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; column-gap: 3rem; } }
 
 /* Tile breakpoints are copied from SellerOrdersView.vue. */
 @media (max-width: 991.98px) { .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -55,6 +55,12 @@ function amountCents(amount) {
 // grouping of the trend: 'daily' | 'monthly' | 'yearly'; left out = daily up to 90 days, else monthly
 const KEY_LENGTH = { daily: 10, monthly: 7, yearly: 4 } // "2026-10-29" -> "2026-10-29" / "2026-10" / "2026"
 
+// Orders may have a populated buyer or just their id. Never group by name: names can be shared.
+function customerId(buyer) {
+  const id = typeof buyer === 'string' ? buyer : buyer?._id
+  return typeof id === 'string' ? id.trim() : ''
+}
+
 export function calculateSalesAnalytics(orders, { startDate, endDate }, chosenGrouping) {
   const error = validateSalesRange(startDate, endDate)
   if (error) throw new RangeError(error)
@@ -72,22 +78,35 @@ export function calculateSalesAnalytics(orders, { startDate, endDate }, chosenGr
 
   const statusCounts = Object.fromEntries(ORDER_STATUSES.map((status) => [status, 0]))
   const products = new Map()
+  const customers = new Map()
   let orderCount = 0
   let completedOrders = 0
   let unitsSold = 0
   let revenueCents = 0
   let pricedOrderCount = 0
   let missingAmountCount = 0
+  let unidentifiedCustomerOrderCount = 0
 
   for (const order of orders) {
     if (!order?.createdAt) continue
     const placed = new Date(order.createdAt).getTime()
-    if (!Number.isFinite(placed) || placed < start || placed >= endExclusive) continue
+    if (!Number.isFinite(placed)) continue
+    const buyerId = customerId(order.buyer)
+    // Count history only up to this period's end. A later purchase must not make an
+    // earlier period's first-time buyer look like a repeat customer.
+    if (order.status === 'completed' && placed < endExclusive && buyerId) {
+      const customer = customers.get(buyerId) || { orders: 0, inPeriod: false }
+      customer.orders++
+      if (placed >= start) customer.inPeriod = true
+      customers.set(buyerId, customer)
+    }
+    if (placed < start || placed >= endExclusive) continue
     orderCount++
     if (Object.hasOwn(statusCounts, order.status)) statusCounts[order.status]++
     if (order.status !== 'completed') continue
 
     completedOrders++
+    if (!buyerId) unidentifiedCustomerOrderCount++
     const quantity = typeof order.quantity === 'number' && Number.isFinite(order.quantity) && order.quantity > 0
       ? order.quantity : 0
     unitsSold += quantity
@@ -120,9 +139,17 @@ export function calculateSalesAnalytics(orders, { startDate, endDate }, chosenGr
     .sort((a, b) => b.revenueCents - a.revenueCents || b.units - a.units || a.name.localeCompare(b.name) || a.productId.localeCompare(b.productId))
     .slice(0, 5)
 
+  // Unique buyers with a completed order placed in this range; a repeat buyer has
+  // at least two completed orders placed by the end of the range, including history.
+  const periodCustomers = [...customers.values()].filter((customer) => customer.inPeriod)
+  const customerCount = periodCustomers.length
+  const repeatCustomerCount = periodCustomers.filter((customer) => customer.orders >= 2).length
+
   return {
     grouping, orderCount, completedOrders, unitsSold, revenueCents, pricedOrderCount, missingAmountCount,
     averageOrderValueCents: pricedOrderCount ? Math.round(revenueCents / pricedOrderCount) : 0,
+    customerCount, repeatCustomerCount, unidentifiedCustomerOrderCount,
+    repeatCustomerRate: customerCount ? repeatCustomerCount / customerCount * 100 : 0,
     trend: [...buckets.values()], statusCounts, topProducts,
   }
 }

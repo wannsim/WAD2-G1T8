@@ -92,6 +92,48 @@ router.get('/shop/:shopId', async (req, res) => {
   }
 })
 
+// Add order slots to the shop's products (My shop -> "Order slots for all products" / "Recurring slots").
+// body: { start: ISO }            one slot           (older callers)
+//   or  { starts: [ISO, ...] }    many slots, e.g. every Saturday 10am for 2 months (max 400)
+//   + capacity: 1-999, productIds: [...] (optional - leave out for ALL products in the shop)
+// A product that already has a slot at that exact time is skipped for that time.
+const MAX_SLOTS_PER_REQUEST = 400
+router.post('/shop/:shopId/slots', requireShopOwner('shopId'), async (req, res) => {
+  try {
+    const raw = Array.isArray(req.body.starts) ? req.body.starts : [req.body.start]
+    const times = [...new Set(raw.map((t) => new Date(t).getTime()))]
+    const capacity = Number(req.body.capacity)
+    if (times.length === 0 || times.some((t) => Number.isNaN(t))) return res.status(400).json({ message: 'Please choose a date and time.' })
+    if (times.length > MAX_SLOTS_PER_REQUEST) return res.status(400).json({ message: `That is too many slots at once (max ${MAX_SLOTS_PER_REQUEST}). Choose a shorter date range.` })
+    if (times.some((t) => t <= Date.now())) return res.status(400).json({ message: 'Every slot must be in the future.' })
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 999) {
+      return res.status(400).json({ message: 'Max orders must be a whole number from 1 to 999.' })
+    }
+    // which products: the ones asked for (only if they belong to THIS shop), or all of them
+    const productFilter = { shop: req.params.shopId }
+    if (Array.isArray(req.body.productIds)) {
+      const ids = req.body.productIds.filter((id) => mongoose.isValidObjectId(id))
+      if (ids.length === 0) return res.status(400).json({ message: 'Choose at least one product.' })
+      productFilter._id = { $in: ids }
+    }
+    const productCount = await Product.countDocuments(productFilter)
+    if (productCount === 0) return res.status(400).json({ message: 'Add a product first.' })
+
+    // one update per time: push the slot to every chosen product that doesn't have that time yet
+    const result = await Product.bulkWrite(times.map((t) => ({
+      updateMany: {
+        filter: { ...productFilter, 'orderSlots.start': { $ne: new Date(t) } },
+        update: { $push: { orderSlots: { start: new Date(t), capacity } } },
+      },
+    })))
+    const added = result.modifiedCount
+    // older callers read added / skipped as "products" (one time); newer ones get the slot totals too
+    res.json({ added, skipped: productCount * times.length - added, products: productCount, times: times.length })
+  } catch (error) {
+    res.status(500).json({ message: error.message })
+  }
+})
+
 // Get one product (product page, order request page, edit form)
 router.get('/:id', async (req, res) => {
   try {
@@ -175,6 +217,22 @@ router.put('/:id', requireAuth, upload.array('images', 5), async (req, res) => {
     }
     const counts = await imageCounts([updatedProduct._id]) // keep the photo carousel right after an edit
     res.status(200).json(withImageUrl(req, updatedProduct, counts.get(String(updatedProduct._id))))
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Close / reopen orders for a product (My shop): closed = still in the shop, but no new orders.
+// body: { isAvailable: true | false }. Closed products are hidden from Browse / For you, and POST /orders refuses them.
+router.patch('/:id/availability', requireAuth, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' })
+    if (!(await ownsProduct(req.params.id, req.user.id))) return res.status(403).json({ error: 'Only the shop owner can change this product' })
+    if (typeof req.body.isAvailable !== 'boolean') return res.status(400).json({ error: 'isAvailable must be true or false' })
+    const product = await Product.findByIdAndUpdate(req.params.id, { isAvailable: req.body.isAvailable }, { new: true })
+      .select('_id isAvailable').lean()
+    if (!product) return res.status(404).json({ error: 'Product not found' })
+    res.json(product)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }

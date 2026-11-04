@@ -97,7 +97,7 @@ const pendingOrders = computed(() => {
   return groupedOrders
 })
 
-// Groups accepted orders for the Accepted tab.
+// The Accepted tab: earliest pickup first, so overdue orders (time passed) are on top.
 const upcomingOrders = computed(() => {
   const groupedOrders = []
   for (let i = 0; i < orders.value.length; i++) {
@@ -105,6 +105,16 @@ const upcomingOrders = computed(() => {
     if (order.status === 'accepted') { // The Accepted tab holds accepted orders.
       groupedOrders.push(order)
     }
+  }
+  for (let i = 1; i < groupedOrders.length; i++) {
+    const order = groupedOrders[i]
+    const time = new Date(order.requestedTime).getTime()
+    let j = i
+    while (j > 0 && new Date(groupedOrders[j - 1].requestedTime).getTime() > time) {
+      groupedOrders[j] = groupedOrders[j - 1]
+      j--
+    }
+    groupedOrders[j] = order
   }
   return groupedOrders
 })
@@ -251,6 +261,7 @@ async function askCancel(order) {
   const reason = await reasonModal.value.ask({
     title: 'Cancel this order?',
     hint: 'The seller will see this reason.',
+    placeholder: "E.g. My plans changed and I can't collect it anymore",
     confirmLabel: 'Yes, cancel',
   })
   if (reason) updateStatus(order, 'cancelled', reason)
@@ -259,6 +270,19 @@ async function askCancel(order) {
 // Checks whether the buyer may still cancel this order.
 function canCancel(order) {
   return order.status === 'pending' || order.status === 'rescheduled' || order.status === 'accepted'
+}
+
+// "View more" only when there is something under it (same rules as the lines in .order-details):
+// a note, the delivery address, or the pickup address (shown once the order is accepted / completed)
+function hasDetails(order) {
+  return !!(order.customisation && order.customisation.trim())
+    || (order.fulfilment === 'delivery' && !!order.deliveryAddress)
+    || (order.fulfilment === 'pickup' && (order.status === 'accepted' || order.status === 'completed'))
+}
+
+// "Order again": finished orders (completed / declined / cancelled) whose product is still sold.
+function canOrderAgain(order) {
+  return ['completed', 'declined', 'cancelled'].includes(order.status) && !!order.product && order.product.isAvailable !== false
 }
 
 // Changes one order at a time, shows the result and refreshes the list.
@@ -302,7 +326,8 @@ onMounted(async () => {
 
 <template>
   <div class="row">
-    <div class="col-12">
+    <!-- narrower, centred column: order cards don't stretch across wide screens -->
+    <div class="col-12 orders-page">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
         <h2 class="page-title">My orders</h2>
         <button class="btn soft-btn" :disabled="refreshing" @click="refreshOrders" data-testid="buyer-orders-refresh">
@@ -388,14 +413,20 @@ onMounted(async () => {
           <div v-for="o in searchedOrders" :key="o._id">
             <div class="order-card" data-testid="order-row">
               <div class="order-top">
-                <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="56" height="56" class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
+                <img :src="imageFor(o)" :alt="o.product ? o.product.name : 'Product removed'" width="80" height="80" class="order-thumb flex-shrink-0" @error="brokenImages[o._id] = true" data-testid="order-image" />
                 <div class="order-text">
                   <div class="d-flex align-items-center flex-wrap gap-2">
-                    <h5 class="order-name text-break">{{ o.product ? o.product.name : 'Product removed' }}</h5>
+                    <h5 class="order-name text-break">
+                      <span class="order-qty" data-testid="order-quantity-line">{{ o.quantity }}&times;</span>
+                      <RouterLink v-if="o.product" :to="`/products/${o.product._id}`" class="order-link">{{ o.product.name }}</RouterLink>
+                      <template v-else>Product removed</template>
+                    </h5>
                     <span v-if="!isOverdue(o)" class="status-pill flex-shrink-0" :class="`pill-${o.status}`" data-testid="order-status">{{ capitalize(o.status) }}</span>
                     <span v-if="isOverdue(o)" class="status-pill pill-overdue flex-shrink-0" data-testid="order-overdue">Overdue</span>
                   </div>
-                  <p class="order-shop text-break">{{ o.shop ? o.shop.name : 'Shop removed' }} &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
+                  <p class="order-shop text-break">
+                    <RouterLink v-if="o.shop" :to="`/shops/${o.shop._id}`" class="order-link shop-link">{{ o.shop.name }}</RouterLink>
+                    <template v-else>Shop removed</template> &middot; {{ capitalize(o.fulfilment) }} &middot; {{ formatDateTime(o.requestedTime) }}</p>
                   <p v-if="buyerHelp(o)" class="status-help" data-testid="order-status-help">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z" /><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0" /></svg>
                     <span>{{ buyerHelp(o) }}</span>
@@ -407,6 +438,8 @@ onMounted(async () => {
                   <p v-if="(o.status === 'declined' || o.status === 'cancelled') && o.reason" class="status-help reason" data-testid="order-reason">
                     <span><strong>{{ o.status === 'cancelled' && o.cancelledBy === 'buyer' ? 'Your reason' : "Seller's reason" }}:</strong> {{ o.reason }}</span>
                   </p>
+                  <!-- sits beside the photo (not on its own row) to keep the card short -->
+                  <button v-if="hasDetails(o)" type="button" class="btn btn-link order-details-toggle" :aria-expanded="openDetails[o._id] === true" @click="toggleDetails(o)" data-testid="order-details-toggle">{{ openDetails[o._id] ? 'View less' : 'View more' }}</button>
                 </div>
                 <div class="order-footer">
                   <span class="order-price" data-testid="order-price">{{ formatPrice(o.totalPrice) }}</span>
@@ -418,16 +451,16 @@ onMounted(async () => {
                       <span v-else class="status-pill pill-reviewed align-self-center" data-testid="order-reviewed">Reviewed</span>
                     </template>
                     <button v-if="o.shop" class="btn btn-brand pill-btn" :disabled="chatBusyId !== ''" @click="messageSeller(o)" data-testid="order-message-seller">Message seller</button>
+                    <!-- finished orders: start a new request for the same item (hidden if it is no longer sold) -->
+                    <RouterLink v-if="canOrderAgain(o)" :to="`/order/new/${o.product._id}`" class="btn btn-outline-brand pill-btn" data-testid="order-again">
+                      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" /><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466" /></svg>
+                      Order again
+                    </RouterLink>
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn btn-link order-details-toggle" :aria-expanded="openDetails[o._id] === true" @click="toggleDetails(o)" data-testid="order-details-toggle">{{ openDetails[o._id] ? 'View less' : 'View more' }}</button>
-              <div v-if="openDetails[o._id]" class="order-details" data-testid="order-details">
+              <div v-if="openDetails[o._id] && hasDetails(o)" class="order-details" data-testid="order-details">
                 <ul class="order-facts">
-                  <li data-testid="order-quantity-line">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z" /></svg>
-                    Quantity: {{ o.quantity }}
-                  </li>
                   <li v-if="o.customisation && o.customisation.trim()" class="text-break">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" /><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" /></svg>
                     Note: {{ o.customisation }}
@@ -532,6 +565,10 @@ onMounted(async () => {
 }
 
 /* Thin row */
+.orders-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
 .order-card {
   padding: 0.75rem 1rem;
   border: 1px solid var(--line);
@@ -545,9 +582,9 @@ onMounted(async () => {
   gap: 0.75rem;
 }
 .order-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: 0.8rem;
+  width: 80px;
+  height: 80px;
+  border-radius: 0.9rem;
   object-fit: cover;
 }
 .order-text {
@@ -571,10 +608,10 @@ onMounted(async () => {
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.9rem;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -593,16 +630,48 @@ onMounted(async () => {
 .pill-cancelled,
 .pill-overdue { background: #fce1e3; color: #b8312f; }
 .pill-reviewed { background: var(--tile); color: var(--muted); }
+/* finished / good states get a tick instead of the dot */
+.pill-accepted::before,
+.pill-completed::before,
+.pill-reviewed::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  background: currentColor;
+  /* tick shape (bootstrap-icons "check-lg"), coloured by the pill's text colour */
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* "2×  Biscoff cookies" and the shop name link to their pages */
+.order-qty {
+  margin-right: 0.25rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.order-link {
+  color: inherit;
+  text-decoration: none;
+}
+.order-link:hover,
+.order-link:focus-visible {
+  color: var(--ocean);
+  text-decoration: underline;
+}
+.shop-link {
+  font-weight: 600;
+}
 
 /* View more details */
 .order-details-toggle {
-  min-height: 44px;
-  margin-left: 68px;
-  padding: 0.35rem 0;
-  font-size: 0.88rem;
+  margin-top: 0.15rem;
+  padding: 0.1rem 0;
+  font-size: 0.85rem;
 }
+/* lines up with the text, right of the 80px photo */
 .order-details {
-  margin: 0.25rem 0 0 68px;
+  margin: 0.6rem 0 0 92px;
   padding: 0.75rem;
   border-radius: 0.8rem;
   background: var(--tile);
@@ -665,8 +734,12 @@ onMounted(async () => {
   max-width: 100%;
 }
 .pill-btn {
-  padding: 0.55rem 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.85rem;
   border-radius: 999px;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 .btn-outline-brand {
@@ -708,16 +781,15 @@ onMounted(async () => {
 /* Phones: price and buttons below the text */
 @media (max-width: 575.98px) {
   .order-thumb {
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
   }
   .order-text {
-    flex-basis: calc(100% - 60px);
+    flex-basis: calc(100% - 76px);
   }
   .order-footer {
     flex-basis: 100%;
   }
-  .order-details-toggle,
   .order-details {
     margin-left: 0;
   }

@@ -266,7 +266,7 @@ router.post('/', requireAuth, async (req, res) => {
 router.get('/buyer/:userId', requireSelf('userId'), async (req, res) => {
   try {
     const orders = await Order.find({ buyer: req.params.userId })
-      .populate('product', 'name unit')
+      .populate('product', 'name unit isAvailable') // isAvailable: hides "Order again" for items no longer sold
       .populate('shop', 'name nearestMrt address postalCode')
       .sort({ createdAt: -1 })
     const reviews = await Review.find({ buyer: req.params.userId })

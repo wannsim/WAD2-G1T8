@@ -3,6 +3,7 @@ import multer from 'multer'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
+import Shop from '../models/Shop.js'
 import { OAuth2Client } from 'google-auth-library'
 import { createToken, requireAuth, requireSelf } from '../utils/auth.js'
 
@@ -22,14 +23,47 @@ function safeUser(u) {
 
 const POSTAL_CODE = /^\d{6}$/ // Singapore postal codes are 6 digits
 
+// Names must be unique (ignoring upper/lower case and extra spaces), so people can tell each other apart.
+// A username can't be a shop's name either (shops.js checks the other way round) - except the user's OWN shop.
+// returns an error message, or '' if the name is OK. exceptUserId = the user saving their own profile
+const cleanName = (name) => String(name ?? '').trim().replace(/\s+/g, ' ')
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const sameName = (name) => ({ name: new RegExp(`^${escapeRegex(name)}$`, 'i') })
+async function checkUserName(name, exceptUserId) {
+  if (!name) return 'Name is required.'
+  if (name.length > 50) return 'Name is too long (max 50 characters).'
+  const query = sameName(name)
+  const shopQuery = sameName(name)
+  if (exceptUserId) {
+    query._id = { $ne: exceptUserId }
+    shopQuery.owner = { $ne: exceptUserId }
+  }
+  const [userTaken, shopTaken] = await Promise.all([User.exists(query), Shop.exists(shopQuery)])
+  if (userTaken || shopTaken) return `The name "${name}" is already taken. Please choose another name.`
+  return ''
+}
+// Google sign-up: the Google name may already be taken -> "Alice Tan", "Alice Tan 2", "Alice Tan 3", ...
+async function freeName(base) {
+  const name = cleanName(base) || 'User'
+  for (let n = 1; n < 1000; n++) {
+    const candidate = n === 1 ? name : `${name} ${n}`
+    const [userTaken, shopTaken] = await Promise.all([User.exists(sameName(candidate)), Shop.exists(sameName(candidate))])
+    if (!userTaken && !shopTaken) return candidate
+  }
+  return `${name} ${Date.now()}`
+}
+
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body
+    const { email, password, role } = req.body
+    const name = cleanName(req.body.name)
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email and password are required' })
     }
     const exists = await User.findOne({ email: email.toLowerCase() })
     if (exists) return res.status(409).json({ message: 'Email is already registered' })
+    const nameProblem = await checkUserName(name)
+    if (nameProblem) return res.status(409).json({ message: nameProblem })
 
     const hash = await bcrypt.hash(password, 10)
     const user = await User.create({ name, email, password: hash, role: role === 'seller' ? 'seller' : 'buyer' })
@@ -65,7 +99,7 @@ router.post('/google', async (req, res) => {
 
     let user = await User.findOne({ email })
     if (!user) {
-      user = await User.create({ name, email, googleId: sub, role: role === 'seller' ? 'seller' : 'buyer' })
+      user = await User.create({ name: await freeName(name), email, googleId: sub, role: role === 'seller' ? 'seller' : 'buyer' })
     } else if (!user.googleId) {
       user.googleId = sub // link an existing email/password account
       await user.save()
@@ -73,6 +107,18 @@ router.post('/google', async (req, res) => {
     res.json({ ...safeUser(user), token: createToken(user) })
   } catch (err) {
     res.status(401).json({ message: 'Google sign-in failed' })
+  }
+})
+
+// is a name free? ?name=...&except=<my user id>  -> { available, message }  (ticks / crosses while typing)
+// NOTE: must be defined BEFORE '/:id'
+router.get('/name-available', async (req, res) => {
+  try {
+    const except = mongoose.isValidObjectId(req.query.except) ? req.query.except : undefined
+    const message = await checkUserName(cleanName(req.query.name), except)
+    res.json({ available: !message, message })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
   }
 })
 
@@ -88,8 +134,24 @@ router.get('/:id', requireSelf('id'), async (req, res) => {
 
 router.put('/:id', requireSelf('id'), async (req, res) => {
   try {
-    const { name, preferences, preferredMrt, deliveryAddress, deliveryUnit, deliveryPostalCode } = req.body
-    const changes = { name, preferences, preferredMrt: String(preferredMrt || '').trim() }
+    const { preferences, preferredMrt, deliveryAddress, deliveryUnit, deliveryPostalCode } = req.body
+    // the email is the login, so it can never be changed here
+    if ('email' in req.body) {
+      const current = await User.findById(req.params.id).select('email').lean()
+      if (current && String(req.body.email || '').trim().toLowerCase() !== current.email) {
+        return res.status(400).json({ message: 'Your email address cannot be changed.' })
+      }
+    }
+    const changes = { preferences, preferredMrt: String(preferredMrt || '').trim() }
+    // a new name must not belong to anyone else (keeping your current name is always fine)
+    if (req.body.name !== undefined) {
+      changes.name = cleanName(req.body.name)
+      const nameProblem = await checkUserName(changes.name, req.params.id)
+      if (nameProblem) {
+        const current = await User.findById(req.params.id).select('name').lean()
+        if (!current || current.name !== changes.name) return res.status(409).json({ message: nameProblem })
+      }
+    }
     // the address is optional, and only changed when the page sends it
     if (deliveryAddress !== undefined) changes.deliveryAddress = String(deliveryAddress || '').trim()
     if (deliveryUnit !== undefined) changes.deliveryUnit = String(deliveryUnit || '').trim()

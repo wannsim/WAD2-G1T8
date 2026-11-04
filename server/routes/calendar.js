@@ -24,7 +24,8 @@ router.post('/connect-start', requireAuth, async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found.' })
     if (user.password) {
       if (typeof password !== 'string' || !password || !await bcrypt.compare(password, user.password)) {
-        return res.status(401).json({ message: 'Wrong password. Please try again.' })
+        // 400, not 401: the app treats 401 as an expired login
+        return res.status(400).json({ message: 'Wrong password. Please try again.' })
       }
     }
     const url = await startConnect(user, allowedReturnTo(returnTo, user.role))

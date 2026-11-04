@@ -40,9 +40,9 @@ const links = computed(() => {
     { to: '/browse', label: 'Browse', icon: 'browse' },
     { to: '/map', label: 'Shops near you', icon: 'map' },
   ]
-  if (isLoggedIn.value && !isSeller.value) {
-    list.push({ to: '/favourites', label: 'Favourites', icon: 'heart' }, { to: '/orders', label: 'My orders', icon: 'cart' })
-  }
+  // Favourites: buyers and sellers (sellers can ♥ products too)
+  if (isLoggedIn.value) list.push({ to: '/favourites', label: 'Favourites', icon: 'heart' })
+  if (isLoggedIn.value && !isSeller.value) list.push({ to: '/orders', label: 'My orders', icon: 'cart' })
   if (isSeller.value) {
     list.push(
       { to: '/seller/analytics', label: 'Analytics', icon: 'chart' },

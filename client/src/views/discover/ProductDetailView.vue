@@ -15,18 +15,7 @@ const product = ref(null)
 
 const router = useRouter()
 
-// "Back to For you" / "Back to Browse": goes back in history, so the feed / search keeps its filters and scroll.
-// Opened straight from a link (no page before it) -> goes to Browse instead.
-const BACK_LABELS = { '/home': 'For you', '/browse': 'Browse', '/favourites': 'Favourites', '/map': 'Shops near you' }
-const backPath = window.history.state?.back || ''
-const backLabel = (() => {
-  const page = Object.keys(BACK_LABELS).find((path) => backPath.split('?')[0] === path)
-  return page ? `Back to ${BACK_LABELS[page]}` : backPath ? 'Back' : 'Back to Browse'
-})()
-function goBack() {
-  if (backPath) router.back()
-  else router.push('/browse')
-}
+// the "Back to ..." button is shared by every page now (components/BackButton.vue in App.vue)
 const chatError = ref('')
 
 async function chatWithSeller() {
@@ -44,6 +33,14 @@ async function chatWithSeller() {
 }
 
 const loading = ref(true)
+
+// "Available slots": only future ones, soonest first; 5 shown until "View all"
+const SLOTS_SHOWN = 5
+const showAllSlots = ref(false)
+const upcomingSlots = computed(() => (product.value?.orderSlots || [])
+  .filter((slot) => new Date(slot.start).getTime() > Date.now())
+  .sort((a, b) => new Date(a.start) - new Date(b.start)))
+const shownSlots = computed(() => (showAllSlots.value ? upcomingSlots.value : upcomingSlots.value.slice(0, SLOTS_SHOWN)))
 const loadError = ref('')
 const shopProductCount = ref(null) // "Products" in the seller box
 
@@ -111,12 +108,6 @@ onMounted(async () => {
     {{ loadError }} <RouterLink to="/browse">Back to browse</RouterLink>
   </div>
   <div v-else-if="product">
-  <button type="button" class="btn btn-sm back-btn d-inline-flex align-items-center gap-1 mb-3 px-0" @click="goBack">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8" />
-    </svg>
-    {{ backLabel }}
-  </button>
   <div class="row g-4 align-items-start">
     <div class="col-md-6">
       <!-- fixed square frame so every product lines up the same, whatever the photo's shape -->
@@ -165,10 +156,17 @@ onMounted(async () => {
 
       <div class="info-section">
         <h6>Available slots</h6>
-        <ul v-if="product.orderSlots && product.orderSlots.length" class="mb-0">
-          <li v-for="slot in product.orderSlots" :key="slot._id">{{ formatDateTime(slot.start) }}</li>
-        </ul>
-        <p v-else class="text-muted mb-0">No slots listed - ask the seller.</p>
+        <!-- upcoming slots, soonest first: 5, then "View all" -->
+        <template v-if="upcomingSlots.length">
+          <ul class="mb-0">
+            <li v-for="slot in shownSlots" :key="slot._id">{{ formatDateTime(slot.start) }}</li>
+          </ul>
+          <button v-if="upcomingSlots.length > SLOTS_SHOWN" type="button" class="btn btn-link btn-sm p-0 mt-1"
+            :aria-expanded="showAllSlots" @click="showAllSlots = !showAllSlots">
+            {{ showAllSlots ? 'Show fewer' : `View all ${upcomingSlots.length} slots` }}
+          </button>
+        </template>
+        <p v-else class="text-muted mb-0">No upcoming slots - ask the seller.</p>
       </div>
 
       <!-- <RouterLink v-if="currentUser && currentUser.role === 'buyer'" :to="`/order/new/${product._id}`" class="btn btn-brand">
@@ -178,8 +176,12 @@ onMounted(async () => {
         <RouterLink to="/login">Log in</RouterLink> as a buyer to order.
       </p> -->
       <div v-if="currentUser && currentUser.role === 'buyer' && product.shop" class="mt-4">
+        <p v-if="product.isAvailable === false" class="paused-notice" role="status">
+          The seller isn't taking orders for this right now. Chat with them or check back later.
+        </p>
         <div class="d-flex gap-2">
-          <RouterLink :to="`/order/new/${product._id}`" class="btn btn-brand btn-lg flex-fill">Request order</RouterLink>
+          <button v-if="product.isAvailable === false" type="button" class="btn btn-brand btn-lg flex-fill" disabled>Orders closed</button>
+          <RouterLink v-else :to="`/order/new/${product._id}`" class="btn btn-brand btn-lg flex-fill">Request order</RouterLink>
           <button class="btn chatBtn btn-lg flex-fill" @click="chatWithSeller">Chat with seller</button>
         </div>
         <p v-if="chatError" class="text-danger small mt-2">{{ chatError }}</p>
@@ -200,12 +202,6 @@ onMounted(async () => {
 
 
 <style scoped>
-.back-btn {
-  color: var(--ink-soft);
-}
-.back-btn:hover {
-  color: var(--ink);
-}
 .product-image-frame {
   aspect-ratio: 1 / 1;
   width: 100%;
@@ -296,5 +292,13 @@ onMounted(async () => {
 .chatBtn:hover{
   color: var(--brand-dark);
   border-color: var(--brand-dark)
+}
+.paused-notice {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.75rem;
+  background: var(--tile);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
 }
 </style>

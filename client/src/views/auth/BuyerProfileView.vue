@@ -7,6 +7,10 @@ import { currentUser, saveUser } from '@/utils/auth'
 import { CATEGORIES } from '@/utils/constants'
 import { userAvatarUrl } from '@/utils/layout'
 import AvatarEditor from '@/components/AvatarEditor.vue'
+import CategoryMultiSelect from '@/components/CategoryMultiSelect.vue'
+import MrtSelect from '@/components/MrtSelect.vue'
+import { matchStation } from '@/utils/mrtStations'
+import { useNameCheck } from '@/utils/nameCheck'
  
 // Save as: client/src/views/auth/BuyerProfileView.vue   (Owner: Wan Sim)
 // The buyer's profile page (shown at /profile when the logged-in user is a buyer).
@@ -25,12 +29,17 @@ const message = ref('')
 const photoError = ref('')
 // the page opens read-only; "Edit profile" shows the form, Save / Cancel go back to viewing
 const editing = ref(false)
+// ✓ / ✗ under the Name box while typing (keeping your own name shows nothing)
+const { nameStatus, nameMessage } = useNameCheck(name, {
+  exceptId: () => currentUser.value?._id,
+  unchanged: () => currentUser.value?.name,
+})
 
 // puts a saved user into the form (on load, and on Cancel to throw away unsaved changes)
 function fillForm(user) {
   name.value = user.name
   email.value = user.email
-  preferences.value = [...(user.preferences || [])]
+  preferences.value = (user.preferences || []).filter((c) => CATEGORIES.includes(c)) // only ones still in the list
   preferredMrt.value = user.preferredMrt || ''
   deliveryAddress.value = user.deliveryAddress || ''
   deliveryUnit.value = user.deliveryUnit || ''
@@ -75,6 +84,17 @@ onMounted(async () => {
 })
  
 async function save() {
+  if (nameStatus.value === 'taken') {
+    message.value = 'That username is taken. Please choose another one.'
+    return
+  }
+  // preferred MRT is optional, but if filled in it must be a station on the list
+  if (preferredMrt.value.trim() && !matchStation(preferredMrt.value)) {
+    message.value = 'Please choose your preferred MRT station from the list.'
+    document.getElementById('preferred-mrt')?.focus()
+    return
+  }
+  preferredMrt.value = matchStation(preferredMrt.value) // tidy spelling, e.g. "bishan mrt" -> "Bishan"
   if (deliveryPostalCode.value && !/^\d{6}$/.test(deliveryPostalCode.value)) {
     message.value = 'Postal code must be 6 digits.'
     return
@@ -144,17 +164,29 @@ async function save() {
         <div class="row g-3 mb-3">
           <div class="col-12 col-sm-6">
             <label class="form-label" for="buyer-name">Name</label>
-            <input id="buyer-name" type="text" class="form-control" v-model.trim="name" />
+            <input id="buyer-name" type="text" class="form-control" v-model.trim="name" maxlength="50"
+              :class="{ 'is-valid': nameStatus === 'available', 'is-invalid': nameStatus === 'taken' }" />
+            <p v-if="nameStatus" class="name-check" :class="nameStatus" aria-live="polite">
+          <span v-if="nameStatus === 'checking'" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <template v-else-if="nameStatus === 'available'"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" /></svg></template>
+          <template v-else><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" /></svg></template>
+          {{ nameStatus === 'checking' ? 'Checking...' : nameMessage }}
+        </p>
+            <div v-if="!nameStatus" class="form-text">Must be different from every other user.</div>
           </div>
           <div class="col-12 col-sm-6">
             <label class="form-label" for="buyer-email">Email</label>
-            <input id="buyer-email" type="email" class="form-control" :value="email" disabled />
+            <div class="locked-input">
+              <input id="buyer-email" type="email" class="form-control" :value="email" disabled aria-describedby="email-locked" />
+              <svg class="lock-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2" /></svg>
+            </div>
+            <div id="email-locked" class="form-text">Your email can't be changed.</div>
           </div>
         </div>
 
         <div class="mb-3">
           <label for="preferred-mrt" class="form-label">Preferred MRT station</label>
-          <input id="preferred-mrt" v-model.trim="preferredMrt" class="form-control" placeholder="e.g. Bishan" />
+          <MrtSelect id="preferred-mrt" v-model="preferredMrt" placeholder="e.g. Bishan" />
           <!-- <div class="form-text">The map opens at this station when you switch from Browse.</div> -->
         </div>
 
@@ -178,13 +210,9 @@ async function save() {
         </fieldset>
 
         <div class="mb-3">
-          <label class="form-label">What are you interested in?</label>
-          <div class="interest-grid">
-            <div v-for="category in CATEGORIES" :key="category" class="form-check">
-              <input class="form-check-input" type="checkbox" :id="category" :value="category" v-model="preferences" />
-              <label class="form-check-label" :for="category">{{ category }}</label>
-            </div>
-          </div>
+          <label class="form-label" for="buyer-interests">What are you interested in?</label>
+          <CategoryMultiSelect id="buyer-interests" v-model="preferences" />
+          <div class="form-text">Your For you feed shows more of these.</div>
         </div>
 
         <div class="d-flex gap-2">
@@ -277,12 +305,6 @@ async function save() {
   .profile-details {
     grid-template-columns: 1fr;
   }
-}
-.interest-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  column-gap: 2rem;
-  row-gap: 0.4rem;
 }
 .horizontal-list {
   display: flex;

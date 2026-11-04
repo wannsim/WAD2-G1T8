@@ -2,14 +2,14 @@ import mongoose from 'mongoose'
 
 // Owner: Cheyenne | collection: notifications
 // One document per notification shown under the bell icon in the navbar.
-//   sellers: new-order, new-review
+//   sellers: new-order, new-review, overdue-reminder (accepted order past its time: mark it completed?)
 //   buyers:  order-update, review-reminder, favourite-unavailable, new-product
 const notificationSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // who receives it
     type: {
       type: String,
-      enum: ['new-order', 'new-review', 'order-update', 'review-reminder', 'favourite-unavailable', 'new-product'],
+      enum: ['new-order', 'new-review', 'overdue-reminder', 'order-update', 'review-reminder', 'favourite-unavailable', 'new-product'],
       required: true,
     },
     title: { type: String, required: true },

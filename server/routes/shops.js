@@ -2,8 +2,10 @@ import express from 'express'
 import multer from 'multer'
 import mongoose from 'mongoose'
 import Shop from '../models/Shop.js'
+import User from '../models/User.js'
 import { requireAuth, requireSelf, requireShopOwner } from '../utils/auth.js'
 import Product from '../models/Product.js'
+import { CATEGORIES } from '../utils/productRules.js'
 
 // Owner: Cheyenne
 // GET /shops   GET /shops/map   GET /shops/name-available   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
@@ -21,15 +23,31 @@ const upload = multer({
 const NO_CERT_IMAGES = '-certificationFiles.image'
 
 // Shop names must be unique (ignoring upper/lower case and extra spaces), so buyers can tell shops apart.
-// returns an error message, or '' if the name is OK. exceptShopId = the shop being renamed (it may keep its own name)
+// returns an error message, or '' if the name is OK. exceptShopId = the shop itself (it may keep its own name)
+// Names can only be chosen when the shop is created - PUT /shops/:id refuses a new name.
 const cleanName = (name) => String(name ?? '').trim().replace(/\s+/g, ' ')
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-async function checkShopName(name, exceptShopId) {
+// A shop name can't be anyone's username either (users.js checks the other way round) - except the owner's own.
+async function checkShopName(name, exceptShopId, ownerId) {
   if (!name) return 'Shop name is required.'
   if (name.length > 60) return 'Shop name is too long (max 60 characters).'
   const query = { name: new RegExp(`^${escapeRegex(name)}$`, 'i') }
+  const userQuery = { name: query.name }
   if (exceptShopId) query._id = { $ne: exceptShopId }
-  if (await Shop.exists(query)) return `The shop name "${name}" is already taken. Please choose another name.`
+  if (ownerId) userQuery._id = { $ne: ownerId }
+  const [shopTaken, userTaken] = await Promise.all([Shop.exists(query), User.exists(userQuery)])
+  if (shopTaken || userTaken) return `The shop name "${name}" is already taken. Please choose another name.`
+  return ''
+}
+
+// shop categories: only from the shared list (client/src/utils/constants.js), no repeats.
+// returns an error message, or '' if OK
+function checkShopCategories(data) {
+  if (!('categories' in data)) return ''
+  if (!Array.isArray(data.categories) || data.categories.some((c) => !CATEGORIES.includes(c))) {
+    return 'Please pick your categories from the list.'
+  }
+  data.categories = [...new Set(data.categories)]
   return ''
 }
 
@@ -81,7 +99,7 @@ router.get('/following/:userId', requireSelf('userId'), async (req, res) => {
 router.get('/name-available', async (req, res) => {
   try {
     const except = mongoose.isValidObjectId(req.query.except) ? req.query.except : undefined
-    const message = await checkShopName(cleanName(req.query.name), except)
+    const message = await checkShopName(cleanName(req.query.name), except, req.user?.id)
     res.json({ available: !message, message })
   } catch (err) {
     res.status(500).json({ message: err.message })
@@ -115,8 +133,10 @@ router.post('/', requireAuth, async (req, res) => {
     const { certificationFiles, avatar, avatarUpdatedAt, stats, followers, pinnedProducts, ...data } = req.body // photos are uploaded separately
     data.owner = req.user.id // a shop always belongs to whoever is logged in
     data.name = cleanName(data.name)
-    const problem = await checkShopName(data.name)
+    const problem = await checkShopName(data.name, undefined, req.user.id)
     if (problem) return res.status(409).json({ message: problem })
+    const categoryProblem = checkShopCategories(data)
+    if (categoryProblem) return res.status(400).json({ message: categoryProblem })
     const shop = await Shop.create(data)
     res.status(201).json(shop)
   } catch (err) {
@@ -129,12 +149,17 @@ router.put('/:id', requireShopOwner('id'), async (req, res) => {
     // never let the client overwrite the owner or the trust stats
     // certificate photos + the profile picture have their own routes below, so they can't be wiped by a profile save
     const { owner, stats, pinnedProducts, followers, certificationFiles, avatar, avatarUpdatedAt, ...changes } = req.body
+    // the shop name is set once, when the shop is created, and can't be changed afterwards
     if ('name' in changes) {
-      if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Shop not found' })
-      changes.name = cleanName(changes.name)
-      const problem = await checkShopName(changes.name, req.params.id)
-      if (problem) return res.status(409).json({ message: problem })
+      const current = await Shop.findById(req.params.id).select('name').lean()
+      if (!current) return res.status(404).json({ message: 'Shop not found' })
+      if (cleanName(changes.name) !== current.name) {
+        return res.status(400).json({ message: 'Shop names cannot be changed after the shop is created.' })
+      }
+      delete changes.name
     }
+    const categoryProblem = checkShopCategories(changes)
+    if (categoryProblem) return res.status(400).json({ message: categoryProblem })
     const shop = await Shop.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true }).select(NO_CERT_IMAGES)
     if (!shop) return res.status(404).json({ message: 'Shop not found' })
     res.json(shop)

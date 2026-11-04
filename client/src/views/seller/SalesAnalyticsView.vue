@@ -27,6 +27,7 @@ const analytics = computed(() => calculateSalesAnalytics(orders.value, range.val
 const previous = computed(() => calculateSalesAnalytics(orders.value, previousSalesRange(range.value)))
 // bootstrap-icons paths (16x16)
 const ICONS = {
+  customers: 'M6 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 1a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm5 0a2.5 2.5 0 0 1 0 5V6a1.5 1.5 0 0 0 0-3V2zM6 8c-3 0-5 2-5 4v2h10v-2c0-2-2-4-5-4zm0 1c2.5 0 4 1.5 4 3v1H2v-1c0-1.5 1.5-3 4-3zm6-1v1c1.5.5 2 1.5 2 3v1h-2v1h3v-2c0-2-1-3.5-3-4z',
   money: 'M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.122.11 1.879.714 2.07 1.616h1.47c-.166-1.6-1.54-2.748-3.54-2.875V1H7.591v1.233c-1.939.23-3.27 1.472-3.27 3.156 0 1.454.966 2.483 2.661 2.917l.61.162v4.031c-1.149-.17-1.94-.8-2.131-1.718zm3.391-3.836c-1.043-.263-1.6-.825-1.6-1.616 0-.944.704-1.641 1.8-1.828v3.495l-.2-.05zm1.591 1.872c1.287.323 1.852.859 1.852 1.769 0 1.097-.826 1.828-2.2 1.939V8.73z',
   cart: 'M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .49.598l-1 5a.5.5 0 0 1-.465.401l-9.397.472L4.415 11H13a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l.84 4.479 9.144-.459L13.89 4zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2',
   box: 'M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z',
@@ -44,6 +45,10 @@ const summaryCards = computed(() => {
       change: percentChange(now.unitsSold, before.unitsSold), link: '/seller/shop', linkLabel: 'View my products' },
     { label: 'Average order value', icon: ICONS.receipt, value: formatSalesMoney(now.averageOrderValueCents),
       change: percentChange(now.averageOrderValueCents, before.averageOrderValueCents), link: '/seller/orders', linkLabel: 'View shop orders' },
+    { label: 'Repeat customer rate', icon: ICONS.customers, value: `${now.repeatCustomerRate.toFixed(1)}%`,
+      change: now.customerCount && before.customerCount ? percentChange(now.repeatCustomerRate, before.repeatCustomerRate) : null,
+      noComparisonReason: 'Both periods need customers and the previous repeat customer rate must be greater than zero to compare.',
+      link: '/seller/orders', linkLabel: 'View shop orders' },
   ]
 })
 // "+4.2%" / "-1.4%" / "0.0%"
@@ -200,14 +205,15 @@ onBeforeUnmount(() => controller?.abort())
         Revenue, the chart, and product revenue include only valid saved amounts. Average order value uses the {{ analytics.pricedOrderCount }} completed orders with valid amounts; order and unit counts include all completed orders.
       </p>
 
-      <div class="row g-3 mb-4">
-        <div v-for="card in summaryCards" :key="card.label" class="col-12 col-sm-6 col-xl-3">
+      <!-- all 5 in one line on laptops and up; 3 / 2 / 1 per line on smaller screens -->
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-2 mb-4">
+        <div v-for="card in summaryCards" :key="card.label" class="col">
           <div class="kpi-card h-100">
             <div class="kpi-head">
               <span class="kpi-icon" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path :d="card.icon" /></svg>
               </span>
-              <h2 class="kpi-label">{{ card.label }}</h2>
+              <h2 class="kpi-label" :title="card.label">{{ card.label }}</h2>
               <div class="dropdown ms-auto">
                 <button class="kpi-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false" :aria-label="`More for ${card.label}`">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0" /></svg>
@@ -220,9 +226,8 @@ onBeforeUnmount(() => controller?.abort())
             <div class="kpi-body">
               <p class="kpi-value">{{ card.value }}</p>
               <div class="kpi-foot">
-                <span v-if="card.change === null" class="kpi-change text-muted" title="No sales in the period before to compare with">&ndash;</span>
+                <span v-if="card.change === null" class="kpi-change text-muted" :title="card.noComparisonReason || 'No sales in the period before to compare with'">&ndash;</span>
                 <span v-else class="kpi-change" :class="card.change < 0 ? 'down' : 'up'" :title="`Compared with the ${periodLabel.toLowerCase()} before`">
-                  <svg v-if="card.change < 0" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1" /></svg>
                   {{ formatChange(card.change) }}
                 </span>
                 <span class="kpi-period">{{ periodLabel }}</span>
@@ -312,15 +317,15 @@ onBeforeUnmount(() => controller?.abort())
 <style scoped>
 .analytics-panel { background: #fff; border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 4px 16px rgb(0 0 0 / 3%); }
 /* summary cards: icon + label + menu, then a grey box with the number, change and period */
-.kpi-card { display: flex; flex-direction: column; padding: 0.5rem; background: #fff; border: 1px solid var(--line); border-radius: 1rem; }
-.kpi-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.4rem 0.6rem; }
-.kpi-icon { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 0.4rem; background: var(--tile); color: var(--ink-soft); flex-shrink: 0; }
-.kpi-label { margin: 0; font-size: 1rem; font-weight: 500; color: var(--muted); }
+.kpi-card { display: flex; flex-direction: column; padding: 0.35rem; background: #fff; border: 1px solid var(--line); border-radius: 1rem; }
+.kpi-head { display: flex; align-items: center; gap: 0.45rem; padding: 0.25rem 0.25rem 0.4rem; }
+.kpi-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 0.4rem; background: var(--tile); color: var(--ink-soft); flex-shrink: 0; }
+.kpi-label { min-width: 0; margin: 0; overflow: hidden; font-size: 0.875rem; font-weight: 500; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
 .kpi-menu { display: inline-flex; padding: 0.2rem; border: 0; border-radius: 0.4rem; background: transparent; color: var(--ink-soft); }
 .kpi-menu:hover, .kpi-menu:focus-visible { background: var(--tile); }
-.kpi-body { flex: 1; display: flex; flex-direction: column; padding: 0.9rem 0.75rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); }
-.kpi-value { margin: 0 0 1.25rem; font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; color: var(--brand-dark); overflow-wrap: anywhere; }
-.kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: auto; font-size: 0.875rem; }
+.kpi-body { flex: 1; display: flex; flex-direction: column; padding: 0.6rem 0.65rem 0.55rem; border-radius: 0.75rem; background: var(--surface-soft); }
+.kpi-value { margin: 0 0 0.6rem; font-size: clamp(1.3rem, 1.9vw, 1.75rem); font-weight: 700; color: var(--brand-dark); overflow-wrap: anywhere; }
+.kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: auto; font-size: 0.8rem; }
 .kpi-change { display: inline-flex; align-items: center; gap: 0.2rem; font-weight: 500; }
 .kpi-change.up { color: #1a9e55; }
 .kpi-change.down { color: var(--rose); }

@@ -14,22 +14,76 @@
       </span>
     </div>
 
+    <div class="settings-row mb-4">
     <!-- how buyers can get their orders: saved as soon as a switch is flipped -->
-    <section class="fulfil-box mb-4" aria-labelledby="fulfil-title">
-      <div>
-        <h6 id="fulfil-title" class="mb-0">Order options</h6>
-        <span class="small text-muted">Choose how buyers can get their orders. Keep at least one on.</span>
-      </div>
-      <div class="d-flex flex-wrap align-items-center gap-4">
-        <div v-for="option in FULFIL_OPTIONS" :key="option.key" class="form-check form-switch mb-0">
-          <input :id="`fulfil-${option.key}`" type="checkbox" role="switch" class="form-check-input"
-            :checked="shop[option.key] !== false" :disabled="savingFulfil" @change="toggleFulfil(option.key, $event)">
-          <label class="form-check-label" :for="`fulfil-${option.key}`">{{ option.label }}</label>
+    <section class="settings-card" aria-labelledby="fulfil-title">
+      <div class="settings-head">
+        <div>
+          <h6 id="fulfil-title" class="settings-title">Order options</h6>
+          <p class="settings-sub">Keep at least one on.</p>
         </div>
-        <span v-if="savingFulfil" class="small text-muted">Saving...</span>
-        <span v-else-if="fulfilMessage" class="small" :class="fulfilError ? 'text-danger' : 'text-success'" role="status">{{ fulfilMessage }}</span>
+        <span v-if="savingFulfil" class="save-pill" role="status">Saving...</span>
+        <span v-else-if="fulfilMessage" class="save-pill" :class="{ error: fulfilError }" role="status">
+          <svg v-if="!fulfilError" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z" /></svg>
+          {{ fulfilError ? fulfilMessage : 'Saved' }}
+        </span>
+      </div>
+      <div class="option-list">
+        <label v-for="option in FULFIL_OPTIONS" :key="option.key" class="option-row" :for="`fulfil-${option.key}`">
+          <span class="option-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path :d="option.icon" /></svg>
+          </span>
+          <span class="option-text">
+            <strong>{{ option.label }}</strong>
+            <small>{{ option.hint }}</small>
+          </span>
+          <span class="form-check form-switch m-0">
+            <input :id="`fulfil-${option.key}`" type="checkbox" role="switch" class="form-check-input"
+              :checked="shop[option.key] !== false" :disabled="savingFulfil" @change="toggleFulfil(option.key, $event)">
+          </span>
+        </label>
       </div>
     </section>
+
+    <!-- one order slot added to every product at once -->
+    <section class="settings-card" aria-labelledby="bulk-slot-title">
+      <div class="settings-head">
+        <div>
+          <h6 id="bulk-slot-title" class="settings-title">Order slots for all products</h6>
+          <p class="settings-sub">Adds the same time to every product in your shop.</p>
+        </div>
+        <button type="button" class="btn view-slots-btn" data-bs-toggle="modal" data-bs-target="#all-slots-modal">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2" /></svg>
+          View all slots ({{ upcomingSlots.length }})
+        </button>
+      </div>
+      <form class="bulk-slot-form" @submit.prevent="addSlotToAll">
+        <div>
+          <label class="form-label small mb-1" for="bulk-slot-date">Date</label>
+          <input id="bulk-slot-date" v-model="bulkSlot.date" type="date" class="form-control" :min="todayInput" required />
+        </div>
+        <div>
+          <label class="form-label small mb-1" for="bulk-slot-time">Time</label>
+          <input id="bulk-slot-time" v-model="bulkSlot.time" type="time" class="form-control" required />
+        </div>
+        <div>
+          <label class="form-label small mb-1" for="bulk-slot-cap">Max orders</label>
+          <input id="bulk-slot-cap" v-model.number="bulkSlot.capacity" type="number" min="1" max="999" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-brand add-all-btn" :disabled="addingSlot || !products.length">
+          {{ addingSlot ? 'Adding...' : '+ Add to all' }}
+        </button>
+      </form>
+      <p v-if="bulkSlotMessage" class="small mb-0" :class="bulkSlotError ? 'text-danger' : 'text-success'" role="status">{{ bulkSlotMessage }}</p>
+      <!-- repeating slots: drag on a weekly timetable, repeat weekly / monthly / every N weeks -->
+      <div class="settings-foot">
+        <button type="button" class="btn btn-link p-0 recurring-link" :disabled="!products.length" @click="recurring?.open()">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5m14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5" /></svg>
+          Set up recurring slots (weekly, monthly or custom)
+        </button>
+      </div>
+    </section>
+    </div>
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
       <h4 class="mb-0">Products & services</h4>
@@ -65,12 +119,13 @@
     <div class="card-grid">
       <div v-for="item in shownProducts" :key="item._id">
         <div class="card product-tile h-100 shadow-sm"
-          :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting }"
+          :class="{ 'border-warning': isPinned(item) && !selecting, 'border-primary selected': isSelected(item), 'selectable': selecting, paused: item.isAvailable === false }"
           @click="selecting && toggleSelected(item)">
           <div class="position-relative">
             <!-- photo is loaded from its own URL (lazy), not sent inside the JSON -->
             <img :src="item.imageUrl || '/placeholder.svg'" class="card-img-top product-img" :alt="item.name"
               loading="lazy" decoding="async" @error="$event.target.src = '/placeholder.svg'">
+            <span v-if="item.isAvailable === false" class="paused-badge">Orders closed</span>
             <!-- select mode: a checkbox on every card, ticked when the card is selected -->
             <label v-if="selecting" class="select-box" @click.stop>
               <input type="checkbox" class="form-check-input" :checked="isSelected(item)"
@@ -99,6 +154,14 @@
             <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
               <span>{{ formatPrice(item.price) }} <span class="small text-muted">/ {{ item.unit }}</span></span>
               <div v-if="!selecting" class="d-flex gap-1">
+                <!-- close orders = stop taking orders but keep the product; reopen = take orders again -->
+                <button type="button" class="btn btn-sm icon-btn" :class="item.isAvailable === false ? 'btn-success' : 'btn-outline-secondary'"
+                  :data-label="item.isAvailable === false ? 'Reopen orders' : 'Close orders'"
+                  :aria-label="item.isAvailable === false ? `Reopen orders for ${item.name}` : `Close orders for ${item.name}`"
+                  :aria-pressed="item.isAvailable === false" :disabled="pausingId === item._id" @click="togglePause(item)">
+                  <svg v-if="item.isAvailable === false" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" /></svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" /></svg>
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-primary icon-btn" data-label="Edit"
                   aria-label="Edit" @click="editModal.open(item)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
@@ -107,6 +170,8 @@
                 </button>
               </div>
             </div>
+            <p v-if="item.isAvailable === false" class="paused-note">Buyers can still see it but can't order. Reopen orders any time.</p>
+            <p v-if="pauseError[item._id]" class="small text-danger mb-0 mt-1" role="alert">{{ pauseError[item._id] }}</p>
             <!-- a button (not an href="#product-reviews" link): some ad blockers hide links like that -->
             <button v-if="!selecting" type="button" class="btn btn-sm btn-outline-secondary mt-3"
               :aria-label="`View reviews for ${item.name}`" @click="showReviewsFor(item)">View reviews</button>
@@ -129,6 +194,51 @@
     </section>
 
     <EditProductModal ref="editModal" @saved="loadProducts" />
+    <RecurringSlotsModal v-if="shop" ref="recurring" :shop-id="shop._id" :products="products" @saved="loadProducts" />
+
+    <!-- every order slot of every product, grouped by time (Teleport: a modal must sit directly in <body>) -->
+    <Teleport to="body">
+      <div id="all-slots-modal" class="modal fade" tabindex="-1" aria-labelledby="all-slots-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 id="all-slots-title" class="modal-title">All order slots</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Which slots">
+                <button type="button" class="btn" :class="slotView === 'upcoming' ? 'btn-brand' : 'btn-outline-secondary'"
+                  :aria-pressed="slotView === 'upcoming'" @click="slotView = 'upcoming'">Upcoming ({{ upcomingSlots.length }})</button>
+                <button type="button" class="btn" :class="slotView === 'past' ? 'btn-brand' : 'btn-outline-secondary'"
+                  :aria-pressed="slotView === 'past'" @click="slotView = 'past'">Past ({{ pastSlots.length }})</button>
+              </div>
+              <p v-if="shownSlots.length === 0" class="text-muted mb-0">
+                {{ slotView === 'upcoming' ? 'No upcoming slots. Add one with "+ Add to all", or per product when you edit it.' : 'No past slots.' }}
+              </p>
+              <ul v-else class="slot-list">
+                <li v-for="group in shownSlots" :key="group.time" class="slot-row">
+                  <div class="slot-when">
+                    <strong>{{ formatDateTime(group.time) }}</strong>
+                    <span class="small text-muted">{{ isAllProducts(group) ? `${products.length} products` : `${group.items.length} of ${products.length} products` }}</span>
+                  </div>
+                  <div class="slot-products">
+                    <!-- every product has this time: one chip instead of listing them all -->
+                    <span v-if="isAllProducts(group)" class="slot-chip all">
+                      All products <span class="text-muted">&middot; max {{ capacityText(group) }} each</span>
+                    </span>
+                    <template v-else>
+                      <span v-for="item in group.items" :key="item.id" class="slot-chip">
+                        {{ item.name }} <span class="text-muted">&middot; max {{ item.capacity }}</span>
+                      </span>
+                    </template>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 
   <!-- still loading the shop: show its layout in grey -->
@@ -150,8 +260,9 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
-import { formatPrice, capitalize } from '@/utils/format'
+import { formatPrice, capitalize, formatDateTime } from '@/utils/format'
 import EditProductModal from '@/components/EditProductModal.vue'
+import RecurringSlotsModal from '@/components/RecurringSlotsModal.vue'
 import ReviewList from '@/components/ReviewList.vue'
 import SearchBox from '@/components/SearchBox.vue'
 import ShopHeader from '@/components/ShopHeader.vue'
@@ -284,7 +395,12 @@ async function loadShop() {
 }
 
 // ---- order options: pickup / delivery (Shop.pickup, Shop.delivery) ----
-const FULFIL_OPTIONS = [{ key: 'pickup', label: 'Pickup' }, { key: 'delivery', label: 'Delivery' }]
+const FULFIL_OPTIONS = [
+  { key: 'pickup', label: 'Pickup', hint: 'Buyers collect from you',
+    icon: 'M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm3 0h-2v3h2z' },
+  { key: 'delivery', label: 'Delivery', hint: 'You deliver to buyers',
+    icon: 'M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2' },
+]
 const savingFulfil = ref(false)
 const fulfilMessage = ref('')
 const fulfilError = ref(false)
@@ -312,6 +428,85 @@ async function toggleFulfil(key, event) {
   }
 }
 
+// ---- one order slot for every product ----
+const pad = (n) => String(n).padStart(2, '0')
+const todayInput = (() => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` })()
+const bulkSlot = ref({ date: '', time: '', capacity: 10 })
+const addingSlot = ref(false)
+const bulkSlotMessage = ref('')
+const bulkSlotError = ref(false)
+async function addSlotToAll() {
+  bulkSlotError.value = false
+  const start = new Date(`${bulkSlot.value.date}T${bulkSlot.value.time}`) // the seller's local time
+  if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now()) {
+    bulkSlotError.value = true
+    bulkSlotMessage.value = 'Choose a date and time in the future.'
+    return
+  }
+  addingSlot.value = true
+  try {
+    const { data } = await axios.post(`${API_URL}/products/shop/${shop.value._id}/slots`, {
+      start: start.toISOString(),
+      capacity: bulkSlot.value.capacity,
+    })
+    const plural = (n) => `${n} product${n === 1 ? '' : 's'}`
+    bulkSlotMessage.value = `Added to ${plural(data.added)}.` + (data.skipped ? ` ${plural(data.skipped)} already had this time.` : '')
+    bulkSlot.value = { date: '', time: '', capacity: bulkSlot.value.capacity }
+    loadProducts()
+  } catch (err) {
+    bulkSlotError.value = true
+    bulkSlotMessage.value = err.response?.data?.message || 'Could not add the slot. Please try again.'
+  } finally {
+    addingSlot.value = false
+  }
+}
+
+const recurring = ref(null) // the "Recurring slots" pop-up
+
+// ---- close / reopen orders for a product (stop taking orders without deleting it) ----
+const pausingId = ref('')
+const pauseError = ref({})
+async function togglePause(item) {
+  const isAvailable = item.isAvailable === false // closed -> reopen, otherwise close
+  pausingId.value = item._id
+  pauseError.value = { ...pauseError.value, [item._id]: '' }
+  try {
+    const { data } = await axios.patch(`${API_URL}/products/${item._id}/availability`, { isAvailable })
+    item.isAvailable = data.isAvailable
+  } catch (err) {
+    pauseError.value = { ...pauseError.value, [item._id]: err.response?.data?.error || 'Could not change it. Please try again.' }
+  } finally {
+    pausingId.value = ''
+  }
+}
+
+// "View all slots": every product's slots grouped by start time (one row per time, products listed under it)
+const slotView = ref('upcoming')
+const slotGroups = computed(() => {
+  const byTime = new Map()
+  for (const product of products.value) {
+    for (const slot of product.orderSlots || []) {
+      const time = new Date(slot.start).getTime()
+      if (Number.isNaN(time)) continue
+      if (!byTime.has(time)) byTime.set(time, { time, items: [] })
+      byTime.get(time).items.push({ id: `${product._id}-${slot._id || time}`, productId: product._id, name: product.name, capacity: slot.capacity ?? 10 })
+    }
+  }
+  return [...byTime.values()].sort((a, b) => a.time - b.time)
+})
+// a time every product has (each product counted once)
+const isAllProducts = (group) => products.value.length > 0 && new Set(group.items.map((i) => i.productId)).size === products.value.length
+// "10", or "5-10" when the products have different limits
+function capacityText(group) {
+  const caps = group.items.map((i) => i.capacity)
+  const low = Math.min(...caps)
+  const high = Math.max(...caps)
+  return low === high ? String(low) : `${low}-${high}`
+}
+const upcomingSlots = computed(() => slotGroups.value.filter((g) => g.time > Date.now()))
+const pastSlots = computed(() => slotGroups.value.filter((g) => g.time <= Date.now()).reverse()) // newest first
+const shownSlots = computed(() => (slotView.value === 'upcoming' ? upcomingSlots.value : pastSlots.value))
+
 // load on open, and again if the user logs in as someone else
 // "View reviews" on a card: filter the reviews to that product and scroll down to them
 function showReviewsFor(item) {
@@ -337,16 +532,199 @@ onBeforeUnmount(() => shopController?.abort())
 </script>
 
 <style scoped>
-.fulfil-box {
+/* Order options (narrower) + Order slots side by side on wide screens, stacked on smaller ones */
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 1rem;
+}
+@media (max-width: 1199.98px) {
+  .settings-row { grid-template-columns: 1fr; }
+}
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface-soft);
+}
+.settings-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.settings-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.settings-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+/* "Saved" / "Saving..." / error, top right of Order options */
+.save-pill {
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-  padding: 0.9rem 1.1rem;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #ddf1e4;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #23804a;
+}
+.save-pill.error {
+  background: #fce1e3;
+  color: #b8312f;
+}
+/* one white row per option: icon, name + hint, switch */
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
   border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  cursor: pointer;
+}
+.option-icon {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 0.7rem;
+  background: var(--ocean-soft);
+  color: var(--ocean);
+}
+.option-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.option-text strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+.option-text small {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.option-row .form-check-input {
+  width: 2.6em;
+  height: 1.4em;
+  margin: 0;
+  cursor: pointer;
+}
+/* Order slots: outlined "View all slots" pill, one row of inputs + button */
+.view-slots-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--ocean);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  color: var(--ocean-dark);
+}
+.view-slots-btn:hover {
+  background: var(--ocean-soft);
+  color: var(--ocean-dark);
+}
+.bulk-slot-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+}
+.bulk-slot-form .form-control {
+  min-width: 0;
+  height: 42px;
   border-radius: 0.75rem;
-  background: var(--surface-soft);
+  background: var(--surface);
+}
+.add-all-btn {
+  height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 0.75rem;
+  white-space: nowrap;
+}
+@media (max-width: 575.98px) {
+  .bulk-slot-form { grid-template-columns: 1fr 1fr; }
+  .add-all-btn { grid-column: 1 / -1; }
+}
+.settings-foot {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.recurring-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ocean-dark);
+  text-decoration: none;
+}
+.recurring-link:hover {
+  text-decoration: underline;
+}
+
+/* "All order slots" pop-up */
+.slot-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.slot-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.slot-row:last-child { border-bottom: 0; }
+.slot-when {
+  display: flex;
+  flex-direction: column;
+}
+.slot-products {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.35rem;
+}
+.slot-chip {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+.slot-chip.all {
+  background: var(--ocean-soft);
+  color: var(--ocean-dark);
+  font-weight: 600;
+}
+@media (max-width: 575.98px) {
+  .slot-row { grid-template-columns: 1fr; gap: 0.35rem; }
 }
 /* MRT, experience and categories under the header */
 .shop-details {
@@ -357,6 +735,27 @@ onBeforeUnmount(() => shopController?.abort())
   padding: 0 0.25rem 1.25rem;
   border-bottom: 1px solid var(--line);
   color: var(--ink-soft);
+}
+/* orders closed: faded photo + "Orders closed" label */
+.product-tile.paused .product-img {
+  filter: grayscale(0.7);
+  opacity: 0.6;
+}
+.paused-badge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(var(--navy-rgb), 0.85);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+.paused-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 .icon-btn {
   position: relative;

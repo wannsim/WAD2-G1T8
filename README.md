@@ -153,9 +153,10 @@ Run the app (section 2), then follow each case. Log in as the account shown.
 **Seller product reviews** - **My shop** (`/seller/shop`) -> **Product reviews** lists buyer ratings and comments, newest first.
 Filter by product or click **View reviews** on a listing; **Refresh reviews** fetches the latest.
 
-**Seller sales analytics** - **Analytics** (`/seller/analytics`) shows revenue, completed orders, units sold, average order value,
+**Seller sales analytics** - **Analytics** (`/seller/analytics`) shows revenue, completed orders, units sold, average order value, repeat customer rate,
 a sales trend, top products and counts by status for the last 7 / 30 / 90 days or a custom range (Singapore time).
 Revenue counts **completed orders only**, using the total price saved on each order.
+Repeat customer rate is the percentage of unique buyers with a completed order placed in the selected period who have at least two completed orders placed by that period's end, including earlier purchases from the same shop. Each buyer counts once; orders without a buyer ID are excluded from this metric. No customers gives 0%. Like the other cards, the comparison shows percentage change relative to the preceding period; it is unavailable when either period has no customers or the previous rate is zero.
 
 **Security note** - access to pages is checked in the browser using the logged-in user saved there;
 the API does not yet verify a login token on every request.

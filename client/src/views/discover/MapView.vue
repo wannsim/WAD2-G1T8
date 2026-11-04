@@ -62,21 +62,17 @@ function avatarColour(name) {
 
 // the card can be closed to see the whole map; picking a shop shows it again
 const showCard = ref(true)
-let lastCardScrollAt = 0
 function selectShop(shop) {
   selectedId.value = shop._id
   showCard.value = true
 }
 
-function cycleStationShop(event) {
-  if (shopsAtSelectedMrt.value.length < 2) return
-  const now = Date.now()
-  if (now - lastCardScrollAt < 350) return
-  lastCardScrollAt = now
-  const direction = event.deltaY > 0 ? 1 : -1
+// ‹ › arrows on the card: the previous / next shop at the same MRT station (wraps round at the ends)
+function cycleStationShop(direction) {
+  const list = shopsAtSelectedMrt.value
+  if (list.length < 2) return
   const current = Math.max(0, selectedShopPosition.value)
-  const next = Math.min(shopsAtSelectedMrt.value.length - 1, Math.max(0, current + direction))
-  selectedId.value = shopsAtSelectedMrt.value[next]._id
+  selectedId.value = list[(current + direction + list.length) % list.length]._id
 }
 
 onMounted(async () => {
@@ -102,7 +98,7 @@ onMounted(async () => {
     </div>
 
     <!-- search + category -->
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-2">
       <div class="search-box flex-grow-1">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
@@ -111,14 +107,6 @@ onMounted(async () => {
       </div>
       <!-- Filter button: click to slide the category chips out (and back in) -->
       <div class="filter-group" @keydown.esc="filterOpen = false">
-        <Transition name="slide-chips">
-          <div v-if="filterOpen" id="category-chips" class="chips" role="group" aria-label="Filter by category">
-            <button v-for="(c, i) in ['All', ...CATEGORIES]" :key="c" type="button" class="chip" :style="{ '--i': i }"
-              :class="{ active: category === c }" :aria-pressed="category === c" @click="category = c">
-              {{ c }}
-            </button>
-          </div>
-        </Transition>
         <button type="button" class="filter-btn" :class="{ open: filterOpen, filtered: category !== 'All' }"
           :aria-expanded="filterOpen" aria-controls="category-chips" @click="filterOpen = !filterOpen">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -130,6 +118,17 @@ onMounted(async () => {
         </button>
       </div>
     </div>
+
+    <!-- category chips: slide down under the search row when Filter is pressed -->
+    <Transition name="slide-chips">
+      <div v-if="filterOpen" id="category-chips" class="chips" role="group" aria-label="Filter by category"
+        @keydown.esc="filterOpen = false">
+        <button v-for="(c, i) in ['All', ...CATEGORIES]" :key="c" type="button" class="chip" :style="{ '--i': i }"
+          :class="{ active: category === c }" :aria-pressed="category === c" @click="category = c">
+          {{ c }}
+        </button>
+      </div>
+    </Transition>
 
     <div class="map-shell">
       <!-- left: shop list -->
@@ -162,11 +161,11 @@ onMounted(async () => {
         </div>
 
         <!-- details of the selected shop -->
-        <div v-if="selectedShop && showCard" class="detail-card" @wheel.prevent="cycleStationShop">
+        <div v-if="selectedShop && showCard" class="detail-card">
           <button type="button" class="btn-close close-btn" aria-label="Close" @click="showCard = false"></button>
           <div class="d-flex align-items-center gap-2 flex-wrap mb-2 pe-4">
             <span class="station-chip"><span class="dot"></span>{{ stationLabel(selectedShop) }}</span>
-            <span v-if="shopsAtSelectedMrt.length > 1" class="small text-muted">{{ selectedShopPosition + 1 }} / {{ shopsAtSelectedMrt.length }} · scroll for more shops</span>
+            <span v-if="shopsAtSelectedMrt.length > 1" class="small text-muted" aria-live="polite">{{ selectedShopPosition + 1 }} / {{ shopsAtSelectedMrt.length }}</span>
             <a v-if="googleMapsLink(selectedShop)" :href="googleMapsLink(selectedShop)" target="_blank"
               rel="noopener" class="small link-secondary">Open in Google Maps</a>
           </div>
@@ -190,6 +189,12 @@ onMounted(async () => {
             </div>
           </div>
           <RouterLink :to="`/shops/${selectedShop._id}`" class="btn btn-brand w-100">View shop</RouterLink>
+
+          <!-- ‹ › on the card's edges: other shops at the same station -->
+          <template v-if="shopsAtSelectedMrt.length > 1">
+            <button type="button" class="card-arrow prev" aria-label="Previous shop at this station" @click="cycleStationShop(-1)">&lsaquo;</button>
+            <button type="button" class="card-arrow next" aria-label="Next shop at this station" @click="cycleStationShop(1)">&rsaquo;</button>
+          </template>
         </div>
       </div>
     </div>
@@ -258,32 +263,35 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.25);
   color: #fff;
 }
+/* chips: their own line under the search row, wrapping onto more lines (the category list is long) */
 .chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
-  padding: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding: 0.4rem;
   overflow: hidden;
-  white-space: nowrap;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 1rem;
   background: #fff;
 }
 /* the panel grows out of the Filter button... */
 .slide-chips-enter-active,
 .slide-chips-leave-active {
-  transition: max-width 0.4s ease, max-height 0.4s ease, opacity 0.3s ease, transform 0.4s ease;
+  transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.4s ease, margin 0.4s ease, padding 0.4s ease;
 }
 .slide-chips-enter-from,
 .slide-chips-leave-to {
-  max-width: 0;
   max-height: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
   opacity: 0;
-  transform: translateX(24px);
+  transform: translateY(-8px);
 }
 .slide-chips-enter-to,
 .slide-chips-leave-from {
-  max-width: 900px;
-  max-height: 200px;
+  max-height: 400px;
 }
 /* ...and the chips pop in one after another */
 .slide-chips-enter-active .chip {
@@ -308,18 +316,11 @@ onMounted(async () => {
     animation: none;
   }
 }
-/* phones: Filter button and chips get their own line, chips wrap */
+/* phones: the Filter button gets its own line, on the right */
 @media (max-width: 767.98px) {
   .filter-group {
     width: 100%;
-    flex-wrap: wrap;
     justify-content: flex-end;
-  }
-  .chips {
-    order: 1;
-    flex-wrap: wrap;
-    width: 100%;
-    border-radius: 1rem;
   }
 }
 .chip {
@@ -438,9 +439,9 @@ onMounted(async () => {
 /* floating card at the bottom-left of the map (like the design) */
 .detail-card {
   position: absolute;
-  left: 1rem;
+  left: 1.5rem; /* room for the ‹ arrow that sits over the left edge */
   bottom: 1rem;
-  width: min(340px, calc(100% - 2rem));
+  width: min(340px, calc(100% - 3rem));
   padding: 1rem 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 1.1rem;
@@ -462,6 +463,36 @@ onMounted(async () => {
   border-radius: 999px;
   background: var(--surface-hover);
   font-size: 0.75rem;
+}
+/* round arrows sitting half over the card's left / right edge, vertically centred */
+.card-arrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0 0 3px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--ink);
+  transform: translateY(-50%);
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.card-arrow.prev {
+  left: -17px;
+}
+.card-arrow.next {
+  right: -17px;
+}
+.card-arrow:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  transform: translateY(-50%) scale(1.08);
 }
 .dot {
   width: 7px;
