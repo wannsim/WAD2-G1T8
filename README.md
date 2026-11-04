@@ -82,21 +82,20 @@ To try it on a phone on the same Wi-Fi, run `pnpm dev --host` in `client/` and o
 
 ## 3. Login details
 
-All sample accounts use the password **`password123`**.
+**Sample accounts** - also used by the browser tests in `client/.env.e2e`:
 
-| Role | Email | What to try |
-|---|---|---|
-| Buyer | `alice@mock.test` | Has orders in every status, favourites, follows and chats - the best account for a demo |
-| Buyer | `ben@mock.test`, `chloe@mock.test` | Orders, reviews and chats |
-| Buyer | `farah@mock.test`, `gabriel@mock.test`, `hannah@mock.test`, `irfan@mock.test` | Orders and reviews with the newer shops |
-| Buyer | `daniel@mock.test` | Brand-new buyer with no interests (tests recommendations for new users) |
-| Seller | `bob@mock.test` (Bob's Bakes) | Orders waiting for a reply, reviews, analytics |
-| Seller | `cara`, `dinesh`, `ella`, `farid`, `grace`, `hari`, `ivy`, `mei`, `jason`, `aisyah`, `kelvin`, `priya`, `rachel` `@mock.test` | One shop each |
-| Buyer | `alice@test.com` | Older sample account (from `pnpm seed`) |
-| Seller | `bob@test.com`, `cara@test.com` | Older sample accounts (from `pnpm seed`) |
+```
+E2E_BUYER_EMAIL=alice@test.com
+E2E_BUYER_PASSWORD=password123
+E2E_SELLER_EMAIL=bob@test.com
+E2E_SELLER_PASSWORD=password123
+E2E_PRODUCT_ID=6ad567656a6201507854f92c
+```
 
-After `pnpm activity` there are also `sam.search`, `cleo.clicks`, `fiona.follows`, `max.mixed` and
-`nina.new` `@mock.test` (buyers whose activity each tests one part of the recommendations).
+**Seller Google account** (for "Continue with Google"):
+
+- Email: `wad2.homlyhauls@gmail.com`
+- Password: `ArewegonnagetA?`
 
 You can also register a new buyer or seller account on the **Create an account** page.
 
@@ -111,31 +110,6 @@ You can also register a new buyer or seller account on the **Create an account**
 | `pnpm test:api` | `server/` | The running back end end-to-end: browse, search, product page, map, Trending feed, login (7 checks) | Back end running (`pnpm dev`) with sample data. **Read-only** - changes no data |
 
 Expected result: every line says `PASS` / `pass`, ending with `ALL PASSED` or `fail 0`.
-
-### Manual test cases
-
-Run the app (section 2), then follow each case. Log in as the account shown.
-
-| # | Feature | Steps | Expected result |
-|---|---|---|---|
-| 1 | Index page | Open http://localhost:5173 | Home page ("For you") loads with a sidebar, banners and product rows |
-| 2 | Register + login | Create an account -> log out -> log in with it; then try a wrong password | New account logs in; wrong password shows an error |
-| 3 | Browse & search | **Browse** -> search `kueh` -> choose a category -> set Max $ `10` | Only matching products, all within the price |
-| 4 | Product page | Click any product card | Photos, price, slots, the seller box (ratings, response time, followers) and all reviews with star filters |
-| 5 | Favourites | `alice@mock.test`: tap ♥ on a product -> open **Favourites** | Heart turns red at once; product appears in Favourites; tap again to remove |
-| 6 | Follow a shop | On a product page click **+ Follow** -> **For you** -> **Following** tab | Button changes to "✓ Following"; that shop's products appear in Following |
-| 7 | Order (delivery) | `alice@mock.test`: product from Bob's Bakes -> **Request order** -> pick a slot -> **Delivery** | Address is filled in from the profile; request is sent; it appears under **My orders -> Pending** |
-| 8 | Seller replies | `bob@mock.test`: **Shop orders** -> **Accept** (or Decline / Propose new time) | Order moves to the right tab; the buyer gets a notification (bell) |
-| 9 | Live chat | Two browsers: `alice@mock.test` and `bob@mock.test`. Alice opens a product -> **Chat with seller** -> sends a message | Bob sees it without refreshing, with a red unread badge on **Chats** |
-| 10 | Notifications | After case 8, as Alice click the bell | New notification with date and time; mark as read / delete works |
-| 11 | Review | `ben@mock.test`: **My orders -> Completed** -> **Kueh Lapis** -> **Leave a review**, choose stars and tags | Review appears on the product page; seller is notified |
-| 12 | Recommendations | `alice@mock.test`: hover "Why recommended?" on a card; ♥ a few items -> **Refresh** | Each card shows one reason; top 3 have gold/silver/bronze medals; the order updates after Refresh |
-| 13 | Trending | **For you -> Trending** | Products ranked by this week's orders, saves and views (and YouTube, if a key is set) |
-| 13b | AI filter on YouTube results | With `YOUTUBE_API_KEY` and `GEMINI_API_KEY` set, start the back end and watch its terminal | Right away on every start: `[YouTube] key ...xxxx OK - live answer: ...` and `[Gemini] OK - live answer: ...`. Then `Trends: Gemini filter ON`, and (if the 24h cache has expired) for each keyword a `[Gemini] "keyword" ... kept X of Y` line with `KEEP` / `DROP` next to every video title |
-| 14 | Map | **Shops near you** -> click a shop in the list | Map moves to its nearest MRT; pop-up shows category, rating and **View shop** |
-| 15 | Seller analytics | `bob@mock.test`: **Analytics** -> choose 7 / 30 / 90 days | Revenue, completed orders, sales trend and top products for that period |
-| 16 | My shop & listings | `bob@mock.test`: **Add products** -> add a product with a photo -> **My shop** | New product is listed; **Product reviews** section shows buyer reviews |
-| 17 | Phone layout | Make the browser narrow (or use a phone) | Menu becomes a ☰ drawer, rows swipe sideways, no sideways page scrolling |
 
 ---------------------------------------------------------------------
 
