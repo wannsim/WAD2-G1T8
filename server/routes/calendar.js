@@ -5,13 +5,12 @@ import { requireAuth, requireSelf } from '../utils/auth.js'
 import { calendarEnabled, startConnect, finishConnect, calendarStatus, disconnect, listEvents } from '../utils/googleCalendar.js'
 
 const router = express.Router()
-const RETURN_PAGES = ['/seller/orders', '/orders', '/seller/calendar']
+const RETURN_PAGES = ['/seller/orders', '/seller/calendar'] // only sellers connect Google Calendar
 
-// Keeps return links on a known page, falling back to this person's orders.
-function allowedReturnTo(page, role = 'seller') {
+// Keeps return links on a known seller page, falling back to the Order dashboard.
+function allowedReturnTo(page) {
   if (RETURN_PAGES.includes(page)) return page
-  if (role === 'seller') return '/seller/orders'
-  return '/orders'
+  return '/seller/orders'
 }
 
 // POST /calendar/connect-start checks Homly ownership before returning Google's consent link.
@@ -22,13 +21,15 @@ router.post('/connect-start', requireAuth, async (req, res) => {
     const userId = req.user.id
     const user = await User.findById(userId).select('+password')
     if (!user) return res.status(404).json({ message: 'User not found.' })
+    // Only sellers connect Google Calendar (pickups go into the seller's calendar). 403, not 401: 401 logs the user out.
+    if (user.role !== 'seller') return res.status(403).json({ message: 'Only sellers can connect Google Calendar.' })
     if (user.password) {
       if (typeof password !== 'string' || !password || !await bcrypt.compare(password, user.password)) {
         // 400, not 401: the app treats 401 as an expired login
         return res.status(400).json({ message: 'Wrong password. Please try again.' })
       }
     }
-    const url = await startConnect(user, allowedReturnTo(returnTo, user.role))
+    const url = await startConnect(user, allowedReturnTo(returnTo))
     if (!url) return res.status(500).json({ message: 'Could not connect Google Calendar. Please try again.' })
     res.json({ url })
   } catch (err) {

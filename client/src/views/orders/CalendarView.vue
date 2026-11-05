@@ -7,6 +7,7 @@ import { API_URL } from '@/utils/config'
 import { formatDateTime, formatPrice, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
 import { calendarStatus, calendarEvents } from './calendarApi.js'
+import GoogleCalendarConnect from './GoogleCalendarConnect.vue'
 
 // Tile icon paths are copied from SellerOrdersView.vue.
 const ICONS = {
@@ -282,6 +283,13 @@ async function loadBusy() {
   if (start.getTime() === weekStart.value.getTime()) googleEvents.value = events
 }
 
+// After a disconnect: say so, ask the server for the new status, and clear the Google busy blocks.
+async function onCalendarDisconnected() {
+  message.value = 'Google Calendar disconnected.'
+  calendar.value = await calendarStatus(currentUser.value._id)
+  await loadBusy()
+}
+
 // Chooses a day and closes controls belonging to the previous selection.
 function selectDay(index) {
   selectedDay.value = index
@@ -474,7 +482,10 @@ onMounted(async () => {
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 my-3">
         <div>
           <h2 class="page-title mb-1">Pickup calendar</h2>
-          <p v-if="calendar.connected" class="small text-body-secondary mb-0">Google Calendar synced</p>
+          <!-- Connect / disconnect Google Calendar right here; the same box is on the Order dashboard and My orders. -->
+          <div v-if="calendar.enabled" class="calendar-google">
+            <GoogleCalendarConnect :calendar="calendar" return-to="/seller/calendar" test-prefix="calendar-page" @connect-open="message = ''" @disconnected="onCalendarDisconnected" />
+          </div>
         </div>
         <div class="d-flex align-items-center flex-wrap gap-2">
           <button type="button" class="btn btn-act-outline week-arrow" aria-label="Previous week" @click="prevWeek" data-testid="calendar-prev">‹</button>
@@ -498,7 +509,7 @@ onMounted(async () => {
         </div>
         <ul class="calendar-legend">
           <li v-for="kind in LEGEND" :key="kind"><span class="legend-dot" :class="`kind-${kind}`" aria-hidden="true"></span>{{ KIND_LABELS[kind] }}</li>
-          <li><span class="legend-dot calendar-busy" aria-hidden="true"></span>Busy in Google Calendar</li>
+          <li v-if="calendar.connected"><span class="legend-dot calendar-busy" aria-hidden="true"></span>Busy in Google Calendar</li>
         </ul>
         <div class="calendar-workspace">
           <div class="calendar-scroll">
@@ -705,6 +716,8 @@ onMounted(async () => {
 .day-head { padding: 14px 18px; background: #2e3170; color: #fff; }
 .day-head h3 { margin: 0 0 0.2rem; font-size: 1.15rem; font-weight: 700; color: #fff; }
 .day-count { margin: 0; font-size: 0.85rem; color: rgba(255, 255, 255, 0.85); }
+/* Google Calendar box under the page title: a white rounded frame that only takes the width it needs. */
+.calendar-google { width: fit-content; max-width: 100%; margin-top: 0.6rem; padding: 8px 8px 8px 14px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
 /* Week controls: bordered square arrows and a bold week range. */
 .week-arrow { width: 38px; padding: 0; font-size: 1.1rem; }
 .week-range { font-size: 0.95rem; font-weight: 600; color: #2e3170; }

@@ -7,7 +7,8 @@ import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
-import { calendarStatus, startCalendarConnect, disconnectCalendar } from './calendarApi.js'
+import { calendarStatus } from './calendarApi.js'
+import GoogleCalendarConnect from './GoogleCalendarConnect.vue'
 
 // Owner: Basile - seller's order dashboard: accept / decline / propose new time / complete
 const router = useRouter()
@@ -28,43 +29,12 @@ const proposeOpenId = ref('') // The order whose new-time input is open.
 const chatBusyId = ref('')
 const chatError = ref('')
 const brokenImages = ref({})
-const calendar = ref({ enabled: false, connected: false }) // Safe Calendar connection status.
-const calendarPasswordOpen = ref(false) // Whether the ownership-check form is open.
-const calendarPassword = ref('') // Cleared after every connection attempt or cancellation.
-const calendarConnectBusy = ref(false) // Prevents duplicate connection requests.
-const calendarConnectError = ref('') // Safe connection error text from the server.
+const calendar = ref({ enabled: false, connected: false }) // Safe Calendar connection status (connect / disconnect live in GoogleCalendarConnect.vue).
 
-// Opens the password check when needed, otherwise starts Google consent directly.
-async function connectGoogleCalendar() {
-  if (calendarConnectBusy.value) return
-  calendarConnectError.value = ''
-  if (calendar.value.needsPassword) calendarPasswordOpen.value = true
-  else await submitCalendarConnect()
-}
-
-// Sends the ownership proof once, clears it, then redirects or shows the safe error.
-async function submitCalendarConnect() {
-  if (calendarConnectBusy.value) return
-  if (calendar.value.needsPassword && !calendarPassword.value) return
-  calendarConnectBusy.value = true
-  calendarConnectError.value = ''
-  const result = await startCalendarConnect(currentUser.value._id, calendarPassword.value, '/seller/orders')
-  calendarPassword.value = ''
-  calendarConnectBusy.value = false
-  if (result.url) {
-    calendarPasswordOpen.value = false
-    window.location.href = result.url
-  } else {
-    calendarConnectError.value = result.error
-  }
-}
-
-// Closes the ownership form and removes its password and error text.
-function cancelCalendarConnect() {
-  if (calendarConnectBusy.value) return
-  calendarPasswordOpen.value = false
-  calendarPassword.value = ''
-  calendarConnectError.value = ''
+// After a disconnect: say so and ask the server for the new status.
+async function onCalendarDisconnected() {
+  message.value = 'Google Calendar disconnected.'
+  calendar.value = await calendarStatus(currentUser.value._id)
 }
 
 // Checks whether two dates have the same local calendar day.
@@ -105,16 +75,6 @@ const upcomingTotal = computed(() => {
   return total
 })
 
-// Disconnects Calendar and reloads its status, using the existing refresh busy flag.
-async function disconnectGoogleCalendar() {
-  if (refreshing.value) return
-  refreshing.value = true
-  error.value = ''
-  const result = await disconnectCalendar(currentUser.value._id)
-  if (result) calendar.value = await calendarStatus(currentUser.value._id)
-  else error.value = 'Could not disconnect Google Calendar. Please try again.'
-  refreshing.value = false
-}
 
 // Groups pending orders that need the seller's reply.
 const needsReply = computed(() => {
@@ -697,22 +657,9 @@ onMounted(async () => {
                 <span>{{ day.label }}</span>
               </div>
             </div>
+            <!-- The same Google Calendar box as the calendar page and My orders. -->
             <div v-if="calendar.enabled" class="calendar-google-row">
-              <div v-if="calendar.connected" class="d-flex align-items-center flex-wrap gap-2">
-                <span class="calendar-google-status text-break">Synced with {{ calendar.email }}</span>
-                <button type="button" class="btn btn-act-outline" :disabled="refreshing" @click="disconnectGoogleCalendar" data-testid="calendar-disconnect">{{ refreshing ? 'Please wait…' : 'Disconnect' }}</button>
-              </div>
-              <button v-else type="button" class="btn btn-act-primary" :disabled="calendarConnectBusy" @click="connectGoogleCalendar" data-testid="calendar-connect">Connect Google Calendar</button>
-              <div v-if="!calendar.connected && calendarPasswordOpen" class="calendar-password-box" data-testid="calendar-password-box">
-                <label for="seller-calendar-password" class="form-label">Enter your Homly Hauls password to connect Google Calendar</label>
-                <input id="seller-calendar-password" type="password" autocomplete="current-password" class="form-control" v-model="calendarPassword" :disabled="calendarConnectBusy" data-testid="calendar-password" />
-                <p v-if="calendarConnectError" class="calendar-connect-error" role="alert" data-testid="calendar-connect-error">{{ calendarConnectError }}</p>
-                <div class="calendar-password-actions">
-                  <button type="button" class="btn btn-act-primary" :disabled="calendarConnectBusy || !calendarPassword" @click="submitCalendarConnect" data-testid="calendar-password-continue">Continue</button>
-                  <button type="button" class="btn btn-act-outline" :disabled="calendarConnectBusy" @click="cancelCalendarConnect" data-testid="calendar-password-cancel">Cancel</button>
-                </div>
-              </div>
-              <p v-else-if="!calendar.connected && calendarConnectError" class="calendar-connect-error" role="alert" data-testid="calendar-connect-error">{{ calendarConnectError }}</p>
+              <GoogleCalendarConnect :calendar="calendar" return-to="/seller/orders" test-prefix="calendar" @connect-open="message = ''" @disconnected="onCalendarDisconnected" />
             </div>
           </section>
         </div>
@@ -1081,12 +1028,6 @@ onMounted(async () => {
 .calendar-open { color: #4d63ff; font-weight: 600; }
 .calendar-summary { margin-bottom: 1rem; color: var(--ink-soft); font-size: 0.85rem; }
 .calendar-google-row { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dfe3f2; }
-.calendar-google-status { color: #4b4f72; font-size: 0.85rem; }
-
-/* Ownership inputs reuse existing form styles and are never kept after an attempt. */
-.calendar-password-box { margin-top: 1rem; background: #fff; border: 0; }
-.calendar-connect-error { margin: 0.5rem 0 0; color: #b8312f; font-size: 13.5px; }
-.calendar-password-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 @media (min-width: 768px) { .next-seven-panel { padding: 1.5rem; } }
 
 /* ---------- smaller screens ---------- */

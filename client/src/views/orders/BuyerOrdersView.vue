@@ -7,7 +7,6 @@ import { currentUser } from '@/utils/auth'
 import { notifications } from '@/utils/notifications'
 import { formatPrice, formatDateTime, capitalize } from '@/utils/format'
 import ReasonModal from '@/components/ReasonModal.vue'
-import { calendarStatus, startCalendarConnect, disconnectCalendar } from './calendarApi.js'
 
 // Owner: Basile - buyer's order dashboard
 const router = useRouter()
@@ -25,55 +24,6 @@ const brokenImages = ref({})
 const openDetails = ref({}) // Which order cards show their details.
 const searchText = ref('')
 const fulfilmentFilter = ref('all') // Filter: 'all', 'pickup' or 'delivery'
-const calendar = ref({ enabled: false, connected: false }) // Safe Calendar connection status.
-const calendarPasswordOpen = ref(false) // Whether the ownership-check form is open.
-const calendarPassword = ref('') // Cleared after every connection attempt or cancellation.
-const calendarConnectBusy = ref(false) // Prevents duplicate connection requests.
-const calendarConnectError = ref('') // Safe connection error text from the server.
-
-// Opens the password check when needed, otherwise starts Google consent directly.
-async function connectGoogleCalendar() {
-  if (calendarConnectBusy.value) return
-  calendarConnectError.value = ''
-  if (calendar.value.needsPassword) calendarPasswordOpen.value = true
-  else await submitCalendarConnect()
-}
-
-// Sends the ownership proof once, clears it, then redirects or shows the safe error.
-async function submitCalendarConnect() {
-  if (calendarConnectBusy.value) return
-  if (calendar.value.needsPassword && !calendarPassword.value) return
-  calendarConnectBusy.value = true
-  calendarConnectError.value = ''
-  const result = await startCalendarConnect(currentUser.value._id, calendarPassword.value, '/orders')
-  calendarPassword.value = ''
-  calendarConnectBusy.value = false
-  if (result.url) {
-    calendarPasswordOpen.value = false
-    window.location.href = result.url
-  } else {
-    calendarConnectError.value = result.error
-  }
-}
-
-// Closes the ownership form and removes its password and error text.
-function cancelCalendarConnect() {
-  if (calendarConnectBusy.value) return
-  calendarPasswordOpen.value = false
-  calendarPassword.value = ''
-  calendarConnectError.value = ''
-}
-
-// Disconnects Calendar and reloads its status, using the existing refresh busy flag.
-async function disconnectGoogleCalendar() {
-  if (refreshing.value) return
-  refreshing.value = true
-  error.value = ''
-  const result = await disconnectCalendar(currentUser.value._id)
-  if (result) calendar.value = await calendarStatus(currentUser.value._id)
-  else error.value = 'Could not disconnect Google Calendar. Please try again.'
-  refreshing.value = false
-}
 
 // Sets the colour of each order status tag.
 const STATUS_BADGE = {
@@ -249,7 +199,6 @@ async function refreshOrders() {
   refreshing.value = true
   error.value = ''
   await loadOrders()
-  calendar.value = await calendarStatus(currentUser.value._id)
   refreshing.value = false
 }
 
@@ -295,11 +244,6 @@ async function updateStatus(order, status, reason = '') {
     const response = await axios.put(`${API_URL}/orders/${order._id}/status`, { status, userId: currentUser.value._id, reason })
     if (status === 'cancelled') message.value = 'Order cancelled.' // Explain the successful cancellation.
     if (status === 'accepted') message.value = 'New time accepted.' // Explain the accepted proposal.
-    if (response.data.calendar) {
-      if (response.data.calendar.buyer === 'added') message.value += ' Added to your Google Calendar.'
-      if (response.data.calendar.buyer === 'removed') message.value += ' Removed from your Google Calendar.'
-      if (response.data.calendar.buyer === 'failed') message.value += ' Your Google Calendar could not be updated.'
-    }
     busyId.value = ''
     await loadOrders()
   } catch (err) {
@@ -320,7 +264,6 @@ onMounted(async () => {
     return
   }
   await loadOrders()
-  calendar.value = await calendarStatus(currentUser.value._id)
 })
 </script>
 
@@ -337,27 +280,6 @@ onMounted(async () => {
           </svg>
           {{ refreshing ? 'Refreshing…' : 'Refresh' }}
         </button>
-      </div>
-      <!-- Calendar connection stays available even before the first order. -->
-      <div v-if="calendar.enabled" class="buyer-calendar mb-3 text-break" data-testid="buyer-calendar">
-        <div v-if="calendar.connected" class="buyer-calendar-row">
-          <span>Google Calendar synced ({{ calendar.email }}). Accepted pickups are added automatically.</span>
-          <button type="button" class="btn btn-act-outline" :disabled="refreshing" @click="disconnectGoogleCalendar" data-testid="buyer-calendar-disconnect">{{ refreshing ? 'Please wait…' : 'Disconnect' }}</button>
-        </div>
-        <div v-else class="buyer-calendar-row">
-          <span>Connect Google Calendar to add your accepted pickups automatically.</span>
-          <button type="button" class="btn btn-act-primary" :disabled="calendarConnectBusy" @click="connectGoogleCalendar" data-testid="buyer-calendar-connect">Connect Google Calendar</button>
-        </div>
-        <div v-if="!calendar.connected && calendarPasswordOpen" class="calendar-password-box" data-testid="buyer-calendar-password-box">
-          <label for="buyer-calendar-password" class="form-label">Enter your Homly Hauls password to connect Google Calendar</label>
-          <input id="buyer-calendar-password" type="password" autocomplete="current-password" class="form-control" v-model="calendarPassword" :disabled="calendarConnectBusy" data-testid="buyer-calendar-password" />
-          <p v-if="calendarConnectError" class="calendar-connect-error" role="alert" data-testid="buyer-calendar-connect-error">{{ calendarConnectError }}</p>
-          <div class="calendar-password-actions">
-            <button type="button" class="btn btn-act-primary" :disabled="calendarConnectBusy || !calendarPassword" @click="submitCalendarConnect" data-testid="buyer-calendar-password-continue">Continue</button>
-            <button type="button" class="btn btn-act-outline" :disabled="calendarConnectBusy" @click="cancelCalendarConnect" data-testid="buyer-calendar-password-cancel">Cancel</button>
-          </div>
-        </div>
-        <p v-else-if="!calendar.connected && calendarConnectError" class="calendar-connect-error" role="alert" data-testid="buyer-calendar-connect-error">{{ calendarConnectError }}</p>
       </div>
       <PageSkeleton v-if="loading" variant="list" :count="3" label="Loading your orders" data-testid="buyer-orders-loading" />
       <div v-else-if="error && orders.length === 0" class="alert alert-danger" data-testid="buyer-orders-error">{{ error }}</div>
@@ -487,25 +409,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* The white connection strip keeps the specified padding and wraps its contents. */
-.buyer-calendar { padding: 0.75rem 1rem; background: #fff; border: 1px solid #dfe3f2; border-radius: 1rem; color: #4b4f72; font-size: 0.88rem; }
-.buyer-calendar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.5rem; }
-
-/* Calendar connection controls use the shared navy, outlined and danger button set. */
-.btn.btn-act-primary, .btn.btn-act-outline, .btn.btn-act-danger { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid; border-radius: 999px; min-height: 38px; padding: 0 14px; font-size: 13.5px; font-weight: 600; }
-.btn.btn-act-primary { background: var(--ocean); border-color: var(--ocean); color: #fff; }
-.btn.btn-act-outline { background: #fff; border-color: #c9d0f6; color: #2e3170; }
-.btn.btn-act-danger { background: #fff; border-color: #f0b9bb; color: #c43c41; }
-.btn.btn-act-primary:hover, .btn.btn-act-outline:hover { background: #e9ecfc; border-color: #4d63ff; color: #2e3170; }
-.btn.btn-act-danger:hover { background: #fff3f4; border-color: #e5484d; color: #c43c41; }
-.btn.btn-act-primary:focus-visible, .btn.btn-act-outline:focus-visible, .btn.btn-act-danger:focus-visible { outline: 2px solid #4d63ff; outline-offset: 2px; }
-.btn.btn-act-primary:disabled, .btn.btn-act-outline:disabled, .btn.btn-act-danger:disabled { opacity: .6; }
-
-/* Ownership inputs reuse existing form styles and leave room below the final buttons. */
-.calendar-password-box { margin-top: 1rem; padding-bottom: 0.5rem; background: #fff; border: 0; }
-.calendar-connect-error { margin: 0.5rem 0 0; color: #b8312f; font-size: 13.5px; }
-.calendar-password-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-
 /* ---------- tabs: underlined, the open one tinted ---------- */
 .order-tabs {
   display: flex;

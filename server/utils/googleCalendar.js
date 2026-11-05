@@ -6,7 +6,7 @@ import Product from '../models/Product.js'
 
 // Handles Google Calendar permission and events; logs fixed messages, never secrets.
 const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
-const RETURN_PAGES = ['/seller/orders', '/orders', '/seller/calendar']
+const RETURN_PAGES = ['/seller/orders', '/seller/calendar'] // only sellers connect Google Calendar
 const SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/calendar.events']
 
 // Checks whether all three Calendar settings are present.
@@ -34,8 +34,7 @@ export async function startConnect(user, returnTo) {
   try {
     const client = newClient()
     if (!client || !user) return ''
-    let page = '/orders'
-    if (user.role === 'seller') page = '/seller/orders'
+    let page = '/seller/orders'
     if (RETURN_PAGES.includes(returnTo)) page = returnTo
     if (!user.googleCalendar) user.googleCalendar = {}
     user.googleCalendar.state = randomBytes(32).toString('hex')
@@ -56,7 +55,6 @@ export async function finishConnect(code, state) {
     if (typeof state !== 'string' || !state) return { ok: false, returnTo, reason: 'expired' }
     const user = await User.findOne({ 'googleCalendar.state': state }).select('+googleCalendar.state +googleCalendar.refreshToken +password')
     if (!user || !user.googleCalendar) return { ok: false, returnTo, reason: 'expired' }
-    if (user.role !== 'seller') returnTo = '/orders'
     if (RETURN_PAGES.includes(user.googleCalendar.returnTo)) returnTo = user.googleCalendar.returnTo
     const validState = user.googleCalendar.stateExpires && new Date(user.googleCalendar.stateExpires).getTime() > new Date().getTime()
     user.googleCalendar.state = ''
@@ -213,88 +211,68 @@ export function calendarStatus(user) {
   return { enabled, connected, email, needsPassword }
 }
 
-// Adds or removes each side's event after an order change, without failing the order.
+// Adds the pickup to the SELLER's Google Calendar when an order is accepted, and removes it when an accepted
+// order is cancelled. Only sellers connect Google Calendar. A calendar problem never fails the order itself.
+// Returns { seller: 'none' | 'not-connected' | 'added' | 'removed' | 'failed' } for the seller's pages to show.
 export async function syncOrderCalendars(order, previousStatus) {
-  const result = { seller: 'none', buyer: 'none' }
+  const result = { seller: 'none' }
   const accepting = order.status === 'accepted' && ['pending', 'rescheduled'].includes(previousStatus)
   const cancelling = order.status === 'cancelled' && previousStatus === 'accepted'
   if (!accepting && !cancelling) return result
-  const sides = [{ key: 'seller', field: 'sellerEventId' }, { key: 'buyer', field: 'buyerEventId' }]
-  let changed = false
-  for (let i = 0; i < sides.length; i++) {
-    const side = sides[i]
-    if (accepting && order[side.field]) continue // Do not add an event twice.
-    if (cancelling && !order[side.field]) continue
-    try {
-      let shop = null
-      if (accepting || side.key === 'seller') shop = await Shop.findById(order.shop)
-      let userId = order.buyer
-      if (side.key === 'seller') {
-        if (!shop || !shop.owner) {
-          result.seller = 'failed'
-          continue
-        }
-        userId = shop.owner
-      }
-      if (accepting) {
-        const user = await User.findById(userId)
-        if (!calendarStatus(user).connected) {
-          result[side.key] = 'not-connected'
-          continue
-        }
-        const product = await Product.findById(order.product)
-        let buyer = user
-        if (side.key === 'seller') buyer = await User.findById(order.buyer)
-        if (!shop || !product || !buyer) {
-          result[side.key] = 'failed'
-          continue
-        }
-        let kind = 'Pickup'
-        let location = `${shop.address || ''} ${shop.postalCode || ''}`.trim()
-        if (order.fulfilment === 'delivery') {
-          kind = 'Delivery'
-          location = `${order.deliveryAddress || ''} ${order.deliveryUnit || ''} ${order.deliveryPostalCode || ''}`.trim()
-        }
-        let otherName = shop.name
-        if (side.key === 'seller') otherName = buyer.name
-        let description = 'Homly Hauls order'
-        if (order.customisation && order.customisation.trim()) description += `\n${order.customisation}`
-        const eventId = await addEvent(userId, {
-          orderId: order._id,
-          summary: `${kind}: ${product.name} × ${order.quantity} (${otherName})`,
-          description,
-          location,
-          start: order.requestedTime,
-          minutes: 30,
-        })
-        if (!eventId) {
-          result[side.key] = 'failed'
-          continue
-        }
-        order[side.field] = eventId
-        result[side.key] = 'added'
-      } else {
-        if (!await deleteEvent(userId, order[side.field])) {
-          result[side.key] = 'failed'
-          continue // Keep the id when Google could not delete its event.
-        }
-        order[side.field] = ''
-        result[side.key] = 'removed'
-      }
-      changed = true
-    } catch (err) {
-      result[side.key] = 'failed'
+  if (accepting && order.sellerEventId) return result // Do not add an event twice.
+  if (cancelling && !order.sellerEventId) return result // Nothing was added, so nothing to remove.
+  try {
+    const shop = await Shop.findById(order.shop)
+    if (!shop || !shop.owner) {
+      result.seller = 'failed'
+      return result
     }
-  }
-  if (changed) {
-    try {
-      await order.save()
-    } catch (err) {
-      for (let i = 0; i < sides.length; i++) {
-        const key = sides[i].key
-        if (result[key] === 'added' || result[key] === 'removed') result[key] = 'failed'
+    const sellerId = shop.owner
+    if (accepting) {
+      const seller = await User.findById(sellerId)
+      if (!calendarStatus(seller).connected) {
+        result.seller = 'not-connected'
+        return result
       }
+      const product = await Product.findById(order.product)
+      const buyer = await User.findById(order.buyer) // the buyer's name goes in the seller's event title
+      if (!product || !buyer) {
+        result.seller = 'failed'
+        return result
+      }
+      let kind = 'Pickup'
+      let location = `${shop.address || ''} ${shop.postalCode || ''}`.trim()
+      if (order.fulfilment === 'delivery') {
+        kind = 'Delivery'
+        location = `${order.deliveryAddress || ''} ${order.deliveryUnit || ''} ${order.deliveryPostalCode || ''}`.trim()
+      }
+      let description = 'Homly Hauls order'
+      if (order.customisation && order.customisation.trim()) description += `\n${order.customisation}`
+      const eventId = await addEvent(sellerId, {
+        orderId: order._id,
+        summary: `${kind}: ${product.name} × ${order.quantity} (${buyer.name})`,
+        description,
+        location,
+        start: order.requestedTime,
+        minutes: 30,
+      })
+      if (!eventId) {
+        result.seller = 'failed'
+        return result
+      }
+      order.sellerEventId = eventId
+      result.seller = 'added'
+    } else {
+      if (!await deleteEvent(sellerId, order.sellerEventId)) {
+        result.seller = 'failed'
+        return result // Keep the id when Google could not delete its event.
+      }
+      order.sellerEventId = ''
+      result.seller = 'removed'
     }
+    await order.save() // a failed save is caught below and reported as 'failed'
+  } catch (err) {
+    result.seller = 'failed'
   }
   return result
 }

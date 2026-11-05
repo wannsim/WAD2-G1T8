@@ -26,9 +26,8 @@ const orderSchema = new mongoose.Schema(
     respondedAt: Date, // first seller response - used for average response time (Yu Chen)
     // the order time the seller was last reminded about when it went overdue (utils/overdueReminders.js)
     overdueRemindedFor: Date,
-    // Google Calendar event ids, '' when there is none
+    // the seller's Google Calendar event id for this order, '' when there is none
     sellerEventId: { type: String, default: '' },
-    buyerEventId: { type: String, default: '' },
   },
   { timestamps: true }
 )
