@@ -6,6 +6,8 @@ import { currentUser } from '@/utils/auth'
 import { API_URL } from '@/utils/config'
 import { ORDER_STATUS_BADGE } from '@/utils/constants'
 import { calculateSalesAnalytics, formatSalesMoney, percentChange, presetSalesRange, previousSalesRange, salesCsv, validateSalesRange } from '@/utils/salesAnalytics'
+import ForecastPanel from '@/components/ForecastPanel.vue' // Forecast and what to make next (Wan Sim)
+import MakeNextSection from '@/components/MakeNextSection.vue' // What to make next (Wan Sim)
 
 const router = useRouter()
 const shop = ref(null)
@@ -18,6 +20,15 @@ const customStart = ref(range.value.startDate)
 const customEnd = ref(range.value.endDate)
 const rangeError = ref('')
 let controller
+
+// "Sales so far" / "Forecast" toggle next to the title (Wan Sim):
+// 'sales' = the sales analytics below, 'forecast' = Forecast + What to make next
+const view = ref('sales')
+// icons: bootstrap-icons "bar-chart" and "graph-up-arrow" (16x16)
+const VIEWS = [
+  { key: 'sales', label: 'Sales so far', icon: 'M4 11H2v3h2zm5-4H7v7h2zm5-5v12h-2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1z' },
+  { key: 'forecast', label: 'Forecast', icon: 'M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.707l-4.146 4.147a.5.5 0 0 1-.708 0L7 6.707l-3.646 3.647a.5.5 0 0 1-.708-.708l4-4a.5.5 0 0 1 .708 0L9.5 7.293 13.293 3.5H10.5a.5.5 0 0 1-.5-.5' },
+]
 
 const trendGrouping = ref('') // Day / Month / Year buttons on the sales trend; '' = picked from the range length
 const GROUPINGS = [{ key: 'daily', label: 'Day' }, { key: 'monthly', label: 'Month' }, { key: 'yearly', label: 'Year' }]
@@ -141,10 +152,10 @@ onBeforeUnmount(() => controller?.abort())
 
 <template>
   <section aria-labelledby="analytics-title" :aria-busy="loading">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
       <div>
         <h1 id="analytics-title" class="page-title mb-1">Sales analytics</h1>
-        <p class="text-muted mb-0">{{ shop ? `${shop.name} · ` : '' }}Completed orders, grouped by order placed date.</p>
+        <p class="text-muted mb-0">{{ shop ? `${shop.name} · ` : '' }}{{ view === 'sales' ? 'Completed orders, grouped by order placed date.' : 'Estimates and suggestions to help you plan, based on all your completed orders.' }}</p>
       </div>
       <div class="d-flex gap-2">
         <button v-if="shop" class="btn btn-brand" :disabled="loading || analytics.completedOrders === 0"
@@ -161,6 +172,15 @@ onBeforeUnmount(() => controller?.abort())
       </div>
     </div>
 
+    <!-- "Sales so far" / "Forecast" toggle on its own row under the title (Wan Sim) -->
+    <div v-if="shop" class="view-toggle mb-4" role="group" aria-label="Analytics view">
+      <button v-for="v in VIEWS" :key="v.key" type="button" class="view-toggle-btn"
+        :class="{ active: view === v.key }" :aria-pressed="view === v.key" @click="view = v.key">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path :d="v.icon" /></svg>
+        {{ v.label }}
+      </button>
+    </div>
+
     <PageSkeleton v-if="loading" variant="dashboard" :count="2" label="Loading your sales analytics" />
     <div v-else-if="error" class="alert alert-danger" role="alert">
       {{ error }} <button class="btn btn-sm btn-outline-danger ms-2" @click="load">Retry</button>
@@ -171,6 +191,8 @@ onBeforeUnmount(() => controller?.abort())
       <RouterLink class="btn btn-brand" to="/profile">Set up shop</RouterLink>
     </div>
     <template v-else>
+      <!-- "Sales so far" view (not re-indented, to keep this change small) -->
+      <template v-if="view === 'sales'">
       <div class="analytics-panel p-3 mb-4">
         <div class="d-flex align-items-end flex-wrap gap-3">
           <div>
@@ -310,6 +332,12 @@ onBeforeUnmount(() => controller?.abort())
           </div>
         </div>
       </div>
+      </template>
+      <!-- "Forecast" view -->
+      <template v-else>
+        <ForecastPanel :orders="orders" />
+        <MakeNextSection :shop-id="shop._id" :orders="orders" class="mt-4" />
+      </template>
     </template>
   </section>
 </template>
@@ -336,4 +364,9 @@ onBeforeUnmount(() => controller?.abort())
 .chart-data-toggle, .analytics-link { color: var(--brand-dark); }
 .chart-data-table { max-height: 22rem; }
 .product-name { min-width: 8rem; overflow-wrap: anywhere; }
+/* "Sales so far" / "Forecast": a rounded pill; the chosen option is filled with the brand colour */
+.view-toggle { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.3rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.view-toggle-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 1.1rem; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-weight: 500; }
+.view-toggle-btn:hover { background: var(--surface-hover); color: var(--ink); }
+.view-toggle-btn.active { background: var(--brand); color: #fff; font-weight: 600; }
 </style>

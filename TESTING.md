@@ -5,7 +5,7 @@ This project has four kinds of automated tests:
 | Kind | Tool | Where the files are | Needs the app running? |
 |---|---|---|---|
 | Unit tests | Vitest | `client/src/utils/__tests__/`, `server/utils/__tests__/` | No |
-| Component tests | Vitest + Vue Test Utils | `client/src/components/__tests__/` | No |
+| Component tests | Vitest + Vue Test Utils | `client/src/components/__tests__/`, `client/src/views/orders/__tests__/` | No |
 | Integration test | Vitest + Vue Test Utils | `client/src/components/__tests__/ReviewBoard.integration.spec.js` | No |
 | End-to-end (E2E) tests | Playwright (Chromium) | `client/tests/*.spec.js` | **Yes** |
 
@@ -123,22 +123,30 @@ The message never prints the value.
 | `client/src/utils/__tests__/shopStats.spec.js` | Unit | The six shop stats: values for a brand-new shop, rating text, response time in mins, hours or days, fulfilment % | 5 |
 | `client/src/utils/__tests__/salesAnalytics.spec.js` | Unit | `validateSalesRange` (valid, start after end, impossible date); `percentChange` (normal, previous = 0); `previousSalesRange` | 6 |
 | `client/src/utils/__tests__/postalCode.spec.js` | Unit (TDD) | `isValidPostalCode`: 6 digits OK; 5 or 7 digits, letters, symbols, empty or null refused; spaces around the code ignored | 5 |
+| `client/src/utils/__tests__/forecast.spec.js` | Unit (TDD) | Seller forecast (see ALGORITHMS.md). `weeklyTotals` (7): Singapore weeks, empty weeks as 0, only completed orders, Sunday 17:30 UTC counts in the next week, pickup time first, this week left out. `forecastWeeks` (8): not enough history, the worked example (4, 6, 5, 7, 8, 9), flat, rising, a 0 week, never below 0. `busiestSlots` (7): per weekday, Saturday 17:30 UTC = Sunday, the 40% rule. `backtest` (4) and `rollingBacktest` (5) | 31 |
+| `client/src/utils/__tests__/makeNext.spec.js` | Unit (TDD) | What to make next. `categoryGrowth` (4): last 4 full weeks vs the 4 before, 0 orders before (no divide by zero). `suggestNext` (10): 0.6 own + 0.4 trend with the reason, +100% cap, 2-order minimum, new category, shrinking category, other categories ignored, own growth only without trends, up to 3 keyword ideas, "baked goods" matches "Baked goods" | 14 |
 | `server/utils/__tests__/productRules.spec.js` | Unit | `checkProduct` (complete listing, blank name, wrong category, price rules, missing photo); `toPrice`; `cleanTags` | 7 |
 | `client/src/components/__tests__/StarRating.spec.js` | Component | Shows 5 stars; prop defaults; clicking a star when editable emits `rate` with 1, 3 or 5; clicking when display-only emits nothing | 5 |
 | `client/src/components/__tests__/CategoryMultiSelect.spec.js` | Component | Placeholder and full list; ticking emits the new list; list stays in site order; × removes a chip; "Clear all" | 5 |
 | `client/src/components/__tests__/MrtSelect.spec.js` | Component | Typing filters suggestions; "No station matches"; clicking a suggestion emits it; error for a made-up station after leaving the box; tidies "bishan mrt"; required message | 6 |
 | `client/src/components/__tests__/SearchBox.spec.js` | Component | Placeholder prop and default; typing emits; × only shows after typing; × and Esc clear the search | 5 |
+| `client/src/components/__tests__/ForecastPanel.spec.js` | Component | Mounted with an `orders` prop only (dates from "now"): too few orders shows "Not enough orders yet to forecast"; enough orders shows the "Estimate" badge and 4 estimate weeks; orders on one weekday show the busiest-weekday suggestion | 3 |
+| `client/src/components/__tests__/MakeNextPanel.spec.js` | Component | Props only: the reason and "Ideas to explore (trending on YouTube)"; no trend data says "own orders only" and still suggests; nothing growing shows "No suggestions yet" | 3 |
+| `client/src/views/orders/__tests__/GoogleCalendarConnect.spec.js` | Component (teammate: Basile) | The shared Google Calendar box, steps with no server call only: hidden while unavailable, not connected / connected states, the password box (empty, Continue enabled after typing, Cancel), Disconnect asks first | 8 |
 | `client/src/components/__tests__/ReviewBoard.integration.spec.js` | Integration | Real `ReviewBoard` + real `StarRating`: total and average shown; one star rating per review; "5 Stars" filter leaves only 5-star reviews; "No reviews match this filter."; back to "All Ratings" | 4 |
 | `client/tests/login.spec.js` | E2E | (1) buyer logs in and sees "For you"; (2) wrong password shows "Wrong email or password" | 2 |
 | `client/tests/orders.spec.js` | E2E | (4) buyer orders the test product and sees "Order requested"; (5) seller sees that pending order in Shop orders. (5) depends on (4). **Creates a real order.** | 2 |
 | `client/tests/browse.spec.js` | E2E | (3) the browse flow: buyer goes to Browse, opens the first product and sees its name on the product page | 1 |
+| `client/tests/calendar-connect.spec.js` | E2E (teammate: Basile) | The Google Calendar box on the seller's calendar page and Order dashboard: empty password box, wrong password, still logged in, Cancel. Safe paths only: changes no data and never reaches Google | 2 |
 | `client/tests/format.test.js` | Unit (older, `node:test`) | Teammate's tests for the format helpers and `cleanMrtName` | 6 |
-| `server/tests/geminiFilter.test.js`, `server/tests/trends.test.js` | Unit (older, `node:test`) | Teammates' tests for the Gemini video filter and the YouTube trend maths | 10 |
+| `server/tests/geminiFilter.test.js` | Unit (older, `node:test`) | Teammate's tests for the Gemini video filter | 5 |
+| `server/tests/trends.test.js` | Unit (older, `node:test`) | Teammate's tests for the YouTube trend maths | 5 |
 
-**Totals:**
-- Vitest: 42 + 7 unit, 21 component and 4 integration (67 in the client, 7 in the server).
-- E2E: 5 (login 2, browse 1, orders 2).
-- Older `node:test`: 16.
+**Totals** (counted by running the tests on 5 Nov 2026, not by adding up):
+- Vitest, client: **126 tests in 17 files**, all passing (87 unit, 35 component, 4 integration).
+- Vitest, server: **7 tests in 1 file**, all passing.
+- E2E: **7 tests in 4 files** (login 2, browse 1, orders 2, calendar-connect 2). Counted with `pnpm exec playwright test --list`, which lists them without running them, because running the order test creates a real order.
+- Older `node:test`: **16** (client 6, server 10), all passing.
 
 (`server/tests/api-smoke.mjs` is a teammate's separate script, run with `pnpm test:api`. It isn't part of `pnpm test`.)
 
@@ -157,6 +165,8 @@ The message never prints the value.
 | `FollowButton` | It calls the API to follow or unfollow. |
 | `FavouriteButton` | It loads and saves favourites through the API. |
 | Google login | It runs in Google's own pop-up and needs a real Google account, so it can't be automated. |
+| `server/routes/forecast.js` (`GET /forecast/make-next/:shopId`) | It reads products and saved YouTube trends from MongoDB. Testing it without a database means mocking MongoDB (outside the slides), and it must never write to the shared one. Checked by hand only: 401 without a login, 200 for the shop owner. The matching and scoring it feeds are in `makeNext.js`, which is tested. |
+| `MakeNextSection.vue` | It only loads that route with axios and passes the data on, so testing it needs the server or a mocked axios. `MakeNextPanel`, which shows the data, is tested with props instead. |
 
 ---
 
@@ -181,7 +191,7 @@ Everything else uses only what the Week 10 slides teach. These extras were neede
 | Extra | Why it was used |
 |---|---|
 | `process.loadEnvFile` (Node 20.12+) | It reads the test accounts from `client/.env.e2e`. It's built into Node, so no extra library like `dotenv` is needed. |
-| `toBeCloseTo` (Vitest) | Distances are decimals, so `toBe` would fail on tiny rounding differences. |
+| `toBeCloseTo` (Vitest) | Distances, forecasts and scores are decimals, so `toBe` would fail on tiny rounding differences. |
 | `locator.or()` (Playwright) | The order page can show one of four things (the form, "no slots", "not available" or a load error). It waits for whichever appears, so the test can fail with a clear message instead of a timeout. |
 | `filter({ hasText })` (Playwright) | It picks out the one order card that has both the right product name and the right pickup time. |
 | `test.describe.configure({ mode: 'serial' })` | It runs flow (4) before flow (5), and skips (5) if (4) fails, because (5) looks for the order (4) made. |

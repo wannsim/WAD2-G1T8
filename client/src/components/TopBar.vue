@@ -410,5 +410,11 @@ onUnmounted(() => {
   .right {
     gap: 0.35rem;
   }
+  .pill-btn {
+    padding: 0 0.6rem; /* icon-only on phones: less side padding so the user button fits (no sideways scroll) */
+  }
+  .user-btn {
+    padding: 0; /* phones show only the avatar, so no room is needed around it (fits at 360px) */
+  }
 }
 </style>

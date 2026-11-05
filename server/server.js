@@ -16,6 +16,7 @@ import calendarRoutes from './routes/calendar.js'
 import reviewRoutes from './routes/reviews.js'
 import chatRoutes from './routes/chats.js'
 import notificationRoutes from './routes/notifications.js'
+import forecastRoutes from './routes/forecast.js' // What to make next (Wan Sim)
 import { startRealtime } from './utils/realtime.js'
 import User from './models/User.js'
 import { startTrendRefresh } from './utils/trends.js'
@@ -85,6 +86,7 @@ app.use('/calendar', calendarRoutes)
 app.use('/reviews', reviewRoutes)
 app.use('/chats', chatRoutes)
 app.use('/notifications', notificationRoutes)
+app.use('/forecast', forecastRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/shops', shopRoutes)
  
