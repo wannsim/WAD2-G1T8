@@ -46,10 +46,13 @@ WAD2-G1T8/
    | `YOUTUBE_API_KEY` | Optional | YouTube Data API v3 key - adds "trending on YouTube" to the Trending tab |
    | `GEMINI_API_KEY` | Optional | Free Gemini API key ([aistudio.google.com](https://aistudio.google.com) -> Get API key) - AI double-checks each YouTube result and drops videos that are not really about the product |
    | `PORT` | Optional | API port, default `8000` (the client expects 8000) |
-4. **Install the front end** (in a second terminal):
+   | `JWT_SECRET` | Optional | Any long random text used to sign login tokens. If empty, one is derived from `DB` |
+   | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI` | Optional | Google OAuth client for sellers' "Connect Google Calendar". Redirect URI: `http://localhost:8000/calendar/callback`. If any of the three is missing, the Calendar box is hidden |
+4. **Install the front end** (in a second terminal). The last line is only needed for the browser (E2E) tests:
    ```bash
    cd client
    pnpm install
+   pnpm exec playwright install chromium
    ```
 5. **Add the front-end setting (optional).** If `client/.env` was included, skip this. Otherwise
    `cp .env.example .env` and set `VITE_GOOGLE_CLIENT_ID` (same value as `GOOGLE_CLIENT_ID`).
@@ -61,7 +64,10 @@ WAD2-G1T8/
    pnpm activity    # optional: extra buyers whose browsing shows how the recommendations work
    ```
    `pnpm mock` only replaces accounts ending in `@mock.test` (and anything linked to their shops).
-   Do **not** run `pnpm seed` on a shared database - it deletes everything first.
+   Do **not** run `pnpm seed` on a shared database - it deletes everything first. (On your own empty
+   database, `pnpm seed` creates the `alice@test.com` / `bob@test.com` accounts listed in section 3.)
+7. **Add the test accounts (only for the browser tests).** Create `client/.env.e2e` with the lines shown
+   in section 3 (no quotes). This file is git-ignored.
 
 ## 2. Run the application
 
@@ -82,7 +88,16 @@ To try it on a phone on the same Wi-Fi, run `pnpm dev --host` in `client/` and o
 
 ## 3. Login details
 
-**Sample accounts** - also used by the browser tests in `client/.env.e2e`:
+All sample accounts use the password `password123`.
+
+| Role | Email | Password | Created by |
+|---|---|---|---|
+| Buyer | `alice@test.com` | `password123` | Already in the team database (or `pnpm seed`) |
+| Seller | `bob@test.com` | `password123` | Already in the team database (or `pnpm seed`) |
+| Buyer | `alice@mock.test` | `password123` | `pnpm mock` |
+| Seller | `bob@mock.test` | `password123` | `pnpm mock` |
+
+**Browser-test accounts** - copy these lines into `client/.env.e2e`:
 
 ```
 E2E_BUYER_EMAIL=alice@test.com
@@ -101,15 +116,67 @@ You can also register a new buyer or seller account on the **Create an account**
 
 ## 4. Test the application
 
-### Automated tests
+Full details of every test file and test case are in [`TESTING.md`](TESTING.md).
 
-| Command | Where | What it checks | Needs |
-|---|---|---|---|
-| `pnpm test` | `client/` | Display helpers: prices, "3 days ago", capitalisation, Singapore time, MRT names (6 tests) | Nothing |
-| `pnpm test` | `server/` | YouTube trend maths with a fake YouTube: keyword matching, music videos ignored, growth (5 tests); Gemini filter with a fake Gemini: keeps only relevant videos, falls back safely when there is no key, an error or no free quota left (5 tests) | Nothing (no key, no database) |
-| `pnpm test:api` | `server/` | The running back end end-to-end: browse, search, product page, map, Trending feed, login (7 checks) | Back end running (`pnpm dev`) with sample data. **Read-only** - changes no data |
+### Step 1 - Unit, component and integration tests (no app, server or database needed)
 
-Expected result: every line says `PASS` / `pass`, ending with `ALL PASSED` or `fail 0`.
+```bash
+cd client
+pnpm test        # Vitest (unit, component, integration) + older node:test files
+
+cd ../server
+pnpm test        # Vitest (product rules) + older node:test files (YouTube trends, Gemini filter)
+```
+
+| Where | Test files | What they check |
+|---|---|---|
+| `client/src/utils/__tests__/` | `format`, `geo`, `constants`, `mrtStations`, `shopStats`, `salesAnalytics`, `postalCode` | Prices, dates in Singapore time, "3 days ago", distances, categories, MRT names, shop stats, sales date ranges, postal codes |
+| `client/src/components/__tests__/` | `StarRating`, `CategoryMultiSelect`, `MrtSelect`, `SearchBox`, `ReviewBoard.integration` | Each component renders and reacts to clicks/typing; review list filters by star rating |
+| `client/src/views/orders/__tests__/` | `GoogleCalendarConnect` | The seller's Google Calendar connect box |
+| `client/tests/format.test.js` | `node:test` | Format helpers and MRT name cleaning |
+| `server/utils/__tests__/productRules.spec.js` | Vitest | Product listing rules: name, category, price, photo, tags |
+| `server/tests/trends.test.js`, `geminiFilter.test.js` | `node:test` | YouTube trend maths and Gemini filter, with fake YouTube/Gemini (no keys needed) |
+
+Expected result: Vitest ends with all tests `passed`, and `node:test` ends with `fail 0`.
+
+### Step 2 - API smoke test (back end must be running)
+
+```bash
+cd server
+pnpm dev          # terminal 1
+pnpm test:api     # terminal 2 - browse, search, product page, map, Trending feed, login (7 checks)
+```
+
+Read-only - changes no data. Expected result: every line says `PASS`, ending with `ALL PASSED`.
+
+### Step 3 - End-to-end browser tests (Playwright)
+
+1. Make sure `client/.env.e2e` exists (setup step 7) and Chromium is installed (setup step 4).
+2. Start the back end and front end (`pnpm dev` in `server/` and in `client/`), as in section 2.
+3. In a third terminal:
+   ```bash
+   cd client
+   pnpm exec playwright test tests/login.spec.js tests/browse.spec.js tests/calendar-connect.spec.js
+   pnpm exec playwright show-report     # opens the HTML report
+   ```
+
+| Test file | Test cases | Changes data? |
+|---|---|---|
+| `tests/login.spec.js` | Buyer logs in and sees "For you"; wrong password shows "Wrong email or password" | No |
+| `tests/browse.spec.js` | Buyer opens Browse, opens the first product, sees its name | No |
+| `tests/calendar-connect.spec.js` | Seller opens the Google Calendar box on the calendar page and Order dashboard; empty and wrong password; Cancel (skipped if Calendar is not set up) | No |
+| `tests/orders.spec.js` | Buyer orders the test product and sees "Order requested"; seller sees the pending order | **Yes - creates a real order** |
+
+`pnpm test:e2e` runs all four files. Because `orders.spec.js` places a real order, only run it (or
+`pnpm test:e2e`) against your own database. It also needs the test product to have orders open, pickup
+enabled and a future pickup slot with space left.
+
+### Manual test (quick check)
+
+1. Log in as `alice@test.com` / `password123` -> the **For you** home page loads.
+2. Go to **Browse**, open a product, place an order -> "Order requested" appears.
+3. Log out, log in as `bob@test.com` / `password123` -> **Shop orders** shows the pending order.
+4. Open **Chat** as either user and send a message -> it appears instantly for the other user.
 
 ---------------------------------------------------------------------
 
@@ -132,8 +199,9 @@ a sales trend, top products and counts by status for the last 7 / 30 / 90 days o
 Revenue counts **completed orders only**, using the total price saved on each order.
 Repeat customer rate is the percentage of unique buyers with a completed order placed in the selected period who have at least two completed orders placed by that period's end, including earlier purchases from the same shop. Each buyer counts once; orders without a buyer ID are excluded from this metric. No customers gives 0%. Like the other cards, the comparison shows percentage change relative to the preceding period; it is unavailable when either period has no customers or the previous rate is zero.
 
-**Security note** - access to pages is checked in the browser using the logged-in user saved there;
-the API does not yet verify a login token on every request.
+**Security note** - logging in returns a signed login token (`server/utils/auth.js`). The API checks it
+on actions that change data (creating products, orders, reviews, avatars, Google Calendar), and pages are
+also guarded in the browser.
 
 ## Project structure
 
