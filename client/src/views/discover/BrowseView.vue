@@ -123,8 +123,6 @@ onMounted(() => {
   search()
   loadSaved()
 })
-
-// TODO (Member 3): radius filter, distance display, list/map toggle state
 </script>
 
 <template>

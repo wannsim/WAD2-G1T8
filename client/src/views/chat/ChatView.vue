@@ -10,7 +10,6 @@ import { chatAvatarUrl, myShopAvatar, userAvatarUrl } from '@/utils/layout'
 import { lastSeenLabel, formatPrice } from '@/utils/format'
 import AvatarEditor from '@/components/AvatarEditor.vue'
  
-// Save as: client/src/views/chat/ChatView.vue
 // /chats        -> chat list (pick a chat on the left)
 // /chats/:id    -> same page, with that chat already opened (used by "Chat with seller")
 // /chats/:id?product=<productId> -> also shows that product at the top of the chat (from the product page)

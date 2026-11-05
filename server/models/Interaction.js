@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 
 // Owner: Jessie (FYP) | collection: interactions
 // One document per thing a buyer does. The FYP algorithm reads these.
-// NEW: 'click' type. Everything except 'order' is auto-deleted after 30 days (TTL index below).
+// Everything except 'order' is auto-deleted after 30 days (TTL index below).
 const interactionSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

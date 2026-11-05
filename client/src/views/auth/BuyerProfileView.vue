@@ -12,7 +12,7 @@ import MrtSelect from '@/components/MrtSelect.vue'
 import { matchStation } from '@/utils/mrtStations'
 import { useNameCheck } from '@/utils/nameCheck'
  
-// Save as: client/src/views/auth/BuyerProfileView.vue   (Owner: Wan Sim)
+// Owner: Wan Sim
 // The buyer's profile page (shown at /profile when the logged-in user is a buyer).
 const router = useRouter()
 const name = ref('')

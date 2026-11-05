@@ -87,7 +87,7 @@ onMounted(async () => {
     loading.value = false
   }
 
-  // tell the FYP that this buyer viewed this product (Member 4 uses this).
+  // tell the FYP that this buyer viewed this product.
   // Runs in the background so it never stops the page from showing.
   if (product.value && currentUser.value) {
     axios

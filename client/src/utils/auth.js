@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { joinRoom, leaveRoom } from './socket' // for live chat
  
-// Save as: client/src/utils/auth.js
 const KEY = 'homly_hauls_user'
  
 // look in both places: remembered logins live in localStorage, session-only logins in sessionStorage

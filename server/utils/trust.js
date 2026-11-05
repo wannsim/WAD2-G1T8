@@ -2,7 +2,7 @@ import Order from '../models/Order.js'
 import Review from '../models/Review.js'
 import Shop from '../models/Shop.js'
 
-// Owner: Yu Chen
+
 // Recalculates a shop's stats + trust score. Called after an order changes or a review is added.
 // The FYP (Member 4) reads shop.stats.trustScore, so keep it between 0 and 100.
 export async function updateShopStats(shopId) {
@@ -27,7 +27,7 @@ export async function updateShopStats(shopId) {
   const reviewCount = reviews.length
   const avgRating = reviewCount ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0
 
-  // ---- trust score (0 - 100). TODO (Yu Chen): tune the weights ----
+  // ---- trust score (0 - 100) ----
   let trustScore = 50 // brand-new shops start in the middle so they are not buried in the FYP
   if (total > 0 || reviewCount > 0) {
     const ratingPart = reviewCount ? avgRating / 5 : 0.6

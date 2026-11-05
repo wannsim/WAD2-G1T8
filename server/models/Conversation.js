@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
  
-// Save as: server/models/Conversation.js | collection: conversations
+// collection: conversations
 // One conversation per (buyer, shop) pair. The chat is between the buyer and the shop's owner.
 const conversationSchema = new mongoose.Schema(
   {

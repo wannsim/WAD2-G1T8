@@ -1,7 +1,6 @@
 import { io } from 'socket.io-client'
 import { API_URL } from './config'
  
-// Save as: client/src/utils/socket.js
 // ONE shared connection to the server for the whole app.
 export const socket = io(API_URL)
  

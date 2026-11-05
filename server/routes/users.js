@@ -229,6 +229,4 @@ router.get('/:id/avatar', async (req, res) => {
   }
 })
 
-// TODO (Wan Sim): change password, delete account
-
 export default router

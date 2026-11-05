@@ -336,9 +336,6 @@ week's views with last week's."
 - **The new route `GET /forecast/make-next/:shopId` has no automated test** (it needs a database; it was checked by hand:
   401 without a login, 200 for the shop owner). `MakeNextSection.vue`, which loads it, has no test either.
 - **Small, generated sample data:** the backtest numbers come from one test shop with smooth, generated-looking orders.
-- **Open item for its owner:** `server/utils/trust.js` line 30 has `TODO (Yu Chen): tune the weights` for the trust
-  score, which the For You feed uses. It was not changed.
-
 ---
 
 ## 8. Packages added

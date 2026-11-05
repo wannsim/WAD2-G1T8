@@ -3,7 +3,6 @@ import { currentUser } from '@/utils/auth'
 import BuyerProfileView from './BuyerProfileView.vue'
 import SellerProfileView from './SellerProfileView.vue'
  
-// Save as: client/src/views/auth/ProfileView.vue
 // /profile shows a different page depending on who is logged in:
 //   seller -> SellerProfileView (shop setup, certificates...)
 //   buyer  -> BuyerProfileView  (name, interests)

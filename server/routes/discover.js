@@ -56,8 +56,4 @@ router.get('/', async (req, res) => {
   }
 })
 
-// TODO (Member 3): radius filter  GET /discover/nearby?lat=&lng=&km=
-//   hint: load shops, use distanceKm() from client/src/utils/geo.js idea on the server, or filter on the client
-// TODO (Member 3): search by shop name / nearest MRT as well
-
 export default router

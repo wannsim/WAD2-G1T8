@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
  
-// Save as: server/models/Message.js | collection: messages
+// collection: messages
 const messageSchema = new mongoose.Schema(
   {
     conversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', required: true },

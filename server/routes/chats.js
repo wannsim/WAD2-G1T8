@@ -6,7 +6,6 @@ import Message from '../models/Message.js'
 import Shop from '../models/Shop.js'
 import { emitFromRoute } from '../utils/realtime.js'
  
-// Save as: server/routes/chats.js
 // POST /chats/start               find or create the chat between a buyer and a shop
 // GET  /chats/unread/:userId      total unread messages (for the navbar badge)
 // GET  /chats/user/:userId        all chats of one user (for the chat list)
