@@ -107,13 +107,6 @@ E2E_SELLER_PASSWORD=password123
 E2E_PRODUCT_ID=6ad567656a6201507854f92c
 ```
 
-**Seller Google account** (for "Continue with Google"):
-
-- Email: `wad2.homlyhauls@gmail.com`
-- Password: `ArewegonnagetA?`
-
-You can also register a new buyer or seller account on the **Create an account** page.
-
 ## 4. Test the application
 
 Full details of every test file and test case are in [`TESTING.md`](TESTING.md).
