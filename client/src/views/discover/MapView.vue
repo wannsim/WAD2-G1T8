@@ -18,6 +18,7 @@ const listError = ref('')
 const search = ref('')
 const category = ref('All')
 const selectedId = ref(null)
+const brokenAvatars = ref({})
 const filterOpen = ref(false) // category chips slide out of the Filter button
 const route = useRoute()
 
@@ -58,6 +59,15 @@ function avatarColour(name) {
   let hash = 0
   for (const ch of String(name)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
   return AVATAR_COLOURS[hash % AVATAR_COLOURS.length]
+}
+
+function shopAvatarUrl(shop) {
+  if (!shop.avatarUpdatedAt || brokenAvatars.value[shop._id]) return ''
+  return `${API_URL}/shops/${shop._id}/avatar?v=${new Date(shop.avatarUpdatedAt).getTime()}`
+}
+
+function markAvatarBroken(shopId) {
+  brokenAvatars.value = { ...brokenAvatars.value, [shopId]: true }
 }
 
 // the card can be closed to see the whole map; picking a shop shows it again
@@ -138,7 +148,8 @@ onMounted(async () => {
         <p v-else-if="shownShops.length === 0" class="text-muted small p-2">No shops match your search.</p>
         <button v-for="shop in shownShops" :key="shop._id" type="button" class="shop-item"
           :class="{ selected: shop._id === selectedId }" @click="selectShop(shop)">
-          <span class="avatar" :style="{ backgroundColor: avatarColour(shop.name) }" aria-hidden="true">
+          <img v-if="shopAvatarUrl(shop)" :src="shopAvatarUrl(shop)" class="avatar" :alt="`${shop.name} profile picture`" @error="markAvatarBroken(shop._id)" />
+          <span v-else class="avatar" :style="{ backgroundColor: avatarColour(shop.name) }" aria-hidden="true">
             {{ shop.name.charAt(0).toUpperCase() }}
           </span>
           <span class="flex-grow-1 min-w-0 text-start">
@@ -393,6 +404,7 @@ onMounted(async () => {
   height: 36px;
   border: 2px solid #fff;
   border-radius: 50%;
+  object-fit: cover;
   font-weight: 700;
   color: #fff;
 }

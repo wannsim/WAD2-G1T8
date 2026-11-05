@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
 router.get('/map', async (req, res) => {
   try {
     const [shops, prices] = await Promise.all([
-      Shop.find().select('name nearestMrt categories description stats location').lean(),
+      Shop.find().select('name nearestMrt categories description stats location avatarUpdatedAt').lean(),
       Product.aggregate([
         { $match: { isAvailable: { $ne: false } } },
         { $group: { _id: '$shop', minPrice: { $min: '$price' }, listingCount: { $sum: 1 } } },
