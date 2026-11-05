@@ -125,16 +125,17 @@ cd client
 pnpm test        # Vitest (unit, component, integration) + older node:test files
 
 cd ../server
-pnpm test        # Vitest (product rules) + older node:test files (YouTube trends, Gemini filter)
+pnpm test        # Vitest (product rules, security helpers) + older node:test files (YouTube trends, Gemini filter)
 ```
 
 | Where | Test files | What they check |
 |---|---|---|
-| `client/src/utils/__tests__/` | `format`, `geo`, `constants`, `mrtStations`, `shopStats`, `salesAnalytics`, `postalCode` | Prices, dates in Singapore time, "3 days ago", distances, categories, MRT names, shop stats, sales date ranges, postal codes |
-| `client/src/components/__tests__/` | `StarRating`, `CategoryMultiSelect`, `MrtSelect`, `SearchBox`, `ReviewBoard.integration` | Each component renders and reacts to clicks/typing; review list filters by star rating |
+| `client/src/utils/__tests__/` | `format`, `geo`, `constants`, `mrtStations`, `shopStats`, `salesAnalytics`, `postalCode`, `forecast`, `makeNext` | Prices, dates in Singapore time, "3 days ago", distances, categories, MRT names, shop stats, sales date ranges, postal codes, the seller's order forecast and backtests, "What to make next" scoring |
+| `client/src/components/__tests__/` | `StarRating`, `CategoryMultiSelect`, `MrtSelect`, `SearchBox`, `ForecastPanel`, `MakeNextPanel`, `ReviewBoard.integration` | Each component renders and reacts to clicks/typing; the forecast shows "Estimate" or "Not enough orders yet to forecast"; review list filters by star rating |
 | `client/src/views/orders/__tests__/` | `GoogleCalendarConnect` | The seller's Google Calendar connect box |
 | `client/tests/format.test.js` | `node:test` | Format helpers and MRT name cleaning |
 | `server/utils/__tests__/productRules.spec.js` | Vitest | Product listing rules: name, category, price, photo, tags |
+| `server/utils/__tests__/safeInput.spec.js` | Vitest | Security helpers: only JPEG / PNG / WebP / GIF pictures; only the allowed shop fields are saved |
 | `server/tests/trends.test.js`, `geminiFilter.test.js` | `node:test` | YouTube trend maths and Gemini filter, with fake YouTube/Gemini (no keys needed) |
 
 Expected result: Vitest ends with all tests `passed`, and `node:test` ends with `fail 0`.
@@ -199,9 +200,14 @@ a sales trend, top products and counts by status for the last 7 / 30 / 90 days o
 Revenue counts **completed orders only**, using the total price saved on each order.
 Repeat customer rate is the percentage of unique buyers with a completed order placed in the selected period who have at least two completed orders placed by that period's end, including earlier purchases from the same shop. Each buyer counts once; orders without a buyer ID are excluded from this metric. No customers gives 0%. Like the other cards, the comparison shows percentage change relative to the preceding period; it is unavailable when either period has no customers or the previous rate is zero.
 
+**Seller forecast** - on **Analytics**, switch from **Sales so far** to **Forecast** to see an estimate of
+next weeks' orders (with a low-high range), the busiest weekdays and **What to make next**. It uses
+completed orders only, and shows "Not enough orders yet to forecast" when there is too little history.
+The maths and a worked example are in [`ALGORITHMS.md`](ALGORITHMS.md).
+
 **Security note** - logging in returns a signed login token (`server/utils/auth.js`). The API checks it
-on actions that change data (creating products, orders, reviews, avatars, Google Calendar), and pages are
-also guarded in the browser.
+on actions that change data (creating products, orders, reviews, avatars, Google Calendar), so a user can
+only change their own account, shop and orders. Uploaded pictures must be JPEG, PNG, WebP or GIF, up to 5 MB.
 
 ## Project structure
 
