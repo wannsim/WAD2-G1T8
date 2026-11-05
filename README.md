@@ -228,6 +228,4 @@ Photos for the sample products come from Wikimedia Commons under free licences -
 licences are listed in [`server/seed/images/CREDITS.md`](server/seed/images/CREDITS.md).
 
 ## Use of AI tools
-
-[To be completed by the team: state which AI tools were used, for which parts of the project, and how
-the output was checked, as required by the IS216 project brief.]
+Claude used to assist in coding 
