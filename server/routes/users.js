@@ -6,6 +6,7 @@ import User from '../models/User.js'
 import Shop from '../models/Shop.js'
 import { OAuth2Client } from 'google-auth-library'
 import { createToken, requireAuth, requireSelf } from '../utils/auth.js'
+import { isAllowedImageType, sendStoredImage } from '../utils/safeInput.js'
 
 // Owner: Wan Sim
 // POST /users/register   POST /users/login   GET /users/:id   PUT /users/:id
@@ -170,11 +171,11 @@ router.put('/:id', requireSelf('id'), async (req, res) => {
 })
 
 // ---------- profile picture (buyers; sellers use their shop's picture) ----------
-// images only, max 5MB
+// JPEG / PNG / WebP / GIF only (utils/safeInput.js), max 5MB
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (req, file, cb) => cb(null, isAllowedImageType(file.mimetype)),
 })
 function uploadImage(req, res, next) {
   upload.single('image')(req, res, (err) => {
@@ -222,11 +223,7 @@ router.get('/:id/avatar', async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.sendStatus(404)
     const user = await User.findById(req.params.id).select('+avatar').lean()
-    const match = /^data:(.+?);base64,(.+)$/s.exec(user?.avatar || '')
-    if (!match) return res.sendStatus(404)
-    res.set('Content-Type', match[1])
-    res.set('Cache-Control', 'public, max-age=604800')
-    res.send(Buffer.from(match[2], 'base64'))
+    sendStoredImage(res, user?.avatar, 604800) // allowed types only, with nosniff (utils/safeInput.js)
   } catch (err) {
     res.sendStatus(500)
   }

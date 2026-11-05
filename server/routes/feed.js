@@ -329,6 +329,8 @@ router.post('/interactions', async (req, res) => {
   try {
     if (!req.user) return res.status(204).end()
     const { product, shop, type } = req.body
+    // 'order' is saved by POST /orders when a real order is placed, so nobody can fake "Ordered N times this week"
+    if (type === 'order') return res.status(400).json({ message: 'Orders are recorded when an order is placed.' })
     const interaction = await Interaction.create({ user: req.user.id, product, shop, type })
     res.status(201).json(interaction)
   } catch (err) {

@@ -6,17 +6,18 @@ import User from '../models/User.js'
 import { requireAuth, requireSelf, requireShopOwner } from '../utils/auth.js'
 import Product from '../models/Product.js'
 import { CATEGORIES } from '../utils/productRules.js'
+import { isAllowedImageType, sendStoredImage, pickFields, SHOP_EDITABLE_FIELDS } from '../utils/safeInput.js'
 
 // Owner: Cheyenne
 // GET /shops   GET /shops/map   GET /shops/name-available   GET /shops/mine/:ownerId   GET /shops/:id   POST /shops   PUT /shops/:id   PUT /shops/:id/pin   POST /shops/:id/follow
 // POST/DELETE/GET /shops/:id/avatar (profile picture)
 const router = express.Router()
 
-// certificate photos: images only, max 5MB each
+// certificate photos: JPEG / PNG / WebP / GIF only (utils/safeInput.js), max 5MB each
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+  fileFilter: (req, file, cb) => cb(null, isAllowedImageType(file.mimetype)),
 })
 
 // certificate photos are big Base64 strings - never send them inside the shop JSON
@@ -130,9 +131,10 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { certificationFiles, avatar, avatarUpdatedAt, stats, followers, pinnedProducts, ...data } = req.body // photos are uploaded separately
+    // copy only the fields a seller may set, so keys like "stats.trustScore" or "$set" are ignored (utils/safeInput.js)
+    const data = pickFields(req.body, SHOP_EDITABLE_FIELDS)
     data.owner = req.user.id // a shop always belongs to whoever is logged in
-    data.name = cleanName(data.name)
+    data.name = cleanName(req.body.name)
     const problem = await checkShopName(data.name, undefined, req.user.id)
     if (problem) return res.status(409).json({ message: problem })
     const categoryProblem = checkShopCategories(data)
@@ -148,15 +150,15 @@ router.put('/:id', requireShopOwner('id'), async (req, res) => {
   try {
     // never let the client overwrite the owner or the trust stats
     // certificate photos + the profile picture have their own routes below, so they can't be wiped by a profile save
-    const { owner, stats, pinnedProducts, followers, certificationFiles, avatar, avatarUpdatedAt, ...changes } = req.body
+    // copy only the fields a seller may set, so keys like "stats.trustScore" or "$set" are ignored (utils/safeInput.js)
+    const changes = pickFields(req.body, SHOP_EDITABLE_FIELDS)
     // the shop name is set once, when the shop is created, and can't be changed afterwards
-    if ('name' in changes) {
+    if (req.body.name !== undefined) {
       const current = await Shop.findById(req.params.id).select('name').lean()
       if (!current) return res.status(404).json({ message: 'Shop not found' })
-      if (cleanName(changes.name) !== current.name) {
+      if (cleanName(req.body.name) !== current.name) {
         return res.status(400).json({ message: 'Shop names cannot be changed after the shop is created.' })
       }
-      delete changes.name
     }
     const categoryProblem = checkShopCategories(changes)
     if (categoryProblem) return res.status(400).json({ message: categoryProblem })
@@ -310,11 +312,7 @@ router.get('/:id/avatar', async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.sendStatus(404)
     const shop = await Shop.findById(req.params.id).select('+avatar').lean()
-    const match = /^data:(.+?);base64,(.+)$/s.exec(shop?.avatar || '')
-    if (!match) return res.sendStatus(404)
-    res.set('Content-Type', match[1])
-    res.set('Cache-Control', 'public, max-age=604800')
-    res.send(Buffer.from(match[2], 'base64'))
+    sendStoredImage(res, shop?.avatar, 604800) // allowed types only, with nosniff (utils/safeInput.js)
   } catch (err) {
     res.sendStatus(500)
   }
@@ -327,13 +325,7 @@ router.get('/:id/certs/:certId/image', async (req, res) => {
     if (!mongoose.isValidObjectId(id) || !mongoose.isValidObjectId(certId)) return res.sendStatus(404)
     const shop = await Shop.findOne({ _id: id }, { certificationFiles: { $elemMatch: { _id: certId } } }).lean()
     const image = shop?.certificationFiles?.[0]?.image
-    if (!image) return res.sendStatus(404)
-
-    const match = /^data:(.+?);base64,(.+)$/s.exec(image)
-    if (!match) return res.sendStatus(404)
-    res.set('Content-Type', match[1])
-    res.set('Cache-Control', 'public, max-age=604800') // a cert id never changes its photo
-    res.send(Buffer.from(match[2], 'base64'))
+    sendStoredImage(res, image, 604800) // a cert id never changes its photo. Allowed types only, with nosniff
   } catch (err) {
     res.sendStatus(500)
   }

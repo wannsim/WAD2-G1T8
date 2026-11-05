@@ -9,6 +9,7 @@ import { withImageUrl, imageCounts } from '../utils/images.js'
 import { checkProduct, toPrice, cleanTags } from '../utils/productRules.js'
 import { notify } from '../utils/notify.js'
 import { requireAuth, requireSelf, requireShopOwner } from '../utils/auth.js'
+import { isAllowedImageType, sendStoredImage, MAX_IMAGE_BYTES, IMAGE_RULE_MESSAGE } from '../utils/safeInput.js'
 
 // buyers who saved this product (to tell them it is sold out / deleted)
 async function favouritedBy(productId) {
@@ -25,11 +26,24 @@ async function ownsProduct(productId, userId) {
   const shop = await Shop.findById(product.shop).select('owner').lean()
   return !!shop && String(shop.owner) === userId
 }
-const upload = multer({ storage: multer.memoryStorage() })
+// product photos: JPEG / PNG / WebP / GIF only, max 5MB each (same approach as shops.js)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGE_BYTES },
+  fileFilter: (req, file, cb) => (isAllowedImageType(file.mimetype) ? cb(null, true) : cb(new Error(IMAGE_RULE_MESSAGE))),
+})
+// turns a refused or too-big photo into a clear 400 (instead of a server error)
+function uploadImages(req, res, next) {
+  upload.array('images', 5)(req, res, (err) => {
+    if (!err) return next()
+    const message = err.code === 'LIMIT_FILE_SIZE' ? IMAGE_RULE_MESSAGE : err.message
+    res.status(400).json({ error: message, message })
+  })
+}
 
 // Create Product/Service. body also has { shopId, user }   user must own the shop
 // (a seller can only list products after setting up their shop profile)
-router.post('/', requireAuth, upload.array('images', 5), async (req, res) => {
+router.post('/', requireAuth, uploadImages, async (req, res) => {
   try {
     const shop = mongoose.isValidObjectId(req.body.shopId) ? await Shop.findById(req.body.shopId).select('owner name followers').lean() : null
     if (!shop) return res.status(400).json({ error: 'Please set up your shop profile before adding products.' })
@@ -160,19 +174,15 @@ router.get('/:id/image/:index', async (req, res) => {
     const image = product?.images?.[0]
     if (!image) return res.sendStatus(404)
 
-    const match = /^data:(.+?);base64,(.+)$/s.exec(image)
-    if (!match) return res.redirect(image) // already a normal URL
-
-    res.set('Content-Type', match[1])
-    res.set('Cache-Control', 'public, max-age=86400')
-    res.send(Buffer.from(match[2], 'base64'))
+    if (!image.startsWith('data:')) return res.redirect(image) // already a normal URL
+    sendStoredImage(res, image, 86400) // allowed types only, with nosniff (utils/safeInput.js)
   } catch (error) {
     res.sendStatus(500)
   }
 })
 
 // Update Product / Order Slots
-router.put('/:id', requireAuth, upload.array('images', 5), async (req, res) => {
+router.put('/:id', requireAuth, uploadImages, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Product not found' })
     if (!(await ownsProduct(req.params.id, req.user.id))) return res.status(403).json({ error: 'Only the shop owner can edit this product' })

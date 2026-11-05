@@ -126,6 +126,7 @@ The message never prints the value.
 | `client/src/utils/__tests__/forecast.spec.js` | Unit (TDD) | Seller forecast (see ALGORITHMS.md). `weeklyTotals` (7): Singapore weeks, empty weeks as 0, only completed orders, Sunday 17:30 UTC counts in the next week, pickup time first, this week left out. `forecastWeeks` (8): not enough history, the worked example (4, 6, 5, 7, 8, 9), flat, rising, a 0 week, never below 0. `busiestSlots` (7): per weekday, Saturday 17:30 UTC = Sunday, the 40% rule. `backtest` (4) and `rollingBacktest` (5) | 31 |
 | `client/src/utils/__tests__/makeNext.spec.js` | Unit (TDD) | What to make next. `categoryGrowth` (4): last 4 full weeks vs the 4 before, 0 orders before (no divide by zero). `suggestNext` (10): 0.6 own + 0.4 trend with the reason, +100% cap, 2-order minimum, new category, shrinking category, other categories ignored, own growth only without trends, up to 3 keyword ideas, "baked goods" matches "Baked goods" | 14 |
 | `server/utils/__tests__/productRules.spec.js` | Unit | `checkProduct` (complete listing, blank name, wrong category, price rules, missing photo); `toPrice`; `cleanTags` | 7 |
+| `server/utils/__tests__/safeInput.spec.js` | Unit | Security helpers. `isAllowedImageType` (5): JPEG / PNG / WebP / GIF allowed, capitals ignored, SVG, HTML and missing types refused. `readDataUrl` (4): type and data read, normal links and empty values are not stored pictures. `pickFields` (6): only the listed shop fields are copied, `"stats.trustScore"` and `$set` are left behind, `false` and `''` kept, a new object, and the list has no server-only fields | 15 |
 | `client/src/components/__tests__/StarRating.spec.js` | Component | Shows 5 stars; prop defaults; clicking a star when editable emits `rate` with 1, 3 or 5; clicking when display-only emits nothing | 5 |
 | `client/src/components/__tests__/CategoryMultiSelect.spec.js` | Component | Placeholder and full list; ticking emits the new list; list stays in site order; × removes a chip; "Clear all" | 5 |
 | `client/src/components/__tests__/MrtSelect.spec.js` | Component | Typing filters suggestions; "No station matches"; clicking a suggestion emits it; error for a made-up station after leaving the box; tidies "bishan mrt"; required message | 6 |
@@ -144,7 +145,7 @@ The message never prints the value.
 
 **Totals** (counted by running the tests on 5 Nov 2026, not by adding up):
 - Vitest, client: **126 tests in 17 files**, all passing (87 unit, 35 component, 4 integration).
-- Vitest, server: **7 tests in 1 file**, all passing.
+- Vitest, server: **22 tests in 2 files**, all passing (7 product rules, 15 security helpers).
 - E2E: **7 tests in 4 files** (login 2, browse 1, orders 2, calendar-connect 2). Counted with `pnpm exec playwright test --list`, which lists them without running them, because running the order test creates a real order.
 - Older `node:test`: **16** (client 6, server 10), all passing.
 
@@ -167,6 +168,7 @@ The message never prints the value.
 | Google login | It runs in Google's own pop-up and needs a real Google account, so it can't be automated. |
 | `server/routes/forecast.js` (`GET /forecast/make-next/:shopId`) | It reads products and saved YouTube trends from MongoDB. Testing it without a database means mocking MongoDB (outside the slides), and it must never write to the shared one. Checked by hand only: 401 without a login, 200 for the shop owner. The matching and scoring it feeds are in `makeNext.js`, which is tested. |
 | `MakeNextSection.vue` | It only loads that route with axios and passes the data on, so testing it needs the server or a mocked axios. `MakeNextPanel`, which shows the data, is tested with props instead. |
+| The security checks inside the routes (shop field copy in `POST`/`PUT /shops`, photo filters in `products.js` / `users.js` / `shops.js`, `type: 'order'` refused by `POST /feed/interactions`) | The routes read and write MongoDB, and the shared database must not be written to by tests. The helpers they use are tested (`safeInput.spec.js`). Checked by hand on a throwaway server with no database: an HTML file, an SVG and a 6 MB PNG to `/products` get 400 "Only JPEG, PNG, WebP or GIF images up to 5 MB are allowed"; an SVG avatar is refused; `type: 'order'` gets 400. A seller actually saving a shop with a `"stats.trustScore"` key was **not** run, because it writes to the database. |
 
 ---
 
